@@ -44,7 +44,13 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
+              <p class="caption" role="heading"><span class="caption-text">AgentScope Tutorial</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/quick_start.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/advance.html">Advanced Exploration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/contribute.html">Get Involved</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="agentscope.agents.html">Agents package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Configs package</a><ul>
@@ -55,6 +61,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#agentscope.configs.model_config.OpenAICfg"><code class="docutils literal notranslate"><span class="pre">OpenAICfg</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#agentscope.configs.model_config.OpenAICfg.api_key"><code class="docutils literal notranslate"><span class="pre">OpenAICfg.api_key</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#agentscope.configs.model_config.OpenAICfg.budget"><code class="docutils literal notranslate"><span class="pre">OpenAICfg.budget</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#agentscope.configs.model_config.OpenAICfg.client_args"><code class="docutils literal notranslate"><span class="pre">OpenAICfg.client_args</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#agentscope.configs.model_config.OpenAICfg.generate_args"><code class="docutils literal notranslate"><span class="pre">OpenAICfg.generate_args</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#agentscope.configs.model_config.OpenAICfg.model_name"><code class="docutils literal notranslate"><span class="pre">OpenAICfg.model_name</span></code></a></li>
@@ -65,6 +72,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#agentscope.configs.model_config.PostApiCfg"><code class="docutils literal notranslate"><span class="pre">PostApiCfg</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#agentscope.configs.model_config.PostApiCfg.api_url"><code class="docutils literal notranslate"><span class="pre">PostApiCfg.api_url</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#agentscope.configs.model_config.PostApiCfg.budget"><code class="docutils literal notranslate"><span class="pre">PostApiCfg.budget</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#agentscope.configs.model_config.PostApiCfg.headers"><code class="docutils literal notranslate"><span class="pre">PostApiCfg.headers</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#agentscope.configs.model_config.PostApiCfg.json_args"><code class="docutils literal notranslate"><span class="pre">PostApiCfg.json_args</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#agentscope.configs.model_config.PostApiCfg.max_length"><code class="docutils literal notranslate"><span class="pre">PostApiCfg.max_length</span></code></a></li>
@@ -146,6 +154,12 @@ provided.</p>
 </dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="agentscope.configs.model_config.OpenAICfg.budget">
+<span class="sig-name descname"><span class="pre">budget</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#agentscope.configs.model_config.OpenAICfg.budget" title="Link to this definition"></a></dt>
+<dd><p>The total budget using this model. Set to <cite>None</cite> means no limit.</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="agentscope.configs.model_config.OpenAICfg.client_args">
 <span class="sig-name descname"><span class="pre">client_args</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#agentscope.configs.model_config.OpenAICfg.client_args" title="Link to this definition"></a></dt>
 <dd><p>The arguments used to initialize openai client, e.g. <cite>timeout</cite>,
@@ -208,6 +222,12 @@ provided.</p>
 <dt class="sig sig-object py" id="agentscope.configs.model_config.PostApiCfg.api_url">
 <span class="sig-name descname"><span class="pre">api_url</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#agentscope.configs.model_config.PostApiCfg.api_url" title="Link to this definition"></a></dt>
 <dd><p>The url of the model.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="agentscope.configs.model_config.PostApiCfg.budget">
+<span class="sig-name descname"><span class="pre">budget</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#agentscope.configs.model_config.PostApiCfg.budget" title="Link to this definition"></a></dt>
+<dd><p>The total budget using this model. Set to <cite>None</cite> means no limit.</p>
 </dd></dl>
 
 <dl class="py attribute">

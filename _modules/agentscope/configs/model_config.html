@@ -43,7 +43,13 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
+              <p class="caption" role="heading"><span class="caption-text">AgentScope Tutorial</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial/quick_start.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial/advance.html">Advanced Exploration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial/contribute.html">Get Involved</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../agentscope.agents.html">Agents package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../agentscope.configs.html">Configs package</a></li>
@@ -85,10 +91,9 @@
 <span></span><span class="c1"># -*- coding: utf-8 -*-</span>
 <span class="sd">&quot;&quot;&quot;The model config.&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
-
-
-<span class="n">DEFAULT_MAX_RETRIES</span> <span class="o">=</span> <span class="mi">3</span>
-<span class="n">DEFAULT_MESSAGES_KEY</span> <span class="o">=</span> <span class="s2">&quot;inputs&quot;</span>
+<span class="kn">from</span> <span class="nn">..constants</span> <span class="kn">import</span> <span class="n">_DEFAULT_MAX_RETRIES</span>
+<span class="kn">from</span> <span class="nn">..constants</span> <span class="kn">import</span> <span class="n">_DEFAULT_MESSAGES_KEY</span>
+<span class="kn">from</span> <span class="nn">..constants</span> <span class="kn">import</span> <span class="n">_DEFAULT_API_BUDGET</span>
 
 
 <div class="viewcode-block" id="CfgBase">
@@ -149,7 +154,10 @@
 
     <span class="n">generate_args</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The arguments used in openai api generation, e.g. `temperature`,</span>
-<span class="sd">    `seed`.&quot;&quot;&quot;</span></div>
+<span class="sd">    `seed`.&quot;&quot;&quot;</span>
+
+    <span class="n">budget</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">_DEFAULT_API_BUDGET</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The total budget using this model. Set to `None` means no limit.&quot;&quot;&quot;</span></div>
 
 
 
@@ -203,13 +211,16 @@
 <span class="sd">    **generate_args)`, which depends on the specific requirements of the</span>
 <span class="sd">    model API.&quot;&quot;&quot;</span>
 
-    <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_MAX_RETRIES</span>
+    <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">_DEFAULT_MAX_RETRIES</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The max retries of the request.&quot;&quot;&quot;</span>
 
-    <span class="n">messages_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_MESSAGES_KEY</span>
+    <span class="n">messages_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">_DEFAULT_MESSAGES_KEY</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The key of the prompt messages in `requests.post()`,</span>
 <span class="sd">    e.g. `request.post(json={${messages_key}: messages, **json_args})`. For</span>
-<span class="sd">    huggingface and modelscope inference API, the key is `inputs`&quot;&quot;&quot;</span></div>
+<span class="sd">    huggingface and modelscope inference API, the key is `inputs`&quot;&quot;&quot;</span>
+
+    <span class="n">budget</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">_DEFAULT_API_BUDGET</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The total budget using this model. Set to `None` means no limit.&quot;&quot;&quot;</span></div>
 
 </pre></div>
 

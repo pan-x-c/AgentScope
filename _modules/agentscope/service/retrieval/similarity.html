@@ -43,7 +43,13 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
+              <p class="caption" role="heading"><span class="caption-text">AgentScope Tutorial</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/quick_start.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/advance.html">Advanced Exploration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial/contribute.html">Get Involved</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../agentscope.agents.html">Agents package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../agentscope.configs.html">Configs package</a></li>
@@ -91,12 +97,9 @@
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="n">np</span> <span class="o">=</span> <span class="kc">None</span>
 
-<span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
-<span class="kn">from</span> <span class="nn">agentscope.utils.enums</span> <span class="kn">import</span> <span class="n">ServiceExecStatus</span>
+<span class="kn">from</span> <span class="nn">agentscope.service.service_status</span> <span class="kn">import</span> <span class="n">ServiceExecStatus</span>
 <span class="kn">from</span> <span class="nn">agentscope.service.service_response</span> <span class="kn">import</span> <span class="n">ServiceResponse</span>
-
-<span class="c1"># TODO: moving type definition into a single file</span>
-<span class="n">Embedding</span> <span class="o">=</span> <span class="nb">list</span><span class="p">[</span><span class="n">Number</span><span class="p">]</span>
+<span class="kn">from</span> <span class="nn">agentscope.constants</span> <span class="kn">import</span> <span class="n">Embedding</span>
 
 
 <div class="viewcode-block" id="cos_sim">

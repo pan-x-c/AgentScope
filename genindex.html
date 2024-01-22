@@ -43,7 +43,13 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
+              <p class="caption" role="heading"><span class="caption-text">AgentScope Tutorial</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/quick_start.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/advance.html">Advanced Exploration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/contribute.html">Get Involved</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="agentscope.agents.html">Agents package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="agentscope.configs.html">Configs package</a></li>
@@ -85,6 +91,7 @@
 
 <div class="genindex-jumpbox">
  <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
  | <a href="#E"><strong>E</strong></a>
@@ -113,9 +120,9 @@
       <ul>
         <li><a href="agentscope.memory.html#agentscope.memory.temporary_memory.TemporaryMemory.add">(agentscope.memory.temporary_memory.TemporaryMemory method)</a>
 </li>
-        <li><a href="agentscope.utils.html#agentscope.utils.monitor.DictMonitor.add">(agentscope.utils.monitor.DictMonitor method)</a>
-</li>
         <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.add">(agentscope.utils.monitor.MonitorBase method)</a>
+</li>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.add">(agentscope.utils.monitor.SqliteMonitor method)</a>
 </li>
       </ul></li>
       <li><a href="agentscope.agents.html#agentscope.agents.agent.AgentBase">AgentBase (class in agentscope.agents.agent)</a>
@@ -256,13 +263,6 @@
 </li>
       </ul></li>
       <li>
-    agentscope.utils.enums
-
-      <ul>
-        <li><a href="agentscope.utils.html#module-agentscope.utils.enums">module</a>
-</li>
-      </ul></li>
-      <li>
     agentscope.utils.logging_utils
 
       <ul>
@@ -297,6 +297,18 @@
   </ul></td>
 </tr></table>
 
+<h2 id="B">B</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="agentscope.configs.html#agentscope.configs.model_config.OpenAICfg.budget">budget (agentscope.configs.model_config.OpenAICfg attribute)</a>
+
+      <ul>
+        <li><a href="agentscope.configs.html#agentscope.configs.model_config.PostApiCfg.budget">(agentscope.configs.model_config.PostApiCfg attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -309,9 +321,9 @@
       <ul>
         <li><a href="agentscope.memory.html#agentscope.memory.temporary_memory.TemporaryMemory.clear">(agentscope.memory.temporary_memory.TemporaryMemory method)</a>
 </li>
-        <li><a href="agentscope.utils.html#agentscope.utils.monitor.DictMonitor.clear">(agentscope.utils.monitor.DictMonitor method)</a>
-</li>
         <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.clear">(agentscope.utils.monitor.MonitorBase method)</a>
+</li>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.clear">(agentscope.utils.monitor.SqliteMonitor method)</a>
 </li>
       </ul></li>
       <li><a href="agentscope.agents.html#agentscope.agents.agent.AgentBase.clear_audience">clear_audience() (agentscope.agents.agent.AgentBase method)</a>
@@ -350,22 +362,18 @@
 </li>
       <li><a href="agentscope.service.file.html#agentscope.service.file.common.delete_file">delete_file() (in module agentscope.service.file.common)</a>
 </li>
-      <li><a href="agentscope.utils.html#agentscope.utils.monitor.DictMonitor">DictMonitor (class in agentscope.utils.monitor)</a>
-</li>
   </ul></td>
 </tr></table>
 
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="agentscope.utils.html#agentscope.utils.enums.ServiceExecStatus.ERROR">ERROR (agentscope.utils.enums.ServiceExecStatus attribute)</a>
-</li>
       <li><a href="agentscope.service.code.html#agentscope.service.code.exec_python.execute_python_code">execute_python_code() (in module agentscope.service.code.exec_python)</a>
 </li>
-      <li><a href="agentscope.utils.html#agentscope.utils.monitor.DictMonitor.exists">exists() (agentscope.utils.monitor.DictMonitor method)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.exists">exists() (agentscope.utils.monitor.MonitorBase method)</a>
 
       <ul>
-        <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.exists">(agentscope.utils.monitor.MonitorBase method)</a>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.exists">(agentscope.utils.monitor.SqliteMonitor method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -390,22 +398,24 @@
 </li>
       <li><a href="agentscope.memory.html#agentscope.memory.temporary_memory.TemporaryMemory.get_embeddings">get_embeddings() (agentscope.memory.temporary_memory.TemporaryMemory method)</a>
 </li>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.get_full_name">get_full_name() (in module agentscope.utils.monitor)</a>
+</li>
       <li><a href="agentscope.memory.html#agentscope.memory.memory.MemoryBase.get_memory">get_memory() (agentscope.memory.memory.MemoryBase method)</a>
 
       <ul>
         <li><a href="agentscope.memory.html#agentscope.memory.temporary_memory.TemporaryMemory.get_memory">(agentscope.memory.temporary_memory.TemporaryMemory method)</a>
 </li>
       </ul></li>
-      <li><a href="agentscope.utils.html#agentscope.utils.monitor.DictMonitor.get_metric">get_metric() (agentscope.utils.monitor.DictMonitor method)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.get_metric">get_metric() (agentscope.utils.monitor.MonitorBase method)</a>
 
       <ul>
-        <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.get_metric">(agentscope.utils.monitor.MonitorBase method)</a>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.get_metric">(agentscope.utils.monitor.SqliteMonitor method)</a>
 </li>
       </ul></li>
-      <li><a href="agentscope.utils.html#agentscope.utils.monitor.DictMonitor.get_metrics">get_metrics() (agentscope.utils.monitor.DictMonitor method)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.get_metrics">get_metrics() (agentscope.utils.monitor.MonitorBase method)</a>
 
       <ul>
-        <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.get_metrics">(agentscope.utils.monitor.MonitorBase method)</a>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.get_metrics">(agentscope.utils.monitor.SqliteMonitor method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -414,22 +424,22 @@
 </li>
       <li><a href="agentscope.utils.html#agentscope.utils.token_utils.get_openai_max_length">get_openai_max_length() (in module agentscope.utils.token_utils)</a>
 </li>
-      <li><a href="agentscope.utils.html#agentscope.utils.monitor.DictMonitor.get_quota">get_quota() (agentscope.utils.monitor.DictMonitor method)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.get_quota">get_quota() (agentscope.utils.monitor.MonitorBase method)</a>
 
       <ul>
-        <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.get_quota">(agentscope.utils.monitor.MonitorBase method)</a>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.get_quota">(agentscope.utils.monitor.SqliteMonitor method)</a>
 </li>
       </ul></li>
-      <li><a href="agentscope.utils.html#agentscope.utils.monitor.DictMonitor.get_unit">get_unit() (agentscope.utils.monitor.DictMonitor method)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.get_unit">get_unit() (agentscope.utils.monitor.MonitorBase method)</a>
 
       <ul>
-        <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.get_unit">(agentscope.utils.monitor.MonitorBase method)</a>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.get_unit">(agentscope.utils.monitor.SqliteMonitor method)</a>
 </li>
       </ul></li>
-      <li><a href="agentscope.utils.html#agentscope.utils.monitor.DictMonitor.get_value">get_value() (agentscope.utils.monitor.DictMonitor method)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.get_value">get_value() (agentscope.utils.monitor.MonitorBase method)</a>
 
       <ul>
-        <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.get_value">(agentscope.utils.monitor.MonitorBase method)</a>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.get_value">(agentscope.utils.monitor.SqliteMonitor method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -458,10 +468,6 @@
 <h2 id="J">J</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="agentscope.utils.html#agentscope.utils.enums.ResponseFormat.JSON">JSON (agentscope.utils.enums.ResponseFormat attribute)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="agentscope.configs.html#agentscope.configs.model_config.PostApiCfg.json_args">json_args (agentscope.configs.model_config.PostApiCfg attribute)</a>
 </li>
   </ul></td>
@@ -470,8 +476,6 @@
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="agentscope.utils.html#agentscope.utils.enums.PromptType.LIST">LIST (agentscope.utils.enums.PromptType attribute)</a>
-</li>
       <li><a href="agentscope.memory.html#agentscope.memory.memory.MemoryBase.load">load() (agentscope.memory.memory.MemoryBase method)</a>
 
       <ul>
@@ -546,8 +550,6 @@
 </li>
         <li><a href="agentscope.utils.html#module-agentscope.utils.common">agentscope.utils.common</a>
 </li>
-        <li><a href="agentscope.utils.html#module-agentscope.utils.enums">agentscope.utils.enums</a>
-</li>
         <li><a href="agentscope.utils.html#module-agentscope.utils.logging_utils">agentscope.utils.logging_utils</a>
 </li>
         <li><a href="agentscope.utils.html#module-agentscope.utils.monitor">agentscope.utils.monitor</a>
@@ -581,8 +583,6 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="agentscope.utils.html#agentscope.utils.enums.ResponseFormat.NONE">NONE (agentscope.utils.enums.ResponseFormat attribute)</a>
-</li>
       <li><a href="agentscope.utils.html#agentscope.utils.token_utils.num_tokens_from_content">num_tokens_from_content() (in module agentscope.utils.token_utils)</a>
 </li>
   </ul></td>
@@ -615,13 +615,11 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="agentscope.configs.html#agentscope.configs.model_config.PostApiCfg.post_args">post_args (agentscope.configs.model_config.PostApiCfg attribute)</a>
 </li>
-      <li><a href="agentscope.configs.html#agentscope.configs.model_config.PostApiCfg">PostApiCfg (class in agentscope.configs.model_config)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="agentscope.models.html#agentscope.models.post_model.PostApiModelWrapper">PostApiModelWrapper (class in agentscope.models.post_model)</a>
+      <li><a href="agentscope.configs.html#agentscope.configs.model_config.PostApiCfg">PostApiCfg (class in agentscope.configs.model_config)</a>
 </li>
-      <li><a href="agentscope.utils.html#agentscope.utils.enums.PromptType">PromptType (class in agentscope.utils.enums)</a>
+      <li><a href="agentscope.models.html#agentscope.models.post_model.PostApiModelWrapper">PostApiModelWrapper (class in agentscope.models.post_model)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -651,35 +649,35 @@
 </li>
       <li><a href="agentscope.service.file.html#agentscope.service.file.text.read_text_file">read_text_file() (in module agentscope.service.file.text)</a>
 </li>
-      <li><a href="agentscope.utils.html#agentscope.utils.monitor.DictMonitor.register">register() (agentscope.utils.monitor.DictMonitor method)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.register">register() (agentscope.utils.monitor.MonitorBase method)</a>
 
       <ul>
-        <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.register">(agentscope.utils.monitor.MonitorBase method)</a>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.register">(agentscope.utils.monitor.SqliteMonitor method)</a>
 </li>
       </ul></li>
-      <li><a href="agentscope.utils.html#agentscope.utils.monitor.DictMonitor.remove">remove() (agentscope.utils.monitor.DictMonitor method)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.register_budget">register_budget() (agentscope.utils.monitor.MonitorBase method)</a>
 
       <ul>
-        <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.remove">(agentscope.utils.monitor.MonitorBase method)</a>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.register_budget">(agentscope.utils.monitor.SqliteMonitor method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.remove">remove() (agentscope.utils.monitor.MonitorBase method)</a>
+
+      <ul>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.remove">(agentscope.utils.monitor.SqliteMonitor method)</a>
 </li>
       </ul></li>
       <li><a href="agentscope.agents.html#agentscope.agents.agent.AgentBase.reply">reply() (agentscope.agents.agent.AgentBase method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="agentscope.utils.html#agentscope.utils.common.requests_get">requests_get() (in module agentscope.utils.common)</a>
 </li>
       <li><a href="agentscope.agents.html#agentscope.agents.agent.AgentBase.reset_audience">reset_audience() (agentscope.agents.agent.AgentBase method)</a>
 </li>
-      <li><a href="agentscope.utils.html#agentscope.utils.enums.ResponseFormat">ResponseFormat (class in agentscope.utils.enums)</a>
-</li>
       <li><a href="agentscope.memory.html#agentscope.memory.temporary_memory.TemporaryMemory.retrieve_by_embedding">retrieve_by_embedding() (agentscope.memory.temporary_memory.TemporaryMemory method)</a>
 </li>
       <li><a href="agentscope.service.retrieval.html#agentscope.service.retrieval.retrieval_from_list.retrieve_from_list">retrieve_from_list() (in module agentscope.service.retrieval.retrieval_from_list)</a>
-</li>
-      <li><a href="agentscope.utils.html#agentscope.utils.monitor.return_false_if_not_exists">return_false_if_not_exists() (in module agentscope.utils.monitor)</a>
-</li>
-      <li><a href="agentscope.utils.html#agentscope.utils.monitor.return_none_if_not_exists">return_none_if_not_exists() (in module agentscope.utils.monitor)</a>
 </li>
       <li><a href="agentscope.agents.html#agentscope.agents.agent.AgentBase.rm_audience">rm_audience() (agentscope.agents.agent.AgentBase method)</a>
 </li>
@@ -689,31 +687,27 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="agentscope.utils.html#agentscope.utils.enums.ServiceExecStatus">ServiceExecStatus (class in agentscope.utils.enums)</a>
-</li>
-      <li><a href="agentscope.utils.html#agentscope.utils.monitor.DictMonitor.set_quota">set_quota() (agentscope.utils.monitor.DictMonitor method)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.set_quota">set_quota() (agentscope.utils.monitor.MonitorBase method)</a>
 
       <ul>
-        <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.set_quota">(agentscope.utils.monitor.MonitorBase method)</a>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.set_quota">(agentscope.utils.monitor.SqliteMonitor method)</a>
 </li>
       </ul></li>
       <li><a href="agentscope.utils.html#agentscope.utils.logging_utils.setup_logger">setup_logger() (in module agentscope.utils.logging_utils)</a>
 </li>
-      <li><a href="agentscope.utils.html#agentscope.utils.enums.ShrinkPolicy">ShrinkPolicy (class in agentscope.utils.enums)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="agentscope.memory.html#agentscope.memory.memory.MemoryBase.size">size() (agentscope.memory.memory.MemoryBase method)</a>
 
       <ul>
         <li><a href="agentscope.memory.html#agentscope.memory.temporary_memory.TemporaryMemory.size">(agentscope.memory.temporary_memory.TemporaryMemory method)</a>
 </li>
       </ul></li>
-      <li><a href="agentscope.utils.html#agentscope.utils.enums.PromptType.STRING">STRING (agentscope.utils.enums.PromptType attribute)</a>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.sqlite_cursor">sqlite_cursor() (in module agentscope.utils.monitor)</a>
 </li>
-      <li><a href="agentscope.utils.html#agentscope.utils.enums.ServiceExecStatus.SUCCESS">SUCCESS (agentscope.utils.enums.ServiceExecStatus attribute)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.sqlite_transaction">sqlite_transaction() (in module agentscope.utils.monitor)</a>
 </li>
-      <li><a href="agentscope.utils.html#agentscope.utils.enums.ShrinkPolicy.SUMMARIZE">SUMMARIZE (agentscope.utils.enums.ShrinkPolicy attribute)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor">SqliteMonitor (class in agentscope.utils.monitor)</a>
 </li>
       <li><a href="agentscope.service.code.html#agentscope.service.code.exec_python.sys_python_guard">sys_python_guard() (in module agentscope.service.code.exec_python)</a>
 </li>
@@ -729,13 +723,11 @@
 </li>
       <li><a href="agentscope.utils.html#agentscope.utils.common.timer">timer() (in module agentscope.utils.common)</a>
 </li>
-      <li><a href="agentscope.utils.html#agentscope.utils.tools.to_dialog_str">to_dialog_str() (in module agentscope.utils.tools)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="agentscope.utils.html#agentscope.utils.tools.to_openai_dict">to_openai_dict() (in module agentscope.utils.tools)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.tools.to_dialog_str">to_dialog_str() (in module agentscope.utils.tools)</a>
 </li>
-      <li><a href="agentscope.utils.html#agentscope.utils.enums.ShrinkPolicy.TRUNCATE">TRUNCATE (agentscope.utils.enums.ShrinkPolicy attribute)</a>
+      <li><a href="agentscope.utils.html#agentscope.utils.tools.to_openai_dict">to_openai_dict() (in module agentscope.utils.tools)</a>
 </li>
       <li><a href="agentscope.configs.html#agentscope.configs.model_config.OpenAICfg.type">type (agentscope.configs.model_config.OpenAICfg attribute)</a>
 
@@ -750,7 +742,11 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="agentscope.utils.html#agentscope.utils.monitor.MonitorBase.update">update() (agentscope.utils.monitor.MonitorBase method)</a>
+
+      <ul>
+        <li><a href="agentscope.utils.html#agentscope.utils.monitor.SqliteMonitor.update">(agentscope.utils.monitor.SqliteMonitor method)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="agentscope.memory.html#agentscope.memory.memory.MemoryBase.update_config">update_config() (agentscope.memory.memory.MemoryBase method)</a>

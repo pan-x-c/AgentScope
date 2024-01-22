@@ -43,7 +43,13 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
+              <p class="caption" role="heading"><span class="caption-text">AgentScope Tutorial</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial/quick_start.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial/advance.html">Advanced Exploration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial/contribute.html">Get Involved</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../agentscope.agents.html">Agents package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../agentscope.configs.html">Configs package</a></li>
@@ -148,9 +154,8 @@
 
 <span class="kn">from</span> <span class="nn">..file_manager</span> <span class="kn">import</span> <span class="n">file_manager</span>
 <span class="kn">from</span> <span class="nn">..utils.tools</span> <span class="kn">import</span> <span class="n">_get_timestamp</span>
-
-<span class="c1"># TODO: move default values into a single file</span>
-<span class="n">DEFAULT_MAX_RETRIES</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="kn">from</span> <span class="nn">..constants</span> <span class="kn">import</span> <span class="n">_DEFAULT_MAX_RETRIES</span>
+<span class="kn">from</span> <span class="nn">..constants</span> <span class="kn">import</span> <span class="n">_DEFAULT_RETRY_INTERVAL</span>
 
 
 <span class="k">def</span> <span class="nf">_response_parse_decorator</span><span class="p">(</span>
@@ -187,7 +192,7 @@
         <span class="c1"># Step1: Extract parse_func and fault_handler</span>
         <span class="n">parse_func</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;parse_func&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">fault_handler</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;fault_handler&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="n">max_retries</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;max_retries&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="n">DEFAULT_MAX_RETRIES</span>
+        <span class="n">max_retries</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;max_retries&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_DEFAULT_MAX_RETRIES</span>
 
         <span class="c1"># Step2: Call the model and parse the response</span>
         <span class="c1"># Return the response directly if parse_func is not provided</span>
@@ -209,7 +214,7 @@
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">response</span><span class="si">}</span><span class="s2">.</span><span class="se">\n</span><span class="s2"> Exception: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">, &quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> Attempt </span><span class="si">{</span><span class="n">itr</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">max_retries</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">itr</span><span class="p">)</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">_DEFAULT_RETRY_INTERVAL</span> <span class="o">*</span> <span class="n">itr</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">fault_handler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">fault_handler</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">fault_handler</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>

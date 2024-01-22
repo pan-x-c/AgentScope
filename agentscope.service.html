@@ -44,7 +44,13 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
+              <p class="caption" role="heading"><span class="caption-text">AgentScope Tutorial</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/quick_start.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/advance.html">Advanced Exploration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/contribute.html">Get Involved</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="agentscope.agents.html">Agents package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="agentscope.configs.html">Configs package</a></li>
@@ -58,6 +64,8 @@
 <li class="toctree-l2"><a class="reference internal" href="agentscope.service.sql_query.html">SQL query package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="agentscope.service.text_processing.html">Text processing package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="agentscope.service.web_search.html">Web search package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#service-status-module">service_status module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#service-response-module">service_response module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="agentscope.rpc.html">RPC package</a></li>
@@ -163,6 +171,38 @@
 </li>
 </ul>
 </div>
+<section id="service-status-module">
+<h2>service_status module<a class="headerlink" href="#service-status-module" title="Link to this heading"></a></h2>
+<p>Enum for service execution status.</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">agentscope.service.service_status.</span></span><span class="sig-name descname"><span class="pre">ServiceExecStatus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentscope/service/service_status.html#ServiceExecStatus"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
+<p>Enum for service execution status.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">ERROR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">-1</span></em></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">SUCCESS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="service-response-module">
+<h2>service_response module<a class="headerlink" href="#service-response-module" title="Link to this heading"></a></h2>
+<p>Service response module</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">agentscope.service.service_response.</span></span><span class="sig-name descname"><span class="pre">ServiceResponse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ServiceExecStatus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/agentscope/service/service_response.html#ServiceResponse"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></p>
+<p>Used to wrap the execution results of the services</p>
+</dd></dl>
+
+</section>
 </section>
 
 
