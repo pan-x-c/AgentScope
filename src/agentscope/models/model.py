@@ -205,7 +205,7 @@ class _ModelWrapperMeta(ABCMeta):
             if hasattr(cls, "model_type"):
                 if cls.model_type in cls.type_registry:
                     logger.error(
-                        f"model type [{cls.model_type}] is already registered"
+                        f"model type [{cls.model_type}] is already registered",
                     )
                 cls.type_registry[cls.model_type] = cls
         super().__init__(name, bases, attrs)
