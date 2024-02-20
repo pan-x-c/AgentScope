@@ -80,11 +80,13 @@ class ModelResponse:
         text: str = None,
         embedding: Sequence = None,
         image_urls: Sequence[str] = None,
+        audio_urls: Sequence[str] = None,
         raw: dict = None,
     ) -> None:
         self._text = text
         self._embedding = embedding
         self._image_urls = image_urls
+        self._audio_urls = audio_urls
         self._raw = raw
 
     @property
@@ -101,6 +103,11 @@ class ModelResponse:
     def image_urls(self) -> Sequence[str]:
         """Image URLs field."""
         return self._image_urls
+
+    @property
+    def audio_urls(self) -> Sequence[str]:
+        """Audio URLs field."""
+        return self._audio_urls
 
     @property
     def raw(self) -> dict:
@@ -192,8 +199,14 @@ class _ModelWrapperMeta(ABCMeta):
             cls.registry = {}
             cls.type_registry = {}
         else:
+            if name in cls.registry:
+                logger.error(f"ModelWrapper [{name}] is already registered.")
             cls.registry[name] = cls
             if hasattr(cls, "model_type"):
+                if cls.model_type in cls.type_registry:
+                    logger.error(
+                        f"model type [{cls.model_type}] is already registered"
+                    )
                 cls.type_registry[cls.model_type] = cls
         super().__init__(name, bases, attrs)
 

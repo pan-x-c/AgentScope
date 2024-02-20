@@ -192,3 +192,23 @@ class PostAPIDALLEWrapper(PostAPIModelWrapperBase):
     def _parse_response(self, response: dict) -> ModelResponse:
         urls = [img["url"] for img in response["data"]["response"]["data"]]
         return ModelResponse(image_urls=urls)
+
+
+class PostAPIText2AudioWrapper(PostAPIModelWrapperBase):
+    """A post api model wrapper which convert text to audio"""
+
+    model_type: str = "post_api_text2audio"
+
+    def _parse_response(self, response: dict) -> ModelResponse:
+        urls = [audio["url"] for audio in response["data"]["response"]["data"]]
+        return ModelResponse(audio_urls=urls)
+
+
+class PostAPIAudio2TextWrapper(PostAPIModelWrapperBase):
+    """A post api model wrapper which convert audio to text"""
+
+    model_type: str = "post_api_audio2text"
+
+    def _parse_response(self, response: dict) -> ModelResponse:
+        text = response["data"]["response"]["text"]
+        return ModelResponse(text=text)
