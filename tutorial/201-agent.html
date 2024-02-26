@@ -78,7 +78,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../agentscope.service.html">Service package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../agentscope.rpc.html">RPC package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../agentscope.utils.html">Utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../agentscope.web_ui.html">Web UI package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agentscope.web.html">Web UI package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../agentscope.html">Module contents</a></li>
 </ul>
 
@@ -109,7 +109,7 @@
              
   <section id="customizing-your-own-agent">
 <span id="agent"></span><h1>Customizing Your Own Agent<a class="headerlink" href="#customizing-your-own-agent" title="Link to this heading"></a></h1>
-<p>This tutorial helps you to understand the <code class="docutils literal notranslate"><span class="pre">Agent</span></code> in mode depth and navigate through the process of crafting your own custom agent with AgentScope. We start by introducing the fundamental abstraction called <code class="docutils literal notranslate"><span class="pre">AgentBase</span></code>, which serves as the base class to maintain the general behaviors of all agents. Then, we will go through the <em>AgentPool</em>, an ensemble of pre-built, specialized agents, each designed with a specific purpose in mind. Finally, we will demonstrate how to customize your own agent, ensuring it fits the needs of your project.</p>
+<p>This tutorial helps you to understand the <code class="docutils literal notranslate"><span class="pre">Agent</span></code> in more depth and navigate through the process of crafting your own custom agent with AgentScope. We start by introducing the fundamental abstraction called <code class="docutils literal notranslate"><span class="pre">AgentBase</span></code>, which serves as the base class to maintain the general behaviors of all agents. Then, we will go through the <em>AgentPool</em>, an ensemble of pre-built, specialized agents, each designed with a specific purpose in mind. Finally, we will demonstrate how to customize your own agent, ensuring it fits the needs of your project.</p>
 <section id="understanding-agentbase">
 <h2>Understanding <code class="docutils literal notranslate"><span class="pre">AgentBase</span></code><a class="headerlink" href="#understanding-agentbase" title="Link to this heading"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">AgentBase</span></code> class is the architectural cornerstone for all agent constructs within the AgentScope. As the superclass of all custom agents, it provides a comprehensive template consisting of essential attributes and methods that underpin the core functionalities of any conversational agent.</p>
@@ -208,10 +208,10 @@
     <span class="n">prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sys_prompt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">get_memory</span><span class="p">())</span>
 
     <span class="c1"># Invoke the language model with the prepared prompt</span>
-    <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">parse_func</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">,</span> <span class="n">fault_handler</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;speak&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">})</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
 
     <span class="c1"># Format the response and create a message object</span>
-    <span class="n">msg</span> <span class="o">=</span> <span class="n">Msg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;speak&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="n">response</span><span class="p">,</span> <span class="o">**</span><span class="n">response</span><span class="p">)</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="n">Msg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
 
     <span class="c1"># Record the message to memory and return it</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
