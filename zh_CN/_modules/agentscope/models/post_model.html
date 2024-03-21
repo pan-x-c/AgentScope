@@ -46,15 +46,15 @@
   </form>
 </div> <!-- language_selector.html -->
 <div class="language-selector">
-    <a href="../../../../en/index.html">English</a></li> |
-    <a href="../../../../zh_CN/index.html">中文</a></li>
+    <a href="../../../../en/_modules/agentscope/models/post_model.html">English</a></li> |
+    <a href="../../../../zh_CN/_modules/agentscope/models/post_model.html">中文</a></li>
 </div> 
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="导航菜单">
               <p class="caption" role="heading"><span class="caption-text">AgentScope 教程</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_zh/quick_start.html">快速上手</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_zh/advance.html">进阶使用</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_zh/contribute.html">参与贡献</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial/quick_start.html">快速上手</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial/advance.html">进阶使用</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial/contribute.html">参与贡献</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">AgentScope API 文档</span></p>
 <ul>
@@ -172,19 +172,8 @@
 <span class="sd">                    **post_args</span>
 <span class="sd">                )</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="n">config_name</span><span class="o">=</span><span class="n">config_name</span><span class="p">,</span>
-            <span class="n">api_url</span><span class="o">=</span><span class="n">api_url</span><span class="p">,</span>
-            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
-            <span class="n">max_length</span><span class="o">=</span><span class="n">max_length</span><span class="p">,</span>
-            <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
-            <span class="n">json_args</span><span class="o">=</span><span class="n">json_args</span><span class="p">,</span>
-            <span class="n">post_args</span><span class="o">=</span><span class="n">post_args</span><span class="p">,</span>
-            <span class="n">max_retries</span><span class="o">=</span><span class="n">max_retries</span><span class="p">,</span>
-            <span class="n">messages_key</span><span class="o">=</span><span class="n">messages_key</span><span class="p">,</span>
-            <span class="n">retry_interval</span><span class="o">=</span><span class="n">retry_interval</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">config_name</span><span class="o">=</span><span class="n">config_name</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="n">api_url</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="n">headers</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span> <span class="o">=</span> <span class="n">max_length</span>
