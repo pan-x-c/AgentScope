@@ -230,7 +230,7 @@ It corresponds to the <code class="docutils literal notranslate"><span class="pr
 </tr>
 <tr class="row-odd"><td><p></p></td>
 <td><p>Embedding</p></td>
-<td><p><a class="reference external" href="https://github.com/modelscope/agentscope/blob/main/src/agentscope/models/ollama_model.py"><code class="docutils literal notranslate"><span class="pre">OllamaEmbedding</span></code></a></p></td>
+<td><p><a class="reference external" href="https://github.com/modelscope/agentscope/blob/main/src/agentscope/models/ollama_model.py"><code class="docutils literal notranslate"><span class="pre">OllamaEmbeddingWrapper</span></code></a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;ollama_embedding&quot;</span></code></p></td>
 </tr>
 <tr class="row-even"><td><p></p></td>
@@ -426,7 +426,7 @@ Here we provide example configurations for different model wrappers.</p>
     <span class="s2">&quot;model_type&quot;</span><span class="p">:</span> <span class="s2">&quot;ollama_chat&quot;</span><span class="p">,</span>
 
     <span class="c1"># Required parameters</span>
-    <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">{model_name}</span><span class="s2">&quot;</span><span class="p">,</span>                    <span class="c1"># The model name used in ollama API, e.g. llama2</span>
+    <span class="s2">&quot;model_name&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">{model_name}</span><span class="s2">&quot;</span><span class="p">,</span>               <span class="c1"># The model name used in ollama API, e.g. llama2</span>
 
     <span class="c1"># Optional parameters</span>
     <span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="p">{</span>                                <span class="c1"># Parameters passed to the model when calling</span>
@@ -444,7 +444,7 @@ Here we provide example configurations for different model wrappers.</p>
     <span class="s2">&quot;model_type&quot;</span><span class="p">:</span> <span class="s2">&quot;ollama_generate&quot;</span><span class="p">,</span>
 
     <span class="c1"># Required parameters</span>
-    <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">{model_name}</span><span class="s2">&quot;</span><span class="p">,</span>                    <span class="c1"># The model name used in ollama API, e.g. llama2</span>
+    <span class="s2">&quot;model_name&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">{model_name}</span><span class="s2">&quot;</span><span class="p">,</span>               <span class="c1"># The model name used in ollama API, e.g. llama2</span>
 
     <span class="c1"># Optional parameters</span>
     <span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="p">{</span>                                <span class="c1"># Parameters passed to the model when calling</span>
@@ -462,7 +462,7 @@ Here we provide example configurations for different model wrappers.</p>
     <span class="s2">&quot;model_type&quot;</span><span class="p">:</span> <span class="s2">&quot;ollama_embedding&quot;</span><span class="p">,</span>
 
     <span class="c1"># Required parameters</span>
-    <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">{model_name}</span><span class="s2">&quot;</span><span class="p">,</span>                    <span class="c1"># The model name used in ollama API, e.g. llama2</span>
+    <span class="s2">&quot;model_name&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">{model_name}</span><span class="s2">&quot;</span><span class="p">,</span>               <span class="c1"># The model name used in ollama API, e.g. llama2</span>
 
     <span class="c1"># Optional parameters</span>
     <span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="p">{</span>                                <span class="c1"># Parameters passed to the model when calling</span>
