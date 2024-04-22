@@ -18,7 +18,7 @@
         <script src="../_static/jquery.js?v=5d32c60e"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
         <script src="../_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
         <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -56,16 +56,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="advance.html">Advanced Exploration</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="201-agent.html">Customizing Your Own Agent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="202-pipeline.html">Pipeline and MsgHub</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#supported-models">Supported Models</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#configuration">Configuration</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#configuration-format">Configuration Format</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#build-model-service-from-scratch">Build Model Service from Scratch</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#creat-your-own-model-wrapper">Creat Your Own Model Wrapper</a></li>
-</ul>
-</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="204-service.html">Service</a></li>
 <li class="toctree-l2"><a class="reference internal" href="205-memory.html">Memory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="206-prompt.html">Prompt Engineering</a></li>
@@ -77,15 +68,15 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../agentscope.agents.html">Agents package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../agentscope.memory.html">Memory package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../agentscope.models.html">Models package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../agentscope.pipelines.html">Pipelines package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../agentscope.service.html">Service package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../agentscope.rpc.html">RPC package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../agentscope.utils.html">Utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../agentscope.web.html">Web UI package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../agentscope.html">Module contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agentscope.agents.html">agentscope.agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agentscope.memory.html">agentscope.memory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agentscope.models.html">agentscope.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agentscope.pipelines.html">agentscope.pipelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agentscope.service.html">agentscope.service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agentscope.rpc.html">agentscope.rpc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agentscope.utils.html">agentscope.utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agentscope.web.html">agentscope.web</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agentscope.html">agentscope</a></li>
 </ul>
 
         </div>
@@ -467,7 +458,7 @@ Here we provide example configurations for different model wrappers.</p>
 
     <span class="c1"># Optional parameters</span>
     <span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="p">{</span>                                <span class="c1"># Parameters passed to the model when calling</span>
-        <span class="c1"># e.g. &quot;temperature&quot;: 0., &quot;seed&quot;: &quot;123&quot;,</span>
+        <span class="c1"># e.g. &quot;temperature&quot;: 0., &quot;seed&quot;: 123,</span>
     <span class="p">},</span>
     <span class="s2">&quot;keep_alive&quot;</span><span class="p">:</span> <span class="s2">&quot;5m&quot;</span><span class="p">,</span>                         <span class="c1"># Controls how long the model will stay loaded into memory</span>
 <span class="p">}</span>
@@ -485,7 +476,7 @@ Here we provide example configurations for different model wrappers.</p>
 
     <span class="c1"># Optional parameters</span>
     <span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="p">{</span>                                <span class="c1"># Parameters passed to the model when calling</span>
-        <span class="c1"># &quot;temperature&quot;: 0., &quot;seed&quot;: &quot;123&quot;,</span>
+        <span class="c1"># &quot;temperature&quot;: 0., &quot;seed&quot;: 123,</span>
     <span class="p">},</span>
     <span class="s2">&quot;keep_alive&quot;</span><span class="p">:</span> <span class="s2">&quot;5m&quot;</span><span class="p">,</span>                         <span class="c1"># Controls how long the model will stay loaded into memory</span>
 <span class="p">}</span>
@@ -503,7 +494,7 @@ Here we provide example configurations for different model wrappers.</p>
 
     <span class="c1"># Optional parameters</span>
     <span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="p">{</span>                                <span class="c1"># Parameters passed to the model when calling</span>
-        <span class="c1"># &quot;temperature&quot;: 0., &quot;seed&quot;: &quot;123&quot;,</span>
+        <span class="c1"># &quot;temperature&quot;: 0., &quot;seed&quot;: 123,</span>
     <span class="p">},</span>
     <span class="s2">&quot;keep_alive&quot;</span><span class="p">:</span> <span class="s2">&quot;5m&quot;</span><span class="p">,</span>                         <span class="c1"># Controls how long the model will stay loaded into memory</span>
 <span class="p">}</span>
