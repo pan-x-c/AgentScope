@@ -127,6 +127,13 @@ def fn_choice(data: gr.EventData, uid: str) -> None:
     send_player_input(data._data["value"], uid=uid)
 
 
+def get_new_uid(request: gr.Request):
+    """Get run_id"""
+    run_id = request.query_params.get("run_id", "unknown")
+    print(f"Run_id: {run_id}")
+    return run_id
+
+
 def import_function_from_path(
     module_path: str,
     function_name: str,
@@ -319,7 +326,7 @@ def run_app() -> None:
 
         chatbot.custom(fn=fn_choice, inputs=[uuid])
 
-        demo.load(
+        demo.load(get_new_uid, None, uuid).then(
             check_for_new_session,
             inputs=[uuid],
             every=0.5,

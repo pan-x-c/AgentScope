@@ -5,12 +5,12 @@ import threading
 from typing import Optional
 import hashlib
 from multiprocessing import Queue
-from queue import Empty
 from collections import defaultdict
 
 from PIL import Image
 
 from dashscope.audio.asr import RecognitionCallback, Recognition
+from ..._runtime import _runtime as run
 
 SYS_MSG_PREFIX = "【SYSTEM】"
 
@@ -39,51 +39,62 @@ def send_msg(
     msg_id: Optional[str] = None,
 ) -> None:
     """Sends a message to the web UI."""
-    global glb_uid_dict
-    glb_queue_chat_msg = glb_uid_dict[uid]["glb_queue_chat_msg"]
-    if is_player:
-        glb_queue_chat_msg.put(
-            [
-                {
-                    "text": msg,
-                    "name": role,
-                    "flushing": flushing,
-                    "avatar": avatar,
-                },
-                None,
-            ],
-        )
-    else:
-        glb_queue_chat_msg.put(
-            [
-                None,
-                {
-                    "text": msg,
-                    "name": role,
-                    "flushing": flushing,
-                    "avatar": avatar,
-                    "id": msg_id,
-                },
-            ],
-        )
+    run._studio_client.send_msg(
+        run_id=uid,
+        msg=msg,
+        is_player=is_player,
+        role=role,
+        flushing=flushing,
+        avatar=avatar,
+        msg_id=msg_id,
+    )
+    # glb_queue_chat_msg = glb_uid_dict[uid]["glb_queue_chat_msg"]
+    # if is_player:
+    #     glb_queue_chat_msg.put(
+    #         [
+    #             {
+    #                 "text": msg,
+    #                 "name": role,
+    #                 "flushing": flushing,
+    #                 "avatar": avatar,
+    #             },
+    #             None,
+    #         ],
+    #     )
+    # else:
+    #     glb_queue_chat_msg.put(
+    #         [
+    #             None,
+    #             {
+    #                 "text": msg,
+    #                 "name": role,
+    #                 "flushing": flushing,
+    #                 "avatar": avatar,
+    #                 "id": msg_id,
+    #             },
+    #         ],
+    #     )
 
 
 def get_chat_msg(uid: Optional[str] = None) -> list:
     """Retrieves the next chat message from the queue, if available."""
-    global glb_uid_dict
-    glb_queue_chat_msg = glb_uid_dict[uid]["glb_queue_chat_msg"]
-    if not glb_queue_chat_msg.empty():
-        line = glb_queue_chat_msg.get(block=False)
-        if line is not None:
-            return line
-    return []
+    try:
+        return run._studio_client.get_chat_msg(uid)
+    except Exception:
+        return []
+    # glb_queue_chat_msg = glb_uid_dict[uid]["glb_queue_chat_msg"]
+    # if not glb_queue_chat_msg.empty():
+    #     line = glb_queue_chat_msg.get(block=False)
+    #     if line is not None:
+    #         return line
+    # return []
 
 
 def send_player_input(msg: str, uid: Optional[str] = None) -> None:
     """Sends player input to the web UI."""
-    global glb_uid_dict
-    glb_queue_user_input = glb_uid_dict[uid]["glb_queue_user_input"]
-    glb_queue_user_input.put([None, msg])
+    run._studio_client.send_player_input(run_id=uid, msg=msg)
+    # glb_queue_user_input = glb_uid_dict[uid]["glb_queue_user_input"]
+    # glb_queue_user_input.put([None, msg])
 
 
 def get_player_input(
@@ -91,20 +102,20 @@ def get_player_input(
     uid: Optional[str] = None,
 ) -> str:
     """Gets player input from the web UI or command line."""
-    global glb_uid_dict
-    glb_queue_user_input = glb_uid_dict[uid]["glb_queue_user_input"]
+    return run._studio_client.get_player_input(run_id=uid)
+    # glb_queue_user_input = glb_uid_dict[uid]["glb_queue_user_input"]
 
-    if timeout:
-        try:
-            content = glb_queue_user_input.get(block=True, timeout=timeout)[1]
-        except Empty as exc:
-            raise TimeoutError("timed out") from exc
-    else:
-        content = glb_queue_user_input.get(block=True)[1]
-    if content == "**Reset**":
-        glb_uid_dict[uid] = init_uid_queues()
-        raise ResetException
-    return content
+    # if timeout:
+    #     try:
+    #         content = glb_queue_user_input.get(block=True, timeout=timeout)[1]
+    #     except Empty as exc:
+    #         raise TimeoutError("timed out") from exc
+    # else:
+    #     content = glb_queue_user_input.get(block=True)[1]
+    # if content == "**Reset**":
+    #     glb_uid_dict[uid] = init_uid_queues()
+    #     raise ResetException
+    # return content
 
 
 def send_reset_msg(uid: Optional[str] = None) -> None:
@@ -138,7 +149,7 @@ def check_uuid(uid: Optional[str]) -> str:
             import gradio as gr
 
             raise gr.Error("Please login first")
-        uid = "local_user"
+        uid = "xxx"
     return uid
 
 

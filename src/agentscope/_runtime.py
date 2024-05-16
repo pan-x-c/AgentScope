@@ -29,6 +29,8 @@ class _Runtime:
 
     _instance = None
 
+    _studio_client = None
+
     def __new__(cls, *args: Any, **kwargs: Any) -> Any:
         """Create a singleton instance."""
         if not cls._instance:
