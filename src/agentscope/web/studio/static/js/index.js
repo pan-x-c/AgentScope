@@ -10,12 +10,13 @@ let inGuidePage = true;
 let activeExpanded = false;
 
 // The current language of AgentScope Studio
-let currentLang = "en"
+let currentLang = getCookie('locale') || 'en';
+console.log(currentLang)
 
-// TODO: add button to switch language
 loadLang(currentLang);
 
 // Load the language file
+// TODO: fix language switch
 function loadLang(lang) {
     fetch(`static/json/language.json`)
         .then(response => response.json())
@@ -40,10 +41,15 @@ function isScriptLoaded(src) {
 }
 
 // After loading different pages, we need to call the initialization function of this page
-function initializeTabPageByUrl(pageUrl) {
+function initializeTabPageByUrl(pageUrl, javascriptUrl) {
     switch (pageUrl) {
         case 'static/html/dashboard.html':
             initializeDashboardPage();
+            break;
+        case 'static/html/workstation.html':
+            let script = document.createElement('script');
+            script.src = javascriptUrl;
+            document.head.appendChild(script);
             break;
     }
 }
@@ -79,12 +85,12 @@ function loadTabPage(pageUrl, javascriptUrl) {
                 script.src = javascriptUrl;
                 script.onload = function () {
                     // The first time we must initialize the page within the onload function to ensure the script is loaded
-                    initializeTabPageByUrl(pageUrl);
+                    initializeTabPageByUrl(pageUrl, javascriptUrl);
                 }
                 document.head.appendChild(script);
             } else {
                 // If is not the first time, we can directly call the initialization function
-                initializeTabPageByUrl(pageUrl);
+                initializeTabPageByUrl(pageUrl, javascriptUrl);
             }
 
             // Load the page content
@@ -145,3 +151,33 @@ navigationBar.addEventListener('mouseleave', function () {
         activeExpanded = true;
     }
 })
+
+$(document).ready(function () {
+    var currentLang = getCookie('locale') || 'en';
+    $('#language_switch').val(currentLang);
+
+    $('#language_switch').change(function () {
+        var selectedLang = $(this).val();
+        console.log("Attempting to change language to:", selectedLang);
+
+        $.ajax({
+            url: '/set_locale',
+            type: 'GET',
+            data: {'language': selectedLang},
+            success: function (ret) {
+                console.log("Language changed to:", selectedLang);
+                location.reload();
+            },
+            error: function (xhr, status, error) {
+                console.error("Failed to change language:", error);
+            }
+        });
+    });
+});
+
+function getCookie(name) {
+    var matches = document.cookie.match(new RegExp(
+        "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ));
+    return matches ? decodeURIComponent(matches[1]) : undefined;
+}

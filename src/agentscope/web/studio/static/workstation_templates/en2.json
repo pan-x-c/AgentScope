@@ -1,0 +1,134 @@
+{
+  "drawflow": {
+    "Home": {
+      "data": {
+        "2": {
+          "id": 2,
+          "name": "dashscope_chat",
+          "data": {
+            "args": {
+              "config_name": "qwen",
+              "model_name": "qwen-max",
+              "api_key": "",
+              "temperature": 0,
+              "seed": 0,
+              "model_type": "dashscope_chat",
+              "messages_key": "input"
+            }
+          },
+          "class": "dashscope_chat",
+          "html": "\n        <div>\n          <div class=\"title-box\"><i class=\"fas fa-brain\"></i> DashScope Chat\n          <span class=\"toggle-arrow\">▲</span> </div>\n          <div class=\"box\">\n            <div class=\"readme\">DashScope Chat Configurations (Your API key will NOT be stored and exposed to the website\n                maintainer)</div><br>\n            <label> Config Name </label>\n            <input type=\"text\" df-args-config_name placeholder=\"qwen\" data-required=\"true\"><br>\n            <label> Model Name</label>\n            <input type=\"text\" list=\"dashscope_chat-model-names\" df-args-model_name data-required=\"true\"><br>\n            <datalist id=\"dashscope_chat-model-names\">\n              <option value=\"qwen-turbo\">\n              <option value=\"qwen-plus\">\n              <option value=\"qwen-max\">\n              <option value=\"qwen-max-1201\">\n            </datalist>\n            <label> API key</label>\n            <input type=\"text\" df-args-api_key data-required=\"true\"><br>\n            <label> Temperature </label>\n            <input type=\"number\" df-args-temperature placeholder=0 min=\"0\" max=\"2\" step=\"0.1\"><br>\n            <label> Seed </label>\n            <input type=\"number\" df-args-seed placeholder=0 min=\"0\">\n          </div>\n        </div>\n        ",
+          "typenode": false,
+          "inputs": {},
+          "outputs": {},
+          "pos_x": 339,
+          "pos_y": 23
+        },
+        "4": {
+          "id": 4,
+          "name": "UserAgent",
+          "data": {
+            "args": {
+              "name": "User"
+            }
+          },
+          "class": "UserAgent",
+          "html": "\n          <div>\n            <div class=\"title-box\"><i class=\"fas fa-robot\"></i>UserAgent\n            <button class=\"button copy-button\">Copy</button>\n            <span class=\"toggle-arrow\">▲</div>\n            <div class=\"box\">\n            <div class=\"readme\">\n            A proxy agent for user\n            <div>Node ID: <span class=\"node-id\">4</span></div>\n            </div>\n              <p>Name</p>\n              <input type=\"text\" df-args-name placeholder=\"User\"><br>\n            </div>\n          </div>\n          ",
+          "typenode": false,
+          "inputs": {
+            "input_1": {
+              "connections": []
+            }
+          },
+          "outputs": {
+            "output_1": {
+              "connections": []
+            }
+          },
+          "pos_x": 797,
+          "pos_y": 181
+        },
+        "6": {
+          "id": 6,
+          "name": "PythonService",
+          "data": {},
+          "class": "PythonService",
+          "html": "\n          <div>\n            <div class=\"title-box\"><i class=\"fas fa-hammer\"></i>PythonService\n                      <span class=\"toggle-arrow\">▲</span></div>\n            <div class=\"box\">\n            <div class=\"readme\">Integrate the Python Interpreter within ReActAgent to enhance agent capabilities</div>\n            </div>\n          </div>\n          ",
+          "typenode": false,
+          "inputs": {},
+          "outputs": {},
+          "pos_x": 824,
+          "pos_y": 620
+        },
+        "3": {
+          "id": 3,
+          "name": "SequentialPipeline",
+          "data": {
+            "elements": [
+              "4",
+              "5"
+            ]
+          },
+          "class": "GROUP",
+          "html": "\n          <div>\n            <div class=\"title-box\"><i class=\"fas fa-project-diagram\"></i>SequentialPipeline\n                <span class=\"toggle-arrow\">▲</span></div>\n            <div class=\"box\">\n                <div class=\"readme\">A template pipeline for implementing sequential logic (<b>from top to bottom</b>)</div>\n                <div class=\"placeholder\"></div>\n            </div>\n          </div>\n          ",
+          "typenode": false,
+          "inputs": {
+            "input_1": {
+              "connections": []
+            }
+          },
+          "outputs": {
+            "output_1": {
+              "connections": []
+            }
+          },
+          "pos_x": 643,
+          "pos_y": 55
+        },
+        "5": {
+          "id": 5,
+          "name": "ReActAgent",
+          "data": {
+            "elements": [
+              "6"
+            ],
+            "args": {
+              "name": "Assistant",
+              "sys_prompt": "You are an assistant. ",
+              "model_config_name": "qwen",
+              "max_iters": 10,
+              "verbose": "True"
+            }
+          },
+          "class": "GROUP",
+          "html": "\n          <div>\n            <div class=\"title-box\"><i class=\"fas fa-robot\"></i>ReActAgent\n            <button class=\"button copy-button\">Copy</button>\n                      <span class=\"toggle-arrow\">▲</span></div>\n            <div class=\"box\">\n              <div class=\"readme\">\n              Agent for ReAct (reasoning and acting) with tools\n              <div>Node ID: <span class=\"node-id\">5</span></div>\n                </div>\n              <p>Name</p>\n              <input type=\"text\" df-args-name placeholder=\"Assistant\" data-required=\"true\"><br>\n              <p>System prompt</p>\n              <input type=\"text\" df-args-sys_prompt placeholder=\"You're an assistant.\"><br>\n              <p>Model config name</p>\n              <input type=\"text\" df-args-model_config_name placeholder=\"gpt-3.5-turbo\" data-required=\"true\"><br>\n              <p>Tools</p>\n              <div class=\"tools-placeholder\" data-required=\"true\">Please drag and drop a Tool module into this area. Inserting other types of modules may result in errors.</div>\n              <p>Max reasoning-acting iterations</p>\n              <input type=\"number\" df-args-max_iters placeholder=10 min=1 step=1>\n              <p>Verbose</p>\n              <input type=\"text\" list=\"reactagent-verbose\" df-args-verbose><br>\n              <datalist id=\"reactagent-verbose\">\n              <option value=\"True\">\n              <option value=\"False\">\n              </datalist>\n            </div>\n          </div>\n          ",
+          "typenode": false,
+          "inputs": {
+            "input_1": {
+              "connections": []
+            }
+          },
+          "outputs": {
+            "output_1": {
+              "connections": []
+            }
+          },
+          "pos_x": 713,
+          "pos_y": 241
+        },
+        "1": {
+          "id": 1,
+          "name": "readme",
+          "data": {},
+          "class": "welcome",
+          "html": "\n        <div class=\"title-box\"><i class=\"fa fa-book\"></i> README <span class=\"toggle-arrow\">▲</span> </div>\n        <div class=\"box-highlight\">\n      📖 This example demonstrates a one-round user-ReactAgent (with PythonService) conversation with Sequential Pipeline by AgentScope. <br><br> <div class=\"modules-info\"><h4>Modules Used:</h4><ul><li><span class=\"highlight-module\" onclick=\"editor.selectNode(2);\">DashScope Chat:</span><br> - Each application must contain a model configured.</li><li><span class=\"highlight-module\" onclick=\"editor.selectNode(3);\">SequentialPipeline:</span><br> - Make the message passes in a predefined, sequential order among agents.</li><li><span class=\"highlight-module\" onclick=\"editor.selectNode(4);\">UserAgent:</span><br> - Represents a user in a application.</li><li><span class=\"highlight-module\" onclick=\"editor.selectNode(5);\">ReActAgent:</span><br> - An agent class that implements the ReAct algorithm.</li><li><span class=\"highlight-module\" onclick=\"editor.selectNode(6);\">PythonService:</span><br> - Execute a piece of python code.</li></ur></div> </div>\n      </div>\n      ",
+          "typenode": false,
+          "inputs": {},
+          "outputs": {},
+          "pos_x": 68,
+          "pos_y": 67
+        }
+      }
+    }
+  }
+}

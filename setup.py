@@ -72,6 +72,9 @@ minimal_requires = [
     "google-generativeai>=0.4.0",
     "zhipuai",
     "litellm",
+    "babel==2.15.0",
+    "flask_babel",
+    "flask_sqlalchemy",
 ]
 
 distribute_requires = minimal_requires + rpc_requires
