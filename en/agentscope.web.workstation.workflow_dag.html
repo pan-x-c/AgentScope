@@ -50,8 +50,21 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">AgentScope Tutorial</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorial/quick_start.html">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial/advance.html">Advanced Exploration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/101-agentscope.html">About AgentScope</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/102-installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/103-example.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/203-model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/206-prompt.html">Prompt Engineering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/201-agent.html">Agent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/205-memory.html">Memory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/203-parser.html">Response Parser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/204-service.html">Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/202-pipeline.html">Pipeline and MsgHub</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/208-distribute.html">Distribution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/209-gui.html">AgentScope Studio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/105-logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/207-monitor.html">Monitor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/104-usecase.html">Example: Werewolf Game</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial/contribute.html">Get Involved</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
@@ -149,7 +162,7 @@ the outputs from its predecessors as inputs.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="agentscope.web.workstation.workflow_dag.ASDiGraph.compile">
-<span class="sig-name descname"><span class="pre">compile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">compiled_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/agentscope/web/workstation/workflow_dag.html#ASDiGraph.compile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agentscope.web.workstation.workflow_dag.ASDiGraph.compile" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">compile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">compiled_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/agentscope/web/workstation/workflow_dag.html#ASDiGraph.compile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agentscope.web.workstation.workflow_dag.ASDiGraph.compile" title="Link to this definition"></a></dt>
 <dd><p>Compile DAG to a runnable python code</p>
 </dd></dl>
 
