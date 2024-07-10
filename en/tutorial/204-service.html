@@ -252,12 +252,33 @@ AgentScope and how to use them to enhance the capabilities of your agents.</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">dashscope_text_to_audio</span></code></p></td>
 <td><p>Convert text to audio using Dashscope API.</p></td>
 </tr>
-<tr class="row-odd"><td><p><em>More services coming soon</em></p></td>
-<td><p></p></td>
-<td><p>More service functions are in development and will be added to AgentScope to further enhance its capabilities.</p></td>
+<tr class="row-odd"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">openai_text_to_image</span></code></p></td>
+<td><p>Convert text to image using OpenAI API</p></td>
+</tr>
+<tr class="row-even"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">openai_edit_image</span></code></p></td>
+<td><p>Edit an image based on the provided mask and prompt using  OpenAI API</p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">openai_create_image_variation</span></code></p></td>
+<td><p>Create variations of an image using  OpenAI API</p></td>
+</tr>
+<tr class="row-even"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">openai_image_to_text</span></code></p></td>
+<td><p>Convert text to image using OpenAI API</p></td>
+</tr>
+<tr class="row-odd"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">openai_text_to_audio</span></code></p></td>
+<td><p>Convert text to audio using OpenAI API</p></td>
+</tr>
+<tr class="row-even"><td><p></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">openai_audio_to_text</span></code></p></td>
+<td><p>Convert audio to text using OpenAI API</p></td>
 </tr>
 </tbody>
 </table>
+<p>| <em>More services coming soon</em> |                            | More service functions are in development and will be added to AgentScope to further enhance its capabilities. |</p>
 <p>About each service function, you can find detailed information in the
 <a class="reference external" href="https://modelscope.github.io/agentscope/">API document</a>.</p>
 </section>
@@ -473,6 +494,9 @@ the error message.</p>
 <span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">from</span> <span class="nn">agentscope.service</span> <span class="kn">import</span> <span class="n">ServiceResponse</span>
 <span class="kn">from</span> <span class="nn">agentscope.agents</span> <span class="kn">import</span> <span class="n">AgentBase</span>
+<span class="kn">from</span> <span class="nn">agentscope.message</span> <span class="kn">import</span> <span class="n">Msg</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Sequence</span>
 
 
 <span class="k">def</span> <span class="nf">create_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ServiceResponse</span><span class="p">:</span>
@@ -493,7 +517,7 @@ the error message.</p>
 <span class="k">class</span> <span class="nc">YourAgent</span><span class="p">(</span><span class="n">AgentBase</span><span class="p">):</span>
     <span class="c1"># ... [omitted for brevity]</span>
 
-    <span class="k">def</span> <span class="nf">reply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">reply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Msg</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Msg</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Msg</span><span class="p">:</span>
         <span class="c1"># ... [omitted for brevity]</span>
 
         <span class="c1"># construct a prompt to ask the agent to provide the parameters in JSON format</span>
