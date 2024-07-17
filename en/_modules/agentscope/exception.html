@@ -72,20 +72,20 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">AgentScope API Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.html">agentscope</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.message.html">agentscope.message</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.models.html">agentscope.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.agents.html">agentscope.agents</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.memory.html">agentscope.memory</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.parsers.html">agentscope.parsers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.exception.html">agentscope.exception</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.pipelines.html">agentscope.pipelines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.service.html">agentscope.service</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.rpc.html">agentscope.rpc</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.server.html">agentscope.server</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.web.html">agentscope.web</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.prompt.html">agentscope.prompt</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../agentscope.utils.html">agentscope.utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.html">agentscope package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.message.html">agentscope.message module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.models.html">agentscope.models package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.agents.html">agentscope.agents package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.memory.html">agentscope.memory package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.parsers.html">agentscope.parsers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.exception.html">agentscope.exception module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.pipelines.html">agentscope.pipelines package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.service.html">agentscope.service package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.rpc.html">agentscope.rpc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.server.html">agentscope.server package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.web.html">agentscope.web package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.prompt.html">agentscope.prompt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agentscope.utils.html">agentscope.utils package</a></li>
 </ul>
 
         </div>
@@ -255,6 +255,9 @@
 
 
 
+<span class="c1"># - AgentScope Studio Exceptions</span>
+
+
 <div class="viewcode-block" id="StudioError">
 <a class="viewcode-back" href="../../agentscope.exception.html#agentscope.exception.StudioError">[docs]</a>
 <span class="k">class</span> <span class="nc">StudioError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
@@ -276,6 +279,64 @@
 <a class="viewcode-back" href="../../agentscope.exception.html#agentscope.exception.StudioRegisterError">[docs]</a>
 <span class="k">class</span> <span class="nc">StudioRegisterError</span><span class="p">(</span><span class="n">StudioError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The exception class for error when registering to agentscope studio.&quot;&quot;&quot;</span></div>
+
+
+
+<span class="c1"># - Agent Server Exceptions</span>
+
+
+<div class="viewcode-block" id="AgentServerError">
+<a class="viewcode-back" href="../../agentscope.exception.html#agentscope.exception.AgentServerError">[docs]</a>
+<span class="k">class</span> <span class="nc">AgentServerError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The exception class for agent server related errors.&quot;&quot;&quot;</span>
+
+    <span class="n">host</span><span class="p">:</span> <span class="nb">str</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hostname of the server.&quot;&quot;&quot;</span>
+    <span class="n">port</span><span class="p">:</span> <span class="nb">int</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Port of the server.&quot;&quot;&quot;</span>
+    <span class="n">message</span><span class="p">:</span> <span class="nb">str</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Error message&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AgentServerError.__init__">
+<a class="viewcode-back" href="../../agentscope.exception.html#agentscope.exception.AgentServerError.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">message</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the exception with the message.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">host</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="n">port</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span></div>
+
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">[</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">]&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">err_msg</span></div>
+
+
+
+<div class="viewcode-block" id="AgentServerNotAliveError">
+<a class="viewcode-back" href="../../agentscope.exception.html#agentscope.exception.AgentServerNotAliveError">[docs]</a>
+<span class="k">class</span> <span class="nc">AgentServerNotAliveError</span><span class="p">(</span><span class="n">AgentServerError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The exception class for agent server not alive error.&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="AgentCreationError">
+<a class="viewcode-back" href="../../agentscope.exception.html#agentscope.exception.AgentCreationError">[docs]</a>
+<span class="k">class</span> <span class="nc">AgentCreationError</span><span class="p">(</span><span class="n">AgentServerError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The exception class for failing to create agent.&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="AgentCallError">
+<a class="viewcode-back" href="../../agentscope.exception.html#agentscope.exception.AgentCallError">[docs]</a>
+<span class="k">class</span> <span class="nc">AgentCallError</span><span class="p">(</span><span class="n">AgentServerError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The exception class for failing to call agent.&quot;&quot;&quot;</span></div>
 
 </pre></div>
 
