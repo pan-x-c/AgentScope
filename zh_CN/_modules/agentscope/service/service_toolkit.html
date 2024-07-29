@@ -56,6 +56,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial/102-installation.html">安装</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial/103-example.html">快速开始</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial/203-model.html">模型</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial/203-stream.html">流式输出</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial/206-prompt.html">提示工程</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial/201-agent.html">Agent</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial/205-memory.html">记忆</a></li>
@@ -504,16 +505,8 @@ class ServiceToolkit:
 
         execute_results = []
         for i, cmd in enumerate(cmds):
-            func_name = cmd[&quot;name&quot;]
             service_func = self.service_funcs[cmd[&quot;name&quot;]]
             kwargs = cmd.get(&quot;arguments&quot;, {})
-
-            print(f&quot;&gt;&gt;&gt; Executing function {func_name} with arguments:&quot;)
-            for key, value in kwargs.items():
-                value = (
-                    value if len(str(value)) &lt; 50 else str(value)[:50] + &quot;...&quot;
-                )
-                print(f&quot;&gt;&gt;&gt; \t{key}: {value}&quot;)
 
             # Execute the function
             try:
@@ -523,8 +516,6 @@ class ServiceToolkit:
                     status=ServiceExecStatus.ERROR,
                     content=str(e),
                 )
-
-            print(&quot;&gt;&gt;&gt; END &quot;)
 
             status = (
                 &quot;SUCCESS&quot;
