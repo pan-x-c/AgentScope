@@ -118,8 +118,10 @@ class RedisPool(AsyncResultPool):
         return self._get_object_id()
 
     def set(self, key: int, value: bytes) -> None:
-        self.pool.set(key, value, ex=self.max_timeout)
-        self.pool.rpush(RedisPool.TASK_QUEUE_PREFIX + str(key), key)
+        pipe = self.pool.pipeline()
+        pipe.set(key, value, ex=self.max_timeout)
+        pipe.rpush(RedisPool.TASK_QUEUE_PREFIX + str(key), key)
+        pipe.execute()
 
     def get(self, key: int) -> bytes:
         result = self.pool.get(key)
@@ -130,10 +132,17 @@ class RedisPool(AsyncResultPool):
                 keys=RedisPool.TASK_QUEUE_PREFIX + str(key),
                 timeout=self.max_timeout,
             )
+            if keys is None:
+                raise ValueError(
+                    f"Waiting timeout for async result of task[{key}]",
+                )
             if int(keys[1]) == key:
-                return self.pool.get(key)
+                res = self.pool.get(key)
+                if res is None:
+                    raise ValueError(f"Async Result of task[{key}] not found.")
+                return res
             else:
-                raise ValueError(f"Async Result [{key}] not found.")
+                raise ValueError(f"Async Result of task[{key}] not found.")
 
 
 def get_pool(
