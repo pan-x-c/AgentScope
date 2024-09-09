@@ -3,6 +3,13 @@
 from __future__ import absolute_import, division, print_function
 
 import re
+from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext
+import os
+import sys
+import site
+import platform
+import subprocess
 
 import setuptools
 
@@ -89,9 +96,11 @@ minimal_requires = [
     "psutil",
     "scipy",
     "pillow",
+    "pybind11",
 ]
 
 distribute_requires = minimal_requires + rpc_requires
+cpp_distribute_requires = distribute_requires
 
 dev_requires = minimal_requires + test_requires
 
@@ -116,6 +125,48 @@ online_requires = full_requires + [
 with open("README.md", "r", encoding="UTF-8") as fh:
     long_description = fh.read()
 
+
+class CMakeExtension(Extension):
+    def __init__(self, name, sourcedir=''):
+        Extension.__init__(self, name, sources=[], language='c++')
+        self.sourcedir = os.path.abspath(sourcedir)
+
+
+class CMakeBuild(build_ext):
+    def run(self):
+        if platform.system() == "Windows":
+            return
+        from setuptools import Distribution
+        distribution = Distribution()
+        distribution.parse_config_files()
+        try:
+            out = subprocess.check_output(['cmake', '--version'])
+        except OSError:
+            raise RuntimeError("CMake must be installed to build the following extensions: " + ", ".join(e.name for e in self.extensions))
+
+        self.env = os.environ.copy()
+        for ext in self.extensions:
+            self.build_extension(ext)
+        super().run()
+
+    def build_extension(self, ext):
+        extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
+        cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
+                      '-DPython3_EXECUTABLE=' + sys.executable,
+                      '-Dpybind11_DIR=' + os.path.join(site.getsitepackages()[0], 'pybind11', 'share', 'cmake', 'pybind11')]
+
+        cfg = 'Debug' if self.debug else 'Release'
+        build_args = ['--config', cfg]
+
+        cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
+
+        if not os.path.exists(self.build_temp):
+            os.makedirs(self.build_temp)
+        subprocess.check_call(['cmake', '-B', 'build', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=self.env)
+        subprocess.check_call(['cmake', '--build', 'build'] + build_args, cwd=self.build_temp, env=self.env)
+        subprocess.check_call(['cmake', '--install', 'build'], cwd=self.build_temp, env=self.env)
+
+
 setuptools.setup(
     name=NAME,
     version=VERSION,
@@ -136,10 +187,13 @@ setuptools.setup(
     install_requires=minimal_requires,
     extras_require={
         "distribute": distribute_requires,
+        "cpp_distribute": cpp_distribute_requires,
         "dev": dev_requires,
         "full": full_requires,
         "online": online_requires,
     },
+    ext_modules=[CMakeExtension('agentscope.cpp_server.cpp_server')],
+    cmdclass=dict(build_ext=CMakeBuild),
     license="Apache License 2.0",
     classifiers=[
         "Development Status :: 4 - Beta",

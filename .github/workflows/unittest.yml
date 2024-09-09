@@ -21,6 +21,25 @@ jobs:
     - name: Update setuptools
       run: |
         pip install setuptools==68.2.2 wheel==0.41.2
+        pip install pybind11
+    - name: Install Ubuntu Dependencies
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libprotobuf-dev protobuf-compiler cmake libgrpc++-dev
+        git clone --recurse-submodules -b v1.62.2 --depth 1 --shallow-submodules https://github.com/grpc/grpc
+        cd grpc
+        mkdir -p cmake/build
+        pushd cmake/build
+        cmake -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=$MY_INSTALL_DIR ../..
+        make -j 4
+        sudo make install
+        popd
+        cd ..
+    - name: Install Mac Dependencies
+      if: ${{ matrix.os == 'macos-13' }}
+      run: |
+        brew install protobuf grpc
     - name: Install Minimal Dependencies
       run: |
         pip install -q -e .
@@ -37,3 +56,8 @@ jobs:
     - name: Generate coverage report
       run: |
         coverage report -m
+    - name: CPP gRPC Server Tests
+      if: ${{ matrix.os != 'windows-latest' }}
+      run: |
+        ls -l src/agentscope/cpp_server
+        AGENTSCOPE_USE_CPP_SERVER=YES AGENTSCOPE_NUM_WORKERS=2 python -m unittest tests/rpc_agent_test.py
