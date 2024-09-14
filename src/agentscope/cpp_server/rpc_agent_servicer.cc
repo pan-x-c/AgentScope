@@ -224,17 +224,25 @@ void signal_handler(int signum) {
 void SetupCppServer(const string &host, const string &port,
                     const string &server_id, const string &studio_url,
                     const string &pool_type, const string &redis_url,
-                    const int max_pool_size, const int max_timeout_seconds,
+                    const int max_pool_size,
+                    const int max_expire_time, const int max_timeout_seconds,
                     const bool local_mode,  const int num_workers) {
   struct sigaction act;
   act.sa_handler = signal_handler;
   sigemptyset(&act.sa_mask);
   act.sa_flags = 0;
   sigaction(SIGINT, &act, NULL);
-  std::string server_address(host + ":" + port);
+  std::string server_address;
+  if (local_mode)
+  {
+    server_address = "localhost:" + port;
+  }
+  else {
+    server_address = "0.0.0.0:" + port;
+  }
   worker = new Worker(host, port, server_id, studio_url,
                       pool_type, redis_url, max_pool_size,
-                      max_timeout_seconds, num_workers);
+                      max_expire_time, max_timeout_seconds, num_workers);
   RunServer(server_address);
 }
 
@@ -249,7 +257,7 @@ PYBIND11_MODULE(cpp_server, m) {
   m.def("setup_cpp_server", &SetupCppServer, "Run the gRPC server",
         py::arg("host"), py::arg("port"), py::arg("server_id"), py::arg("studio_url"),
         py::arg("pool_type"), py::arg("redis_url"),
-        py::arg("max_pool_size"), py::arg("max_timeout_seconds"),
+        py::arg("max_pool_size"), py::arg("max_expire_time"), py::arg("max_timeout_seconds"),
         py::arg("local_mode"), py::arg("num_workers"));
   m.def("shutdown_cpp_server", &ShutdownCppServer, "Shutdown the gRPC server");
 }

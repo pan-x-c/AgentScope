@@ -50,10 +50,12 @@ class AgentServerServicer(RpcAgentServicer):
         port: int = None,
         server_id: str = None,
         studio_url: str = None,
+        capacity: int = 32,
         pool_type: str = "local",
         redis_url: str = "redis://localhost:6379",
         max_pool_size: int = 8192,
-        max_timeout_seconds: int = 7200,
+        max_expire_time: int = 7200,
+        max_timeout_seconds: int = 5,
     ):
         """Init the AgentServerServicer.
 
@@ -67,13 +69,18 @@ class AgentServerServicer(RpcAgentServicer):
                 Server id of the rpc agent server.
             studio_url (`str`, defaults to `None`):
                 URL of the AgentScope Studio.
+            capacity (`int`, default to `32`):
+                The number of concurrent agents in the servicer.
             max_pool_size (`int`, defaults to `8192`):
-                The max number of agent reply messages that the server can
-                accommodate. Note that the oldest message will be deleted
+                The max number of async results that the server can
+                accommodate. Note that the oldest result will be deleted
                 after exceeding the pool size.
-            max_timeout_seconds (`int`, defaults to `7200`):
-                Maximum time for reply messages to be cached in the server.
+            max_expire_time (`int`, defaults to `7200`):
+                Maximum time for async results to be cached in the server.
                 Note that expired messages will be deleted.
+            max_timeout_seconds (`int`, defaults to `5`):
+                The maximum time (in seconds) that the server will wait for
+                the result of an async call.
         """
         self.host = host
         self.port = port
@@ -84,15 +91,16 @@ class AgentServerServicer(RpcAgentServicer):
             pool_type=pool_type,
             redis_url=redis_url,
             max_len=max_pool_size,
-            max_timeout=max_timeout_seconds,
+            max_expire=max_expire_time,
         )
-        self.executor = futures.ThreadPoolExecutor(max_workers=None)
+        self.executor = futures.ThreadPoolExecutor(max_workers=capacity)
         self.task_id_lock = threading.Lock()
         self.agent_id_lock = threading.Lock()
         self.task_id_counter = 0
         self.agent_pool: dict[str, Any] = {}
         self.pid = os.getpid()
         self.stop_event = stop_event
+        self.timeout = max_timeout_seconds
 
     def agent_exists(self, agent_id: str) -> bool:
         """Check whether the agent exists.
@@ -298,7 +306,16 @@ class AgentServerServicer(RpcAgentServicer):
     ) -> agent_pb2.CallFuncResponse:
         """Update the value of a placeholder."""
         task_id = request.task_id
-        result = self.result_pool.get(task_id)
+        try:
+            result = self.result_pool.get(
+                task_id,
+                timeout=self.timeout,
+            )
+        except TimeoutError:
+            context.abort(
+                grpc.StatusCode.DEADLINE_EXCEEDED,
+                "Timeout",
+            )
         if result[:6] == MAGIC_PREFIX:
             return agent_pb2.CallFuncResponse(
                 ok=False,

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """ Client of rpc agent server """
 
-import threading
 import json
 import os
-from typing import Optional, Sequence, Union, Generator, Callable, Any
-from concurrent.futures import Future
+import time
+import random
+from typing import Optional, Sequence, Union, Generator, Any
+from concurrent.futures import ThreadPoolExecutor
 from loguru import logger
 
 from ..message import Msg
@@ -35,6 +36,7 @@ class RpcClient:
     """A client of Rpc agent server"""
 
     _CHANNEL_POOL = {}
+    _EXECUTOR = ThreadPoolExecutor(max_workers=32)
 
     def __init__(
         self,
@@ -224,19 +226,48 @@ class RpcClient:
             logger.error(f"Error when delete all agents: {status.message}")
         return status.ok
 
-    def update_placeholder(self, task_id: int) -> str:
-        """Update the placeholder value.
+    def update_result(
+        self,
+        task_id: int,
+        retry_times: int = 10,
+        retry_interval: float = 5,
+    ) -> str:
+        """Update the value of the async result.
+
+        Note:
+            DON'T USE THIS FUNCTION IN `ThreadPoolExecutor`.
 
         Args:
             task_id (`int`): `task_id` of the PlaceholderMessage.
+            retry_times (`int`): Number of retries. Defaults to 10.
+            retry_interval (`float`): Base interval between retries in seconds.
+            Defaults to 5. Double the interval between retries for each retry.
 
         Returns:
-            bytes: Serialized message value.
+            bytes: Serialized value.
         """
         stub = RpcAgentStub(RpcClient._get_channel(self.url))
-        resp = stub.update_placeholder(
-            agent_pb2.UpdatePlaceholderRequest(task_id=task_id),
-        )
+        for _ in range(retry_times):
+            try:
+                resp = stub.update_placeholder(
+                    agent_pb2.UpdatePlaceholderRequest(task_id=task_id),
+                )
+            except grpc.RpcError as e:
+                if e.code() != grpc.StatusCode.DEADLINE_EXCEEDED:
+                    raise AgentCallError(
+                        host=self.host,
+                        port=self.port,
+                        message=f"Failed to update placeholder: {str(e)}",
+                    ) from e
+                # wait for a random time between retries
+                interval = (random.random() + 0.5) * retry_interval
+                logger.debug(
+                    f"Update placeholder timeout, retrying after {interval} s...",
+                )
+                time.sleep(interval)
+                retry_interval *= 2
+                continue
+            break
         if not resp.ok:
             raise AgentCallError(
                 host=self.host,
@@ -331,30 +362,6 @@ class RpcClient:
             RpcClient,
             (self.host, self.port),
         )
-
-
-def call_func_in_thread(func: Callable) -> Future:
-    """Call a function in a sub-thread.
-
-    Args:
-        func (`Callable`): The function to be called in sub-thread.
-
-    Returns:
-        `Future`: A stub to get the response.
-    """
-    future = Future()
-
-    def wrapper() -> None:
-        try:
-            result = func()
-            future.set_result(result)
-        except Exception as e:
-            future.set_exception(e)
-
-    thread = threading.Thread(target=wrapper)
-    thread.start()
-
-    return future
 
 
 class RpcAgentClient(RpcClient):

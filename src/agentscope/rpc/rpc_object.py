@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """A proxy object which represent a object located in a rpc server."""
 from typing import Any, Callable
-from functools import partial
 from abc import ABC
 from inspect import getmembers, isfunction
 from types import FunctionType
+from concurrent.futures import ThreadPoolExecutor, Future
+import threading
 
 try:
     import cloudpickle as pickle
@@ -13,7 +14,7 @@ except ImportError as e:
 
     pickle = ImportErrorReporter(e, "distribute")
 
-from .rpc_client import RpcClient, call_func_in_thread
+from .rpc_client import RpcClient
 from .rpc_async import AsyncResult
 from ..exception import AgentCreationError, AgentServerNotAliveError
 
@@ -27,6 +28,23 @@ def get_public_methods(cls: type) -> list[str]:
     ]
 
 
+def _call_func_in_thread(func: Callable, *args: Any, **kwargs: Any) -> Any:
+    """Call a function in a sub-thread."""
+    future = Future()
+
+    def wrapper(*args: Any, **kwargs: Any) -> None:
+        try:
+            result = func(*args, **kwargs)
+            future.set_result(result)
+        except Exception as ex:
+            future.set_exception(ex)
+
+    thread = threading.Thread(target=wrapper, args=args, kwargs=kwargs)
+    thread.start()
+
+    return future
+
+
 class RpcObject(ABC):
     """A proxy object which represent an object located in a rpc server."""
 
@@ -38,7 +56,8 @@ class RpcObject(ABC):
         port: int,
         connect_existing: bool = False,
         max_pool_size: int = 8192,
-        max_timeout_seconds: int = 7200,
+        max_expire_time: int = 7200,
+        max_timeout_seconds: int = 5,
         local_mode: bool = True,
         configs: dict = None,
     ) -> None:
@@ -51,8 +70,10 @@ class RpcObject(ABC):
             port (`int`): The port of the rpc server.
             max_pool_size (`int`, defaults to `8192`):
                 Max number of task results that the server can accommodate.
-            max_timeout_seconds (`int`, defaults to `7200`):
-                Timeout for task results.
+            max_expire_time (`int`, defaults to `7200`):
+                Max expire time for task results.
+            max_timeout_seconds (`int`, defaults to `5`):
+                Max timeout seconds for the rpc call.
             local_mode (`bool`, defaults to `True`):
                 Whether the started gRPC server only listens to local
                 requests.
@@ -65,6 +86,7 @@ class RpcObject(ABC):
         self._oid = oid
         self._cls = cls
         self.connect_existing = connect_existing
+        self.executor = ThreadPoolExecutor(max_workers=1)
 
         from ..studio._client import _studio_client
 
@@ -90,7 +112,9 @@ class RpcObject(ABC):
             self.server_launcher = RpcAgentServerLauncher(
                 host=self.host,
                 port=self.port,
+                capacity=2,
                 max_pool_size=max_pool_size,
+                max_expire_time=max_expire_time,
                 max_timeout_seconds=max_timeout_seconds,
                 local_mode=local_mode,
                 custom_agent_classes=[cls],
@@ -108,15 +132,14 @@ class RpcObject(ABC):
 
     def create(self, configs: dict) -> None:
         """create the object on the rpc server."""
-        self._creating_stub = call_func_in_thread(
-            partial(
-                self.client.create_agent,
-                configs,
-                self._oid,
-            ),
+        self._creating_stub = _call_func_in_thread(
+            self.client.create_agent,
+            configs,
+            self._oid,
         )
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        self._check_created()
         if "__call__" in self._cls._async_func:
             return self._async_func("__call__")(*args, **kwargs)
         else:
@@ -159,7 +182,6 @@ class RpcObject(ABC):
 
     def _call_func(self, func_name: str, args: dict) -> Any:
         """Call a function in rpc server."""
-        self._check_created()
         return pickle.loads(
             self.client.call_agent_func(
                 agent_id=self._oid,
@@ -173,12 +195,10 @@ class RpcObject(ABC):
             return AsyncResult(
                 host=self.host,
                 port=self.port,
-                stub=call_func_in_thread(
-                    partial(
-                        self._call_func,
-                        func_name=name,
-                        args={"args": args, "kwargs": kwargs},
-                    ),
+                stub=_call_func_in_thread(
+                    self._call_func,
+                    func_name=name,
+                    args={"args": args, "kwargs": kwargs},
                 ),
             )
 
@@ -194,6 +214,7 @@ class RpcObject(ABC):
         return sync_wrapper
 
     def __getattr__(self, name: str) -> Callable:
+        self._check_created()
         if name in self._cls._async_func:
             # for async functions
             return self._async_func(name)

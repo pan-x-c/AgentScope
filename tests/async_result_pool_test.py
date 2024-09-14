@@ -2,12 +2,11 @@
 """Test the async result pool."""
 import unittest
 import time
-import functools
 import pickle
 
 from loguru import logger
 
-from agentscope.rpc import call_func_in_thread
+from agentscope.rpc.rpc_object import _call_func_in_thread
 from agentscope.server.async_result_pool import (
     AsyncResultPool,
     get_pool,
@@ -38,18 +37,18 @@ class BasicResultPoolTest(unittest.TestCase):
         for target_value in range(10):
             oid = pool.prepare()
             get_stubs.append(
-                call_func_in_thread(
-                    functools.partial(test_get_func, oid=oid, pool=pool),
+                _call_func_in_thread(
+                    test_get_func,
+                    oid=oid,
+                    pool=pool,
                 ),
             )
             set_stubs.append(
-                call_func_in_thread(
-                    functools.partial(
-                        test_set_func,
-                        oid=oid,
-                        value=target_value,
-                        pool=pool,
-                    ),
+                _call_func_in_thread(
+                    test_set_func,
+                    oid=oid,
+                    value=target_value,
+                    pool=pool,
                 ),
             )
         et = time.time()
@@ -69,7 +68,7 @@ class BasicResultPoolTest(unittest.TestCase):
 
     def test_local_pool(self) -> None:
         """Test local pool"""
-        pool = get_pool(pool_type="local", max_len=100, max_timeout=3600)
+        pool = get_pool(pool_type="local", max_len=100, max_expire=3600)
         self._test_result_pool(pool)
 
     @unittest.skip(reason="redis is not installed")
@@ -78,7 +77,7 @@ class BasicResultPoolTest(unittest.TestCase):
         pool = get_pool(
             pool_type="redis",
             redis_url="redis://localhost:6379",
-            max_timeout=3600,
+            max_expire=3600,
         )
         self._test_result_pool(pool)
         self.assertRaises(

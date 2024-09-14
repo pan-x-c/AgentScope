@@ -51,6 +51,7 @@ Worker::Worker(
     const string &pool_type,
     const string &redis_url,
     const int max_pool_size,
+    const int max_expire_time,
     const unsigned int max_timeout_seconds,
     const unsigned int num_workers) : _host(host), _port(port), _server_id(server_id),
                                       _main_worker_pid(getpid()),
@@ -71,7 +72,7 @@ Worker::Worker(
                                       _max_timeout_seconds(std::max(max_timeout_seconds, 1u))
 {
     py::object get_pool = py::module::import("agentscope.server.async_result_pool").attr("get_pool");
-    _result_pool = get_pool("redis", _max_timeout_seconds, max_pool_size, redis_url);
+    _result_pool = get_pool("redis", max_expire_time, max_pool_size, redis_url);
 
     MAGIC_PREFIX = py::module::import("agentscope.server.servicer").attr("MAGIC_PREFIX").cast<string>();
 

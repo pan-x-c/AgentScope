@@ -215,6 +215,7 @@ public:
         const string &pool_type,
         const string &redis_url,
         const int max_pool_size,
+        const int max_expire_time,
         const unsigned int max_timeout_seconds,
         const unsigned int num_workers);
     ~Worker();
