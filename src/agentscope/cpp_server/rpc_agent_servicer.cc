@@ -27,7 +27,6 @@ using grpc::Status;
 using google::protobuf::Empty;
 
 Worker *worker = nullptr;
-std::unique_ptr<Server> server = nullptr;
 
 #define LOG(...) RAW_LOGGER(worker, __VA_ARGS__)
 
@@ -201,20 +200,23 @@ public:
   }
 };
 
+std::unique_ptr<Server> server = nullptr;
+std::shared_ptr<RpcAgentServiceImpl> service = nullptr;
+ServerBuilder builder;
+
 void RunServer(const string &server_address) {
-  RpcAgentServiceImpl service(worker);
-
-  ServerBuilder builder;
+  service = std::make_shared<RpcAgentServiceImpl>(worker);
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-  builder.RegisterService(&service);
-
+  builder.RegisterService(service.get());
   server = builder.BuildAndStart();
-  server->Wait();
+  auto server_thread = std::thread([&]() { server->Wait(); });
+  server_thread.detach();
 }
 
+void ShutdownCppServer();
 void signal_handler(int signum) {
   if (worker != nullptr) {
-    delete worker;
+    ShutdownCppServer();
   }
   exit(0);
 }
@@ -233,9 +235,7 @@ void SetupCppServer(const string &host, const string &port,
   worker = new Worker(host, port, server_id, studio_url,
                       pool_type, redis_url, max_pool_size,
                       max_timeout_seconds, num_workers);
-  auto server_thread = std::thread([&]() { RunServer(server_address); });
-  server_thread.detach();
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+  RunServer(server_address);
 }
 
 
