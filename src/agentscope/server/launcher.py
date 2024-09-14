@@ -241,7 +241,6 @@ async def _setup_agent_server_async(  # pylint: disable=R0912
     if os.environ.get("AGENTSCOPE_USE_CPP_SERVER", "").lower() == "yes":
         from agentscope.cpp_server.cpp_server import setup_cpp_server, shutdown_cpp_server
         num_workers = int(os.environ.get('AGENTSCOPE_NUM_WORKERS', f'{multiprocessing.cpu_count()}'))
-        print(redis_url)
         setup_cpp_server(
             host, str(port), server_id, str(studio_url),
             pool_type, redis_url, max_pool_size, max_timeout_seconds,
@@ -378,7 +377,7 @@ class RpcAgentServerLauncher:
         self,
         host: str = "localhost",
         port: int = None,
-        pool_type: str = "redis",
+        pool_type: str = "local",
         redis_url: str = "redis://localhost:6379",
         max_pool_size: int = 8192,
         max_timeout_seconds: int = 7200,

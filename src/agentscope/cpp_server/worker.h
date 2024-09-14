@@ -15,6 +15,8 @@
 #include <condition_variable>
 #include <semaphore.h>
 #include <sys/ipc.h>
+#include <ctime>
+#include <chrono>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -43,19 +45,6 @@ namespace py = pybind11;
 
 using google::protobuf::Message;
 
-class Task
-{
-public:
-    int _task_id;
-    mutex _task_mutex;
-    condition_variable_any _task_cv;
-    string _task_result;
-    bool _task_finished;
-
-    Task(const int task_id);
-    int task_id();
-    string get_result();
-};
 
 class Worker
 {
@@ -97,13 +86,9 @@ private:
     unordered_map<string, int> _agent_id_map; // map agent id to worker id
     shared_mutex _agent_id_map_mutex;
     unordered_map<string, py::object> _agent_pool;
-    shared_mutex _agent_pool_mutex;
+    shared_mutex _agent_pool_insert_mutex;
+    shared_mutex _agent_pool_delete_mutex;
 
-    // deque<pair<long long, std::unique_ptr<Task>>> _tasks;
-    // int _num_tasks;
-    // shared_mutex _tasks_head_mutex;
-    // mutex _tasks_tail_mutex;
-    // const unsigned int _max_tasks;
     const unsigned int _max_timeout_seconds;
     py::object _result_pool;
 
@@ -111,7 +96,7 @@ private:
     string MAGIC_PREFIX;
     py::object _serialize, _deserialize;
     py::object _pickle_loads, _pickle_dumps;
-    py::object _logger;
+    py::object _py_logger;
 
     enum function_ids
     {
@@ -122,10 +107,8 @@ private:
         get_agent_list = 4,
         set_model_configs = 5,
         get_agent_memory = 6,
-        reply = 7,
-        observe = 8,
-        agent_func = 9,
-        server_info = 10,
+        agent_func = 7,
+        server_info = 8,
     };
 
     int find_avail_worker_id();
@@ -160,14 +143,7 @@ private:
     static bool calc_use_logger()
     {
         char *use_logger = getenv("AGENTSCOPE_USE_CPP_LOGGER");
-        if (use_logger != nullptr && std::string(use_logger) == "True")
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return (use_logger != nullptr && std::string(use_logger) == "True");
     }
 
     inline long long get_current_timestamp()
@@ -180,8 +156,6 @@ private:
     {
         return get_current_timestamp() - timestamp > _max_timeout_seconds;
     }
-    // pair<int, int> get_task_id_and_callback_id();
-    // pair<bool, string> get_task_result(const int task_id);
     int call_worker_func(const int worker_id, const function_ids func_id, const Message *args, const bool need_wait = true);
 
     void create_agent_worker(const int call_id);
@@ -191,8 +165,6 @@ private:
     void get_agent_list_worker(const int call_id);
     void set_model_configs_worker(const int call_id);
     void get_agent_memory_worker(const int call_id);
-    // void reply_worker(const int call_id);
-    // void observe_worker(const int call_id);
     void agent_func_worker(const int call_id);
     void server_info_worker(const int call_id);
 
@@ -214,7 +186,20 @@ public:
         if (_use_logger)
         {
             unique_lock<std::mutex> lock(_logger_mutex);
-            std::cout << "pid = " << getpid() << " tid = " << std::this_thread::get_id() << " " << msg << std::endl;
+            auto now = std::chrono::system_clock::now();
+    
+            // 转换为系统时间
+            auto now_c = std::chrono::system_clock::to_time_t(now);
+            std::tm* localTime = std::localtime(&now_c);
+
+            // 获取当前时间的毫秒部分
+            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
+            std::cout << std::put_time(localTime, "%Y-%m-%d %H:%M:%S") 
+                << '.' << std::setw(3) << std::setfill('0') << milliseconds.count() << " | ";
+
+            // return oss.str();
+            std::cout << "port = " << _port << " tid = " << std::this_thread::get_id() << " | " << msg << std::endl;
         }
     }
 
@@ -225,8 +210,6 @@ public:
     string call_get_agent_list();
     string call_set_model_configs(const string &model_configs);
     pair<bool, string> call_get_agent_memory(const string &agent_id);
-    // pair<bool, string> call_reply(const string &agent_id, const string &message);
-    // pair<bool, string> call_observe(const string &agent_id, const string &message);
     pair<bool, string> call_agent_func(const string &agent_id, const string &func_name, const string &raw_value);
     pair<bool, string> call_update_placeholder(const int task_id);
     string call_server_info();

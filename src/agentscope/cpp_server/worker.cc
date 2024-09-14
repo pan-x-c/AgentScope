@@ -21,39 +21,18 @@ using namespace pybind11::literals;
 using WorkerArgs::AgentArgs;
 using WorkerArgs::CreateAgentArgs;
 using WorkerArgs::ModelConfigsArgs;
-// using WorkerArgs::ObserveArgs;
-// using WorkerArgs::ReplyArgs;
 using WorkerArgs::AgentFuncArgs;
+using WorkerArgs::AgentFuncReturn;
 using WorkerArgs::AgentListReturn;
 using WorkerArgs::MsgReturn;
 
-Task::Task(const int task_id)
-    : _task_id(task_id),
-      _task_result(),
-      _task_finished(false)
-{
-}
-
-int Task::task_id()
-{
-    return this->_task_id;
-}
-
-string Task::get_result()
-{
-    unique_lock<mutex> lock(_task_mutex);
-    _task_cv.wait(lock, [this]()
-                  { return this->_task_finished; });
-    return _task_result;
-}
-
-void P(int semid, unsigned short sem_num)
+inline void P(int semid, unsigned short sem_num)
 {
     struct sembuf sb = {sem_num, -1, 0};
     semop(semid, &sb, 1);
 }
 
-void V(int semid, unsigned short sem_num)
+inline void V(int semid, unsigned short sem_num)
 {
     struct sembuf sb = {sem_num, 1, 0};
     semop(semid, &sb, 1);
@@ -82,9 +61,10 @@ Worker::Worker(
                                       _func_result_shm_prefix("/result_" + port + "_"),
                                       _worker_avail_sem_prefix("/avail_" + port + "_"),
                                       _func_ready_sem_prefix("/func_" + port + "_"),
-                                      _small_obj_pool_shm_name("/small_obj_pool_shm_" + port),
+                                      _small_obj_pool_shm_name("/pool_shm_" + port),
                                       _use_logger(calc_use_logger()),
-                                      _max_timeout_seconds(std::max(max_timeout_seconds, 1u))
+                                      _max_timeout_seconds(std::max(max_timeout_seconds, 1u)) //,
+                                    //   _redis_pool(redis_url, _max_timeout_seconds)
 {
     py::object get_pool = py::module::import("agentscope.server.async_result_pool").attr("get_pool");
     _result_pool = get_pool("redis", _max_timeout_seconds, max_pool_size, redis_url);
@@ -98,7 +78,7 @@ Worker::Worker(
     py::object pickle = py::module::import("cloudpickle");
     _pickle_loads = pickle.attr("loads");
     _pickle_dumps = pickle.attr("dumps");
-    _logger = py::module::import("loguru").attr("logger").attr("opt")("depth"_a=-1).attr("info");
+    _py_logger = py::module::import("loguru").attr("logger").attr("opt")("depth"_a=-1);
     py::gil_scoped_release release;
 
     struct stat info;
@@ -251,16 +231,6 @@ Worker::Worker(
                     work = thread(&Worker::get_agent_memory_worker, this, call_id);
                     break;
                 }
-                // case function_ids::reply:
-                // {
-                //     work = thread(&Worker::reply_worker, this, call_id);
-                //     break;
-                // }
-                // case function_ids::observe:
-                // {
-                //     work = thread(&Worker::observe_worker, this, call_id);
-                //     break;
-                // }
                 case function_ids::server_info:
                 {
                     work = thread(&Worker::server_info_worker, this, call_id);
@@ -360,6 +330,7 @@ int Worker::find_avail_worker_id()
         i = dis(gen);
         if (sem_trywait(_worker_semaphores[i].first) == 0)
         {
+            // assert(sem_trywait(_worker_semaphores[i].first) != 0);
             logger("get worker id: " + to_string(i));
             return i;
         }
@@ -383,7 +354,7 @@ string Worker::get_content(const string &prefix, const int call_id)
 {
     char *small_obj_shm = (char *)_small_obj_pool_shm + call_id * _small_obj_shm_size;
     int *occupied = (int *)small_obj_shm;
-    logger("get_content 0: occupied = " + to_string(*occupied) + " call_id = " + to_string(call_id) + " " + to_string(*(int *)(small_obj_shm)) + " " + to_string(*(int *)(small_obj_shm + sizeof(int))));
+    logger("get_content 0: occupied = " + to_string(*occupied) + ", call_id = " + to_string(call_id) + ", content_size = " + to_string(*(int *)(small_obj_shm + sizeof(int))));
     if (*occupied)
     {
         int content_size = *(int *)(small_obj_shm + sizeof(int));
@@ -396,6 +367,7 @@ string Worker::get_content(const string &prefix, const int call_id)
     int shm_fd = shm_open(shm_name.c_str(), O_RDONLY, 0666);
     if (shm_fd == -1)
     {
+        logger("Error: shm_open in get_content: " + shm_name);
         perror(("Error: shm_open in get_content: " + shm_name).c_str());
         kill(_main_worker_pid, SIGINT);
     }
@@ -428,11 +400,11 @@ void Worker::set_content(const string &prefix, const int call_id, const string &
     logger("set_content: " + to_string(content.size()) + " content = [" + content + "]");
     if (content.size() <= _small_obj_size)
     {
-        logger("set_content in pool ");
         char *small_obj_shm = (char *)_small_obj_pool_shm + call_id * _small_obj_shm_size;
         *(int *)small_obj_shm = true;
         *(int *)(small_obj_shm + sizeof(int)) = content.size();
         memcpy(small_obj_shm + sizeof(int) * 2, content.c_str(), content.size());
+        logger("set_content in pool call_id = " + to_string(call_id) + " occupied = " + to_string(*(int *)small_obj_shm));
         return;
     }
     string shm_name = prefix + to_string(call_id);
@@ -499,63 +471,6 @@ int Worker::get_worker_id_by_agent_id(const string &agent_id)
     }
 }
 
-// pair<int, int> Worker::get_task_id_and_callback_id()
-// {
-//     if (_tasks_head_mutex.try_lock())
-//     {
-//         // remove front
-//         while (!_tasks.empty() && _tasks.front().second->_task_finished && (_tasks.size() >= _max_tasks || is_timeout(_tasks.front().first)))
-//         {
-//             std::cout << "takes " << _tasks.front().second->task_id() << std::endl;
-//             _tasks.pop_front();
-//         }
-//         _tasks_head_mutex.unlock();
-//     }
-//     unique_lock<mutex> lock(_tasks_tail_mutex);
-//     int task_id = _num_tasks;
-//     _num_tasks++;
-//     int callback_id = get_call_id();
-//     int current_timestamp = get_current_timestamp();
-//     logger("get_task_id_and_callback_id 1: task_id = " + to_string(task_id) + " callback_id = " + to_string(callback_id));
-//     _tasks.emplace_back(make_pair(current_timestamp, std::make_unique<Task>(task_id)));
-//     auto &task = _tasks.back().second;
-//     lock.unlock();
-//     thread work = thread([this, callback_id, &task]()
-//                          {
-//                              this->logger("Task " + to_string(task->task_id()) + " is running");
-//                              task->_task_result = this->get_result(callback_id);
-//                              this->logger("Task " + to_string(task->task_id()) + " is finished with task->_task_result = [" + task->_task_result + "]");
-//                              unique_lock<mutex> task_lock(task->_task_mutex);
-//                              task->_task_finished = true;
-//                              task->_task_cv.notify_all(); });
-//     work.detach();
-//     logger("get_task_id_and_callback_id 2: task_id = " + to_string(task_id) + " callback_id = " + to_string(callback_id) + " finished. ");
-//     return make_pair(task_id, callback_id);
-// }
-
-// pair<bool, string> Worker::get_task_result(const int task_id)
-// {
-//     logger("get_task_result 1: task_id = " + to_string(task_id));
-//     shared_lock<shared_mutex> lock(_tasks_head_mutex);
-//     const auto &first_task = _tasks.front();
-//     int first_task_id = first_task.second->task_id();
-//     int idx = task_id - first_task_id;
-//     logger("get_task_result 2: task_id = " + to_string(task_id) + " idx = " + to_string(idx));
-//     if (0 <= idx && idx < (int)_tasks.size())
-//     {
-//         string result_str = _tasks[idx].second->get_result();
-//         logger("get_task_result 3: task_id = " + to_string(task_id) + " idx = " + to_string(idx) + " result_str = [" + result_str + "]");
-//         MsgReturn result;
-//         result.ParseFromString(result_str);
-//         logger("get_task_result 4: task_id = " + to_string(task_id) + " idx = " + to_string(idx) + " result_ok = " + to_string(result.ok()) + " result_str = [" + result_str + "]");
-//         return make_pair(result.ok(), result.message());
-//     }
-//     else
-//     {
-//         return make_pair(false, "");
-//     }
-// }
-
 int Worker::call_worker_func(const int worker_id, const function_ids func_id, const Message *args, const bool need_wait)
 {
     if (need_wait)
@@ -565,14 +480,14 @@ int Worker::call_worker_func(const int worker_id, const function_ids func_id, co
     int call_id = get_call_id();
     *(int *)(_call_worker_shm + worker_id * _call_shm_size) = call_id;
     *(int *)(_call_worker_shm + worker_id * _call_shm_size + sizeof(int)) = func_id;
-    logger("call_worker_func 1: " + to_string(func_id) + " call_id = " + to_string(call_id));
+    logger("call_worker_func 1: func_id = " + to_string(func_id) + " call_id = " + to_string(call_id));
     if (args != nullptr)
     {
         string args_str = args->SerializeAsString();
         set_args_repr(call_id, args_str);
     }
     sem_post(_worker_semaphores[worker_id].second);
-    logger("call_worker_func 3: " + to_string(func_id) + " call_id = " + to_string(call_id) + " finished!");
+    logger("call_worker_func 2: func_id = " + to_string(func_id) + " call_id = " + to_string(call_id) + " finished!");
     return call_id;
 }
 
@@ -582,14 +497,14 @@ string Worker::call_create_agent(const string &agent_id, const string &agent_ini
     {
         return "Agent with agent_id [" + agent_id + "] already exists.";
     }
-    logger("call_create_agent 1:" + agent_id);
+    logger("call_create_agent 1: " + agent_id);
     int worker_id = find_avail_worker_id();
     CreateAgentArgs args;
     args.set_agent_id(agent_id);
     args.set_agent_init_args(agent_init_args);
     args.set_agent_source_code(agent_source_code);
     int call_id = call_worker_func(worker_id, function_ids::create_agent, &args, false);
-    logger("call_create_agent 2:" + agent_id + " call_id = " + to_string(call_id) + " worker_id = " + to_string(worker_id));
+    logger("call_create_agent 2: " + agent_id + " call_id = " + to_string(call_id) + " worker_id = " + to_string(worker_id));
     string result = get_result(call_id);
     if (result.empty())
     {
@@ -602,14 +517,14 @@ string Worker::call_create_agent(const string &agent_id, const string &agent_ini
 
 void Worker::create_agent_worker(const int call_id)
 {
-    logger("create_agent_worker: call_id = " + to_string(call_id) + " start!");
+    logger("create_agent_worker 1: call_id = " + to_string(call_id) + " start!");
     string args_repr = get_args_repr(call_id);
     CreateAgentArgs args;
     args.ParseFromString(args_repr);
     string agent_id = args.agent_id();
     string agent_init_args = args.agent_init_args();
     string agent_source_code = args.agent_source_code();
-    logger("create_agent_worker: call_id = " + to_string(call_id) + " agent_id = " + agent_id);
+    logger("create_agent_worker 2: call_id = " + to_string(call_id) + " agent_id = " + agent_id);
 
     py::gil_scoped_acquire acquire;
     py::tuple create_result = py::module::import("agentscope.cpp_server").attr("create_agent")(agent_id, py::bytes(agent_init_args), _host, std::atoi(_port.c_str()));
@@ -618,10 +533,11 @@ void Worker::create_agent_worker(const int call_id)
     string result = error_msg.cast<string>();
     if (result.empty())
     {
-        unique_lock<shared_mutex> lock(_agent_pool_mutex);
+        shared_lock<shared_mutex> lock(_agent_pool_delete_mutex);
+        unique_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
         _agent_pool.insert(std::make_pair(agent_id, agent));
     }
-    logger("create_agent_worker: call_id = " + to_string(call_id) + " result = " + result);
+    logger("create_agent_worker 3: call_id = " + to_string(call_id) + " result = " + result);
     set_result(call_id, result);
 }
 
@@ -630,7 +546,10 @@ string Worker::call_delete_agent(const string &agent_id)
     int worker_id = get_worker_id_by_agent_id(agent_id);
     if (worker_id == -1)
     {
-        return "Try to delete a non-existent agent [" + agent_id + "].";
+        py::gil_scoped_acquire acquire;
+        string msg = "Try to delete a non-existent agent [" + agent_id + "].";
+        _py_logger.attr("warning")(msg);
+        return msg;
     }
     AgentArgs args;
     args.set_agent_id(agent_id);
@@ -650,14 +569,17 @@ void Worker::delete_agent_worker(const int call_id)
     args.ParseFromString(args_repr);
     string agent_id = args.agent_id();
 
-    py::gil_scoped_acquire acquire;
-    unique_lock<shared_mutex> lock(_agent_pool_mutex);
+    unique_lock<shared_mutex> lock(_agent_pool_delete_mutex);
+    unique_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
     auto agent = _agent_pool[agent_id];
+    py::gil_scoped_acquire acquire;
+    string class_name = agent.attr("__class__").attr("__name__").cast<string>();
     if (py::hasattr(agent, "__del__"))
     {
         agent.attr("__del__")();
     }
     _agent_pool.erase(agent_id);
+    _py_logger.attr("info")("delete agent instance <" + class_name + ">[" + agent_id + "]");
     set_result(call_id, "");
 }
 
@@ -679,13 +601,16 @@ string Worker::call_delete_all_agents()
         string result = get_result(call_id);
         final_result += result;
     }
+    py::gil_scoped_acquire acquire;
+    _py_logger.attr("info")("Deleting all agent instances on the server");
     return final_result;
 }
 
 void Worker::delete_all_agents_worker(const int call_id)
 {
+    unique_lock<shared_mutex> lock(_agent_pool_delete_mutex);
+    unique_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
     py::gil_scoped_acquire acquire;
-    unique_lock<shared_mutex> lock(_agent_pool_mutex);
     for (auto &agent : _agent_pool)
     {
         if (py::hasattr(agent.second, "__del__"))
@@ -722,17 +647,20 @@ void Worker::clone_agent_worker(const int call_id)
     args.ParseFromString(args_repr);
     string agent_id = args.agent_id();
 
+    shared_lock<shared_mutex> lock(_agent_pool_delete_mutex);
+    py::object agent;
+    {
+        shared_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
+        agent = _agent_pool[agent_id];
+    }
     py::gil_scoped_acquire acquire;
-    shared_lock<shared_mutex> read_lock(_agent_pool_mutex);
-    py::object agent = _agent_pool[agent_id];
     py::object agent_class = agent.attr("__class__");
     py::object agent_args = agent.attr("_init_settings")["args"];
     py::object agent_kwargs = agent.attr("_init_settings")["kwargs"];
-    read_lock.unlock();
     py::object clone_agent = agent_class(*agent_args, **agent_kwargs);
     string clone_agent_id = clone_agent.attr("agent_id").cast<string>();
     {
-        unique_lock<shared_mutex> lock(_agent_pool_mutex);
+        unique_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
         _agent_pool.insert(std::make_pair(clone_agent_id, clone_agent));
     }
     set_result(call_id, clone_agent_id);
@@ -760,15 +688,9 @@ string Worker::call_get_agent_list()
         {
             result_list.push_back(agent_str);
         }
-        // logger("call_get_agent_list 1: call_id = " + to_string(call_id) + " result = [" + result + "]");
-        // if (final_result != "[" && !result.empty())
-        //     final_result += ",";
-        // final_result += result;
     }
-    // final_result += "]";
     py::gil_scoped_acquire acquire;
     logger("call_get_agent_list 1: result_list.size() = [" + to_string(result_list.size()) + "]");
-    // py::object serialize_lib = py::module::import("agentscope.serialize");
     string final_result = _serialize(result_list).cast<string>();
     logger("call_get_agent_list 2: result = [" + final_result + "]");
     return final_result;
@@ -776,21 +698,16 @@ string Worker::call_get_agent_list()
 
 void Worker::get_agent_list_worker(const int call_id)
 {
-    py::gil_scoped_acquire acquire;
-    // vector<string> agent_str_list;
     AgentListReturn result;
     {
-        shared_lock<shared_mutex> lock(_agent_pool_mutex);
+        shared_lock<shared_mutex> lock(_agent_pool_delete_mutex);
+        shared_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
+        py::gil_scoped_acquire acquire;
         for (auto &iter : _agent_pool)
         {
-            // agent_str_list.push_back(iter.second.attr("__str__")().cast<string>());
             result.add_agent_str_list(iter.second.attr("__str__")().cast<string>());
         }
     }
-    // string result = py::module::import("json").attr("dumps")(agent_str_list).cast<string>();
-    // py::object serialize_lib = py::module::import("agentscope.serialize");
-    // string result = serialize_lib.attr("serialize")(agent_str_list).cast<string>();
-    // set_result(call_id, result.substr(1, result.size() - 2));
     set_result(call_id, result.SerializeAsString());
 }
 
@@ -847,154 +764,29 @@ void Worker::get_agent_memory_worker(const int call_id)
     AgentArgs args;
     args.ParseFromString(args_repr);
     string agent_id = args.agent_id();
+    py::object agent;
+    shared_lock<shared_mutex> lock(_agent_pool_delete_mutex);
+    {
+        shared_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
+        agent = _agent_pool[agent_id];
+    }
     py::gil_scoped_acquire acquire;
-    shared_lock<shared_mutex> lock(_agent_pool_mutex);
-    py::object agent = _agent_pool[agent_id];
     py::object memory = agent.attr("memory");
     MsgReturn result;
     if (memory.is_none())
     {
-        // set_result(call_id, "FAgent [" + agent_id + "] has no memory.");
         result.set_ok(false);
         result.set_message("Agent [" + agent_id + "] has no memory.");
     }
     else
     {
         py::object memory_info = memory.attr("get_memory")();
-        // py::object serialize_lib = py::module::import("agentscope.serialize");
         string memory_msg = _serialize(memory_info).cast<string>();
         result.set_ok(true);
         result.set_message(memory_msg);
-        // set_result(call_id, "T" + py::module::import("json").attr("dumps")(memory_info).cast<string>());
     }
     set_result(call_id, result.SerializeAsString());
 }
-
-// pair<bool, string> Worker::call_reply(const string &agent_id, const string &message)
-// {
-//     int worker_id = get_worker_id_by_agent_id(agent_id);
-//     if (worker_id == -1)
-//     {
-//         return make_pair(false, "Try to reply a non-existent agent [" + agent_id + "].");
-//     }
-//     logger("call_reply 1: agent_id = " + agent_id + " worker_id = " + to_string(worker_id));
-//     auto [task_id, callback_id] = get_task_id_and_callback_id();
-//     ReplyArgs args;
-//     args.set_agent_id(agent_id);
-//     args.set_message(message);
-//     args.set_task_id(task_id);
-//     args.set_callback_id(callback_id);
-//     logger("call_reply 2: agent_id = " + agent_id + " task_id = " + to_string(task_id) + " callback_id = " + to_string(callback_id) + " before call_worker_func");
-//     int call_id = call_worker_func(worker_id, function_ids::reply, &args);
-//     logger("call_reply 3: agent_id = " + agent_id + " task_id = " + to_string(task_id) + " callback_id = " + to_string(callback_id) + " call_id = " + to_string(call_id) + " wait result");
-//     string result = get_result(call_id);
-//     logger("call_reply 4: agent_id = " + agent_id + " task_id = " + to_string(task_id) + " callback_id = " + to_string(callback_id) + " call_id = " + to_string(call_id) + " result = " + result);
-//     return make_pair(true, result);
-// }
-
-// void Worker::reply_worker(const int call_id)
-// {
-//     string args_repr = get_args_repr(call_id);
-//     logger("reply_worker 1: call_id = " + to_string(call_id) + " args_repr = " + args_repr);
-//     ReplyArgs args;
-//     args.ParseFromString(args_repr);
-//     string agent_id = args.agent_id();
-//     string message = args.message();
-//     int task_id = args.task_id();
-//     int callback_id = args.callback_id();
-//     logger("reply_worker 2: call_id = " + to_string(call_id) + " agent_id = " + agent_id + " task_id = " + to_string(task_id) + " callback_id = " + to_string(callback_id) + " message = " + message);
-
-//     py::gil_scoped_acquire acquire;
-//     shared_lock<shared_mutex> lock(_agent_pool_mutex);
-//     py::object agent = _agent_pool[agent_id];
-//     py::object message_lib = py::module::import("agentscope.message");
-//     // py::object serialize_lib = py::module::import("agentscope.serialize");
-//     py::object py_message = message.size() ? _deserialize(message) : py::none();
-
-//     string msg_str = to_string(task_id);
-//     logger("reply_worker 3: call_id = " + to_string(call_id) + " agent_id = " + agent_id + " task_id = " + to_string(task_id) + " callback_id = " + to_string(callback_id) + " msg_str = " + msg_str);
-//     set_result(call_id, msg_str);
-
-//     // working
-//     py::object PlaceholderMessage_class = message_lib.attr("PlaceholderMessage");
-//     if (py::isinstance(py_message, PlaceholderMessage_class))
-//     {
-//         py_message.attr("update_value")();
-//     }
-//     MsgReturn result;
-//     try
-//     {
-//         logger("reply_worker 3.1: call_id = " + to_string(call_id) + " agent_id = " + agent_id + " task_id = " + to_string(task_id) + " callback_id = " + to_string(callback_id) + " call reply");
-//         result.set_ok(true);
-//         py::object reply_msg = agent.attr("reply")(py_message);
-//         result.set_message(_serialize(reply_msg).cast<string>());
-//     }
-//     catch (const std::exception &e)
-//     {
-//         result.set_ok(false);
-//         result.set_message(e.what());
-//     }
-//     string reply_str = result.SerializeAsString();
-//     logger("reply_worker 4: call_id = " + to_string(call_id) + " agent_id=" + agent_id + ", task_id=" + to_string(task_id) + ", callback_id=" + to_string(callback_id) + " reply_str = " + reply_str);
-//     set_result(callback_id, reply_str);
-// }
-
-// pair<bool, string> Worker::call_observe(const string &agent_id, const string &message)
-// {
-//     int worker_id = get_worker_id_by_agent_id(agent_id);
-//     if (worker_id == -1)
-//     {
-//         return make_pair(false, "Try to observe a non-existent agent [" + agent_id + "].");
-//     }
-//     ObserveArgs args;
-//     args.set_agent_id(agent_id);
-//     args.set_message(message);
-//     int call_id = call_worker_func(worker_id, function_ids::observe, &args);
-//     string result = get_result(call_id);
-//     logger("call_observe 2: call_id = " + to_string(call_id) + " result = " + result);
-//     return make_pair(true, result);
-// }
-
-// void Worker::observe_worker(const int call_id)
-// {
-//     string args_repr = get_args_repr(call_id);
-//     ObserveArgs args;
-//     args.ParseFromString(args_repr);
-//     string agent_id = args.agent_id();
-//     string message = args.message();
-//     py::gil_scoped_acquire acquire;
-//     shared_lock<shared_mutex> lock(_agent_pool_mutex);
-//     py::object agent = _agent_pool[agent_id];
-//     py::object message_lib = py::module::import("agentscope.message");
-//     py::object PlaceholderMessage_class = message_lib.attr("PlaceholderMessage");
-//     // py::object serialize_lib = py::module::import("agentscope.serialize");
-//     logger("observe_worker 1: call_id = " + to_string(call_id) + " message = " + message);
-//     py::object py_messages = message.size() ? _deserialize(message) : py::list();
-//     // if (py::isinstance(py_messages, py::list()))
-//     // {
-//     //     py_messages.attr("update_value")();
-//     // }
-//     if (py::isinstance<py::list>(py_messages))
-//     {
-//         for (auto &py_message : py_messages)
-//         {
-//             if (py::isinstance(py_message, PlaceholderMessage_class))
-//             {
-//                 py_message.attr("update_value")();
-//             }
-//         }
-//     }
-//     else
-//     {
-//         if (py::isinstance(py_messages, PlaceholderMessage_class))
-//         {
-//             py_messages.attr("update_value")();
-//         }
-//     }
-//     py::print("observe_worker: py_messages = ", py_messages);
-//     agent.attr("observe")(py_messages);
-//     set_result(call_id, "");
-// }
 
 pair<bool, string> Worker::call_agent_func(const string &agent_id, const string &func_name, const string &raw_value)
 {
@@ -1009,9 +801,11 @@ pair<bool, string> Worker::call_agent_func(const string &agent_id, const string 
     args.set_raw_value(raw_value);
     logger("call_agent_func 1: agent_id = " + agent_id + " func_name = " + func_name + " raw_value = " + raw_value);
     int call_id = call_worker_func(worker_id, function_ids::agent_func, &args);
-    string result = get_result(call_id);
-    logger("call_agent_func 2: agent_id = " + agent_id + " func_name = " + func_name + " result = " + result);
-    return make_pair(true, result);
+    string result_str = get_result(call_id);
+    AgentFuncReturn result;
+    result.ParseFromString(result_str);
+    logger("call_agent_func 2: agent_id = " + agent_id + " func_name = " + func_name + " result.ok() = " + to_string(result.ok()) + " result.value() = " + result.value());
+    return make_pair(result.ok(), result.value());
 }
 
 void Worker::agent_func_worker(const int call_id)
@@ -1023,62 +817,78 @@ void Worker::agent_func_worker(const int call_id)
     string func_name = args.func_name();
     string raw_value = args.raw_value();
 
-    py::gil_scoped_acquire acquire;
-    shared_lock<shared_mutex> lock(_agent_pool_mutex);
-    py::object agent = _agent_pool[agent_id];
+    py::object agent;
+    shared_lock<shared_mutex> lock(_agent_pool_delete_mutex);
+    {
+        shared_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
+        agent = _agent_pool[agent_id];
+    }
     logger("agent_func_worker 1: agent_id = " + agent_id + " func_name = " + func_name + " raw_value = " + raw_value);
-    if (agent.attr("__class__").attr("_async_func").contains(func_name))
+    AgentFuncReturn return_result;
+    py::gil_scoped_acquire acquire;
+    try
     {
-        int task_id = _result_pool.attr("prepare")().cast<int>();
-        set_result(call_id, _pickle_dumps(task_id).cast<string>());
-        logger("---------------------------- " + to_string(task_id));
-        // process_task
-        py::object args = _pickle_loads(py::bytes(raw_value));
-        py::object AsyncResult_class = py::module::import("agentscope.rpc").attr("AsyncResult");
-        if (py::isinstance(args, AsyncResult_class))
+        if (agent.attr("__class__").attr("_async_func").contains(func_name))
         {
-            args = args.attr("result")();
-        }
-        py::print("task id = ", task_id);
-        try
-        {
-            py::object result;
-            // py::print("task id = ", task_id, func_name);
-            logger("agent_func_worker 2: call_id = " + to_string(call_id) + " agent_id = " + agent_id + " func_name = " + func_name + " args = " + args.attr("__repr__")().cast<string>());
-            _logger("agent_func_worker 2: call_id = " + to_string(call_id) + " agent_id = " + agent_id + " func_name = " + func_name + " args = " + args.attr("__repr__")().cast<string>());
-            if (func_name == "reply")
+            int task_id = _result_pool.attr("prepare")().cast<int>();
+            return_result.set_ok(true);
+            return_result.set_value(_pickle_dumps(task_id).cast<string>());
+            set_result(call_id, return_result.SerializeAsString());
+            // process_task
+            py::object args = _pickle_loads(py::bytes(raw_value));
+            py::object AsyncResult_class = py::module::import("agentscope.rpc").attr("AsyncResult");
+            if (py::isinstance(args, AsyncResult_class))
             {
-                result = agent.attr(func_name.c_str())(args);
+                args = args.attr("result")();
             }
-            else
+            try
             {
-                result = agent.attr(func_name.c_str())(
-                    *args.attr("get")("args", py::tuple()),
-                    **args.attr("get")("kwargs", py::dict()));
+                py::object result;
+                if (func_name == "reply")
+                {
+                    result = agent.attr(func_name.c_str())(args);
+                }
+                else
+                {
+                    result = agent.attr(func_name.c_str())(
+                        *args.attr("get")("args", py::tuple()),
+                        **args.attr("get")("kwargs", py::dict()));
+                }
+                _result_pool.attr("set")(task_id, _pickle_dumps(result));
             }
-            py::print("task id = ", task_id, " result = ", result);
-            _result_pool.attr("set")(task_id, _pickle_dumps(result));
+            catch (const std::exception &e)
+            {
+                string error_msg = "Agent [" + agent_id + "] error: " + e.what();
+                _result_pool.attr("set")(task_id, MAGIC_PREFIX + error_msg);
+                _py_logger.attr("error")(error_msg);
+            }
         }
-        catch (const std::exception &e)
+        else if (agent.attr("__class__").attr("_sync_func").contains(func_name))
         {
-            std::cerr << e.what() << '\n';
-            string error_msg = "Agent [" + agent_id + "] error: " + e.what();
-            _result_pool.attr("set")(task_id, MAGIC_PREFIX + error_msg);
+            py::object args = _pickle_loads(py::bytes(raw_value));
+            py::object result = agent.attr(func_name.c_str())(
+                *args.attr("get")("args", py::tuple()),
+                **args.attr("get")("kwargs", py::dict()));
+            string result_repr = _pickle_dumps(result).cast<string>();
+            return_result.set_ok(true);
+            return_result.set_value(result_repr);
+            set_result(call_id, return_result.SerializeAsString());
+        }
+        else
+        {
+            py::object result = agent.attr(func_name.c_str());
+            return_result.set_ok(true);
+            return_result.set_value(_pickle_dumps(result).cast<string>());
+            set_result(call_id, return_result.SerializeAsString());
         }
     }
-    else if (agent.attr("__class__").attr("_sync_func").contains(func_name))
+    catch (const std::exception &e)
     {
-        py::object args = _pickle_loads(py::bytes(raw_value));
-        py::object result = agent.attr(func_name.c_str())(
-            *args.attr("get")("args", py::tuple()),
-            **args.attr("get")("kwargs", py::dict()));
-        string result_repr = _pickle_dumps(result).cast<string>();
-        set_result(call_id, result_repr);
-    }
-    else
-    {
-        py::object result = agent.attr(func_name.c_str());
-        set_result(call_id, _pickle_dumps(result).cast<string>());
+        string error_msg = "Agent [" + agent_id + "] error: " + e.what();
+        _py_logger.attr("error")(error_msg);
+        return_result.set_ok(false);
+        return_result.set_value(error_msg);
+        set_result(call_id, return_result.SerializeAsString());
     }
 }
 
@@ -1091,22 +901,8 @@ pair<bool, string> Worker::call_update_placeholder(const int task_id)
     {
         return make_pair(false, result.substr(MAGIC_PREFIX.size()));
     }
-    logger("call_update_placeholder 1: task_id = " + to_string(task_id) + " result = [" + result + "]");
+    logger("call_update_placeholder 2: task_id = " + to_string(task_id) + " result = [" + result + "]");
     return make_pair(true, result);
-    // auto [is_valid, result] = get_task_result(task_id);
-    // if (!is_valid)
-    // {
-    //     if (result.empty())
-    //     {
-    //         return make_pair(false, "Task [" + to_string(task_id) + "] not exists.");
-    //     }
-    //     else
-    //     {
-    //         return make_pair(false, result);
-    //     }
-    // }
-    // logger("call_update_placeholder 2: result = [" + result + "]");
-    // return make_pair(true, result);
 }
 
 string Worker::call_server_info()

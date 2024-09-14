@@ -58,4 +58,5 @@ def create_agent(agent_id: str, agent_init_args: str, host: str, port: int):
         instance,
     )
     instance._oid = agent_id  # pylint: disable=W0212
+    logger.info(f"create agent instance <{cls_name}>[{agent_id}] [{instance.name}]")
     return instance, ""

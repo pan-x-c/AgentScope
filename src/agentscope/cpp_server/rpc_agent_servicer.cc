@@ -62,7 +62,6 @@ public:
                                                       agent_source_code);
     response->set_ok(result.empty());
     response->set_message(result);
-    std::cout << "create_agent " << result << std::endl;
     return Status::OK;
   }
   // delete agent from the server
@@ -139,14 +138,6 @@ public:
     auto func_name = request->target_func();
     auto raw_value = request->value();
     pair<bool, string> result = _worker->call_agent_func(agent_id, func_name, raw_value);
-    // if (target_func == "_reply") {
-    //   result = _worker->call_reply(agent_id, message);
-    // } else if (target_func == "_observe") {
-    //   result = _worker->call_observe(agent_id, message);
-    // } else {
-    //   return Status(grpc::StatusCode::INVALID_ARGUMENT,
-    //                 "Unsupported method " + target_func + ".");
-    // }
     if (result.first) {
       response->set_ok(true);
       response->set_value(result.second);
@@ -167,7 +158,8 @@ public:
                     std::to_string(is_ok) + " result = [" + result + "]");
     response->set_ok(is_ok);
     response->set_value(result);
-    _worker->logger("rpc server update_placeholder 2: is_ok = " +
+    _worker->logger("rpc server update_placeholder 2: task_id = " +
+                    std::to_string(task_id) + " is_ok = " +
                     std::to_string(is_ok) + " result = [" + result +
                     "], result.size() = " + std::to_string(result.size()));
     return Status::OK;
@@ -260,7 +252,6 @@ void SetupCppServer(const string &host, const string &port,
 
 
 void ShutdownCppServer() {
-  worker->logger("Shutdown");
   server->Shutdown();
   delete worker;
 }

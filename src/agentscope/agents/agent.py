@@ -166,6 +166,7 @@ class AgentBase(Operator, metaclass=RpcMeta):
     def __call__(self, *args: Any, **kwargs: Any) -> Msg:
         """Calling the reply function, and broadcast the generated
         response to all audiences if needed."""
+        logger.info(f"Agent [{self.name}] is replying... args = {args}, kwargs = {kwargs}")
         res = self.reply(*args, **kwargs)
 
         # broadcast to audiences if needed
