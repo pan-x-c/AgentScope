@@ -46,6 +46,18 @@ namespace py = pybind11;
 using google::protobuf::Message;
 
 
+#define RAW_LOGGER(worker, ...) worker->logger(__FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define FORMAT(var) #var, "=", var
+#define BIN_FORMAT(var) #var, "=", bin_format(var)
+#define FUNC_FORMAT(var) "worker_func =", Worker::function_ids_to_str(var)
+
+inline string bin_format(const string &var)
+{
+    bool is_output_to_terminal = isatty(fileno(stdout));
+    return is_output_to_terminal ? "\033[1;31m" + var + "\033[1;37m" : "[" + var + "]";
+}
+
+
 class Worker
 {
 private:
@@ -101,15 +113,41 @@ private:
     enum function_ids
     {
         create_agent = 0,
-        delete_agent = 1,
-        delete_all_agents = 2,
-        clone_agent = 3,
-        get_agent_list = 4,
-        set_model_configs = 5,
-        get_agent_memory = 6,
-        agent_func = 7,
-        server_info = 8,
+        delete_agent,
+        delete_all_agents,
+        clone_agent,
+        get_agent_list,
+        set_model_configs,
+        get_agent_memory,
+        agent_func,
+        server_info,
     };
+    inline static string function_ids_to_str(const function_ids func_id)
+    {
+        switch (func_id)
+        {
+        case create_agent:
+            return "create_agent";
+        case delete_agent:
+            return "delete_agent";
+        case delete_all_agents:
+            return "delete_all_agents";
+        case clone_agent:
+            return "clone_agent";
+        case get_agent_list:
+            return "get_agent_list";
+        case set_model_configs:
+            return "set_model_configs";
+        case get_agent_memory:
+            return "get_agent_memory";
+        case agent_func:
+            return "agent_func";
+        case server_info:
+            return "server_info";
+        default:
+            return "unknown";
+        }
+    }
 
     int find_avail_worker_id();
     int get_call_id();
@@ -181,25 +219,38 @@ public:
         const unsigned int num_workers);
     ~Worker();
 
-    void logger(const string &msg)
+    template<typename... Args>
+    void logger(const string &file_name, const string &func_name, const int line_num, Args... args)
     {
         if (_use_logger)
         {
             unique_lock<std::mutex> lock(_logger_mutex);
+            bool is_output_to_terminal = isatty(fileno(stdout));
+
             auto now = std::chrono::system_clock::now();
-    
-            // 转换为系统时间
             auto now_c = std::chrono::system_clock::to_time_t(now);
             std::tm* localTime = std::localtime(&now_c);
-
-            // 获取当前时间的毫秒部分
             auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
-
+            std::cout << (is_output_to_terminal ? "\033[0;32m" : "");
             std::cout << std::put_time(localTime, "%Y-%m-%d %H:%M:%S") 
                 << '.' << std::setw(3) << std::setfill('0') << milliseconds.count() << " | ";
+            std::cout << (is_output_to_terminal ? "\033[0m" : "");
 
-            // return oss.str();
-            std::cout << "port = " << _port << " tid = " << std::this_thread::get_id() << " | " << msg << std::endl;
+            std::cout << "port = " << _port << " worker_id = " << std::setw(3) << std::setfill(' ') << _worker_id
+                << " tid = " << std::this_thread::get_id() << " | ";
+
+            std::cout << (is_output_to_terminal ? "\033[0;36m" : "");
+            std::cout << file_name << ":" << line_num << " " << func_name;
+            std::cout << (is_output_to_terminal ? "\033[0m" : "");
+
+            std::string delimiter = " ";
+            std::stringstream result;
+            ((result << args << delimiter), ...);
+            std::string msg = result.str();
+            if (!msg.empty()) {
+                msg.erase(msg.size() - delimiter.size());
+            }
+            std::cout << " - " << (is_output_to_terminal ? "\033[1;37m" : "") << msg << (is_output_to_terminal ? "\033[0m" : "") << std::endl;
         }
     }
 

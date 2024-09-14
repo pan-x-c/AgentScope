@@ -26,6 +26,11 @@ using WorkerArgs::AgentFuncReturn;
 using WorkerArgs::AgentListReturn;
 using WorkerArgs::MsgReturn;
 
+
+#define LOG(...) RAW_LOGGER(this, __VA_ARGS__)
+#define ERROR_MSG_FORMAT(msg) (string("Error: ") + msg + "failed in " + __FUNCTION__)
+#define ERROR(msg) LOG(ERROR_MSG_FORMAT(msg)); perror(ERROR_MSG_FORMAT(msg).c_str())
+
 inline void P(int semid, unsigned short sem_num)
 {
     struct sembuf sb = {sem_num, -1, 0};
@@ -63,8 +68,7 @@ Worker::Worker(
                                       _func_ready_sem_prefix("/func_" + port + "_"),
                                       _small_obj_pool_shm_name("/pool_shm_" + port),
                                       _use_logger(calc_use_logger()),
-                                      _max_timeout_seconds(std::max(max_timeout_seconds, 1u)) //,
-                                    //   _redis_pool(redis_url, _max_timeout_seconds)
+                                      _max_timeout_seconds(std::max(max_timeout_seconds, 1u))
 {
     py::object get_pool = py::module::import("agentscope.server.async_result_pool").attr("get_pool");
     _result_pool = get_pool("redis", _max_timeout_seconds, max_pool_size, redis_url);
@@ -91,14 +95,14 @@ Worker::Worker(
     _call_worker_shm_fd = shm_open(_call_worker_shm_name.c_str(), O_CREAT | O_RDWR, 0666);
     if (_call_worker_shm_fd == -1)
     {
-        perror("Error: shm_open in Worker::Worker()");
+        ERROR("shm_open (" + _call_worker_shm_name + ")");
         kill(_main_worker_pid, SIGINT);
     }
     ftruncate(_call_worker_shm_fd, _num_workers * _call_shm_size);
     void *call_worker_shm = mmap(NULL, _num_workers * _call_shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, _call_worker_shm_fd, 0);
     if (call_worker_shm == MAP_FAILED)
     {
-        perror("Error: mmap in Worker::Worker()");
+        ERROR("mmap (call_worker_shm)");
         kill(_main_worker_pid, SIGINT);
     }
     _call_worker_shm = (char *)call_worker_shm;
@@ -107,14 +111,14 @@ Worker::Worker(
     _small_obj_pool_shm_fd = shm_open(_small_obj_pool_shm_name.c_str(), O_CREAT | O_RDWR, 0666);
     if (_small_obj_pool_shm_fd == -1)
     {
-        perror("Error: shm_open in create _small_obj_pool_shm_fd");
+        ERROR("shm_open (" + _small_obj_pool_shm_name + ")");
         kill(_main_worker_pid, SIGINT);
     }
     ftruncate(_small_obj_pool_shm_fd, _max_call_id * _small_obj_shm_size);
     _small_obj_pool_shm = mmap(NULL, _max_call_id * _small_obj_shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, _small_obj_pool_shm_fd, 0);
     if (_small_obj_pool_shm == MAP_FAILED)
     {
-        perror("Error: mmap in _small_obj_pool_shm");
+        ERROR("mmap (" + _small_obj_pool_shm_name + ")");
         kill(_main_worker_pid, SIGINT);
     }
     memset(_small_obj_pool_shm, 0, _max_call_id * _small_obj_shm_size);
@@ -128,7 +132,7 @@ Worker::Worker(
     int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd == -1)
     {
-        perror("Error: Failed to open file");
+        ERROR("open (" + filename + ")");
         kill(_main_worker_pid, SIGINT);
     }
     close(fd);
@@ -138,13 +142,13 @@ Worker::Worker(
         key_t key = ftok(filename.c_str(), i);
         if (key == -1)
         {
-            perror("Error: ftok in Worker::Worker()");
+            ERROR("ftok (" + filename + ")");
             kill(_main_worker_pid, SIGINT);
         }
         int semid = semget(key, _sem_num_per_sem_id, 0666 | IPC_CREAT);
         if (semid == -1)
         {
-            perror("Error: semget in Worker::Worker()");
+            ERROR("semget (" + to_string(key) + ")");
             kill(_main_worker_pid, SIGINT);
         }
         semctl(semid, 0, SETALL, _sem_values);
@@ -174,12 +178,12 @@ Worker::Worker(
             int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
             if (fd == -1)
             {
-                perror("Error: Failed to open file");
+                ERROR("open (" + filename + ")");
                 kill(_main_worker_pid, SIGINT);
             }
             if (dup2(fd, STDOUT_FILENO) == -1 || dup2(fd, STDERR_FILENO) == -1)
             {
-                perror("Error: Failed to redirect stdout/stderr");
+                ERROR("dup2");
                 kill(_main_worker_pid, SIGINT);
             }
             close(fd);
@@ -191,8 +195,8 @@ Worker::Worker(
             {
                 sem_wait(func_ready_sem);
                 int call_id = *(int *)shm_ptr;
-                int function_id = *(int *)(shm_ptr + sizeof(int));
-                logger("call_id = " + to_string(call_id) + " function_id = " + to_string(function_id));
+                function_ids function_id = *(function_ids *)(shm_ptr + sizeof(int));
+                LOG(FORMAT(call_id), FUNC_FORMAT(function_id));
                 thread work;
                 switch (function_id)
                 {
@@ -248,7 +252,7 @@ Worker::Worker(
         }
         else if (pid < 0)
         {
-            perror("Error: fork failed in Worker::Worker()");
+            ERROR("fork (" + to_string(i) +")");
             kill(_main_worker_pid, SIGINT);
         }
     }
@@ -324,20 +328,20 @@ int Worker::find_avail_worker_id()
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis(0, _num_workers - 1);
-    int i;
+    int worker_id;
     for (auto cnt = 0u; cnt < 4 * _num_workers; cnt++)
     {
-        i = dis(gen);
-        if (sem_trywait(_worker_semaphores[i].first) == 0)
+        worker_id = dis(gen);
+        if (sem_trywait(_worker_semaphores[worker_id].first) == 0)
         {
-            // assert(sem_trywait(_worker_semaphores[i].first) != 0);
-            logger("get worker id: " + to_string(i));
-            return i;
+            assert(sem_trywait(_worker_semaphores[worker_id].first) != 0);
+            LOG(FORMAT(worker_id));
+            return worker_id;
         }
     }
-    sem_wait(_worker_semaphores[i].first);
-    logger("get worker id: " + to_string(i));
-    return i;
+    sem_wait(_worker_semaphores[worker_id].first);
+    LOG(FORMAT(worker_id));
+    return worker_id;
 }
 
 int Worker::get_call_id()
@@ -354,12 +358,12 @@ string Worker::get_content(const string &prefix, const int call_id)
 {
     char *small_obj_shm = (char *)_small_obj_pool_shm + call_id * _small_obj_shm_size;
     int *occupied = (int *)small_obj_shm;
-    logger("get_content 0: occupied = " + to_string(*occupied) + ", call_id = " + to_string(call_id) + ", content_size = " + to_string(*(int *)(small_obj_shm + sizeof(int))));
+    LOG(FORMAT(*occupied), FORMAT(call_id));
     if (*occupied)
     {
         int content_size = *(int *)(small_obj_shm + sizeof(int));
         string result(small_obj_shm + sizeof(int) * 2, small_obj_shm + sizeof(int) * 2 + content_size);
-        logger("get_content in pool " + to_string(call_id) + " [" + result + "]");
+        LOG("get_content in pool", FORMAT(content_size), BIN_FORMAT(result));
         *occupied = false;
         return result;
     }
@@ -367,28 +371,27 @@ string Worker::get_content(const string &prefix, const int call_id)
     int shm_fd = shm_open(shm_name.c_str(), O_RDONLY, 0666);
     if (shm_fd == -1)
     {
-        logger("Error: shm_open in get_content: " + shm_name);
-        perror(("Error: shm_open in get_content: " + shm_name).c_str());
+        ERROR("shm_open (" + shm_name + ")");
         kill(_main_worker_pid, SIGINT);
     }
     struct stat shm_stat;
     if (fstat(shm_fd, &shm_stat) == -1)
     {
         close(shm_fd);
-        perror(("Error: fstat in get_content: " + shm_name).c_str());
+        ERROR("fstat (" + shm_name + ")");
         kill(_main_worker_pid, SIGINT);
     }
     auto shm_size = shm_stat.st_size;
-    logger("get_content 1: shm_name = " + shm_name + " shm_size = " + to_string(shm_size));
+    LOG(FORMAT(shm_name), FORMAT(shm_size));
     void *shm = mmap(NULL, shm_size, PROT_READ, MAP_SHARED, shm_fd, 0);
     if (shm == MAP_FAILED)
     {
-        perror(("Error: mmap in get_content: " + shm_name).c_str());
+        ERROR("mmap (" + shm_name + ")");
         kill(_main_worker_pid, SIGINT);
     }
     int content_size = *(int *)shm;
     string content((char *)shm + sizeof(int), (char *)shm + sizeof(int) + content_size);
-    logger("get_content 2: shm_name = " + shm_name + " content_size = " + to_string(content_size) + " content = [" + content + "]");
+    LOG(FORMAT(shm_name), FORMAT(content_size), BIN_FORMAT(content));
     munmap(shm, shm_size);
     close(shm_fd);
     shm_unlink(shm_name.c_str());
@@ -397,37 +400,37 @@ string Worker::get_content(const string &prefix, const int call_id)
 
 void Worker::set_content(const string &prefix, const int call_id, const string &content)
 {
-    logger("set_content: " + to_string(content.size()) + " content = [" + content + "]");
+    LOG(FORMAT(content.size()), BIN_FORMAT(content));
     if (content.size() <= _small_obj_size)
     {
         char *small_obj_shm = (char *)_small_obj_pool_shm + call_id * _small_obj_shm_size;
         *(int *)small_obj_shm = true;
         *(int *)(small_obj_shm + sizeof(int)) = content.size();
         memcpy(small_obj_shm + sizeof(int) * 2, content.c_str(), content.size());
-        logger("set_content in pool call_id = " + to_string(call_id) + " occupied = " + to_string(*(int *)small_obj_shm));
+        LOG("set_content in pool", FORMAT(call_id));
         return;
     }
     string shm_name = prefix + to_string(call_id);
     int shm_fd = shm_open(shm_name.c_str(), O_CREAT | O_RDWR, 0666);
     if (shm_fd == -1)
     {
-        perror(("Error: shm_open in set_content: " + shm_name).c_str());
+        ERROR("shm_open (" + shm_name + ")");
         kill(_main_worker_pid, SIGINT);
     }
-    logger("set_content: " + shm_name + " content = [" + content + "]");
+    LOG(FORMAT(shm_name), BIN_FORMAT(content));
     int shm_size = content.size() + sizeof(int);
     ftruncate(shm_fd, shm_size);
     void *shm = mmap(NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     if (shm == MAP_FAILED)
     {
-        perror(("Error: mmap in set_content: " + shm_name).c_str());
+        ERROR("mmap (" + shm_name + ")");
         kill(_main_worker_pid, SIGINT);
     }
     *(int *)shm = (int)content.size();
     memcpy((char *)shm + sizeof(int), content.c_str(), content.size());
     munmap(shm, shm_size);
     close(shm_fd);
-    logger("set_content: " + shm_name + " final, shm_size = " + to_string(shm_size));
+    LOG("final", FORMAT(shm_name), FORMAT(shm_size));
 }
 
 string Worker::get_args_repr(const int call_id)
@@ -480,14 +483,14 @@ int Worker::call_worker_func(const int worker_id, const function_ids func_id, co
     int call_id = get_call_id();
     *(int *)(_call_worker_shm + worker_id * _call_shm_size) = call_id;
     *(int *)(_call_worker_shm + worker_id * _call_shm_size + sizeof(int)) = func_id;
-    logger("call_worker_func 1: func_id = " + to_string(func_id) + " call_id = " + to_string(call_id));
+    LOG(FORMAT(worker_id), FUNC_FORMAT(func_id), FORMAT(call_id));
     if (args != nullptr)
     {
         string args_str = args->SerializeAsString();
         set_args_repr(call_id, args_str);
     }
     sem_post(_worker_semaphores[worker_id].second);
-    logger("call_worker_func 2: func_id = " + to_string(func_id) + " call_id = " + to_string(call_id) + " finished!");
+    LOG(FORMAT(worker_id), FUNC_FORMAT(func_id), FORMAT(call_id), "finished!");
     return call_id;
 }
 
@@ -497,34 +500,33 @@ string Worker::call_create_agent(const string &agent_id, const string &agent_ini
     {
         return "Agent with agent_id [" + agent_id + "] already exists.";
     }
-    logger("call_create_agent 1: " + agent_id);
+    LOG(FORMAT(agent_id));
     int worker_id = find_avail_worker_id();
     CreateAgentArgs args;
     args.set_agent_id(agent_id);
     args.set_agent_init_args(agent_init_args);
     args.set_agent_source_code(agent_source_code);
     int call_id = call_worker_func(worker_id, function_ids::create_agent, &args, false);
-    logger("call_create_agent 2: " + agent_id + " call_id = " + to_string(call_id) + " worker_id = " + to_string(worker_id));
+    LOG(FORMAT(agent_id), FORMAT(call_id), FORMAT(worker_id));
     string result = get_result(call_id);
     if (result.empty())
     {
         unique_lock<shared_mutex> lock(_agent_id_map_mutex);
         _agent_id_map.insert(std::make_pair(agent_id, worker_id));
     }
-    logger("call_create_agent 3: " + agent_id + " call_id = " + to_string(call_id) + " worker_id = " + to_string(worker_id) + " result = [" + result + "]");
+    LOG(FORMAT(agent_id), FORMAT(call_id), FORMAT(worker_id), FORMAT(result));
     return result;
 }
 
 void Worker::create_agent_worker(const int call_id)
 {
-    logger("create_agent_worker 1: call_id = " + to_string(call_id) + " start!");
     string args_repr = get_args_repr(call_id);
     CreateAgentArgs args;
     args.ParseFromString(args_repr);
     string agent_id = args.agent_id();
     string agent_init_args = args.agent_init_args();
     string agent_source_code = args.agent_source_code();
-    logger("create_agent_worker 2: call_id = " + to_string(call_id) + " agent_id = " + agent_id);
+    LOG(FORMAT(call_id), FORMAT(agent_id));
 
     py::gil_scoped_acquire acquire;
     py::tuple create_result = py::module::import("agentscope.cpp_server").attr("create_agent")(agent_id, py::bytes(agent_init_args), _host, std::atoi(_port.c_str()));
@@ -537,7 +539,7 @@ void Worker::create_agent_worker(const int call_id)
         unique_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
         _agent_pool.insert(std::make_pair(agent_id, agent));
     }
-    logger("create_agent_worker 3: call_id = " + to_string(call_id) + " result = " + result);
+    LOG(FORMAT(call_id), FORMAT(agent_id), FORMAT(result));
     set_result(call_id, result);
 }
 
@@ -677,7 +679,6 @@ string Worker::call_get_agent_list()
             call_id_list.push_back(call_id);
         }
     }
-    // string final_result = "[";
     vector<string> result_list;
     for (auto call_id : call_id_list)
     {
@@ -690,9 +691,7 @@ string Worker::call_get_agent_list()
         }
     }
     py::gil_scoped_acquire acquire;
-    logger("call_get_agent_list 1: result_list.size() = [" + to_string(result_list.size()) + "]");
     string final_result = _serialize(result_list).cast<string>();
-    logger("call_get_agent_list 2: result = [" + final_result + "]");
     return final_result;
 }
 
@@ -799,12 +798,12 @@ pair<bool, string> Worker::call_agent_func(const string &agent_id, const string 
     args.set_agent_id(agent_id);
     args.set_func_name(func_name);
     args.set_raw_value(raw_value);
-    logger("call_agent_func 1: agent_id = " + agent_id + " func_name = " + func_name + " raw_value = " + raw_value);
+    LOG(FORMAT(agent_id), FORMAT(func_name), BIN_FORMAT(raw_value));
     int call_id = call_worker_func(worker_id, function_ids::agent_func, &args);
     string result_str = get_result(call_id);
     AgentFuncReturn result;
     result.ParseFromString(result_str);
-    logger("call_agent_func 2: agent_id = " + agent_id + " func_name = " + func_name + " result.ok() = " + to_string(result.ok()) + " result.value() = " + result.value());
+    LOG(FORMAT(agent_id), FORMAT(func_name), FORMAT(result.ok()), BIN_FORMAT(result.value()));
     return make_pair(result.ok(), result.value());
 }
 
@@ -823,7 +822,7 @@ void Worker::agent_func_worker(const int call_id)
         shared_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
         agent = _agent_pool[agent_id];
     }
-    logger("agent_func_worker 1: agent_id = " + agent_id + " func_name = " + func_name + " raw_value = " + raw_value);
+    LOG(FORMAT(agent_id), FORMAT(func_name), BIN_FORMAT(raw_value));
     AgentFuncReturn return_result;
     py::gil_scoped_acquire acquire;
     try
@@ -895,13 +894,13 @@ void Worker::agent_func_worker(const int call_id)
 pair<bool, string> Worker::call_update_placeholder(const int task_id)
 {
     py::gil_scoped_acquire acquire;
-    logger("call_update_placeholder 1: task_id = " + to_string(task_id));
+    LOG(FORMAT(task_id));
     string result = _result_pool.attr("get")(task_id).cast<string>();
     if (result.substr(0, MAGIC_PREFIX.size()) == MAGIC_PREFIX)
     {
         return make_pair(false, result.substr(MAGIC_PREFIX.size()));
     }
-    logger("call_update_placeholder 2: task_id = " + to_string(task_id) + " result = [" + result + "]");
+    LOG(FORMAT(task_id), BIN_FORMAT(result));
     return make_pair(true, result);
 }
 

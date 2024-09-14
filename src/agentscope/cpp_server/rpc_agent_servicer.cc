@@ -29,6 +29,8 @@ using google::protobuf::Empty;
 Worker *worker = nullptr;
 std::unique_ptr<Server> server = nullptr;
 
+#define LOG(...) RAW_LOGGER(worker, __VA_ARGS__)
+
 class RpcAgentServiceImpl final : public RpcAgent::Service {
 private:
   Worker *_worker;
@@ -153,24 +155,17 @@ public:
                             CallFuncResponse *response) override {
     auto task_id = request->task_id();
     auto [is_ok, result] = _worker->call_update_placeholder(task_id);
-    _worker->logger("rpc server update_placeholder 1: task_id = " +
-                    std::to_string(task_id) + " is_ok = " +
-                    std::to_string(is_ok) + " result = [" + result + "]");
     response->set_ok(is_ok);
     response->set_value(result);
-    _worker->logger("rpc server update_placeholder 2: task_id = " +
-                    std::to_string(task_id) + " is_ok = " +
-                    std::to_string(is_ok) + " result = [" + result +
-                    "], result.size() = " + std::to_string(result.size()));
+    LOG(FORMAT(task_id), FORMAT(is_ok), FORMAT(result.size()), BIN_FORMAT(result));
     return Status::OK;
   }
 
   // file transfer
   Status download_file(ServerContext *context, const StringMsg *request,
                        ServerWriter<ByteMsg> *writer) override {
-    _worker->logger("download_file: start!");
     std::string filepath = request->value();
-    _worker->logger("download_file: filepath = " + filepath);
+    LOG(FORMAT(filepath));
     if (!std::filesystem::exists(filepath)) {
       return Status(grpc::StatusCode::NOT_FOUND,
                     string("File ") + filepath + " not found");
@@ -183,9 +178,6 @@ public:
 
     auto buffer = std::make_unique<char[]>(1024 * 1024);
     auto read_size = sizeof(char) * 1024 * 1024;
-    _worker->logger(
-        "downloading sizeof(buffer) = " + std::to_string(sizeof(buffer)) +
-        " read_size = " + std::to_string(read_size));
     while (true) {
       file.read(buffer.get(), read_size);
       if (!file && !file.eof()) {
@@ -195,10 +187,6 @@ public:
       }
       ByteMsg piece;
       string data = std::string(buffer.get(), file.gcount());
-      _worker->logger(
-          "download_file: read_size = " + std::to_string(read_size) +
-          " file.gcount() = " + std::to_string(file.gcount()) +
-          " data.size() = " + std::to_string(data.size()));
       piece.set_data(data);
       if (!writer->Write(piece)) {
         file.close();
