@@ -227,7 +227,7 @@ class AgentWithCustomFunc(AgentBase):
     @async_func
     def long_running_func(self) -> int:
         """A custom function that executes in sync"""
-        time.sleep(4)
+        time.sleep(5.5)
         return 1
 
 

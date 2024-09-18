@@ -894,15 +894,22 @@ void Worker::agent_func_worker(const int call_id)
 
 pair<bool, string> Worker::call_update_placeholder(const int task_id)
 {
-    py::gil_scoped_acquire acquire;
     LOG(FORMAT(task_id));
-    string result = _result_pool.attr("get")(task_id).cast<string>();
-    if (result.substr(0, MAGIC_PREFIX.size()) == MAGIC_PREFIX)
+    try
     {
-        return make_pair(false, result.substr(MAGIC_PREFIX.size()));
+        py::gil_scoped_acquire acquire;
+        string result = _result_pool.attr("get")(task_id, _max_timeout_seconds).cast<string>();
+        if (result.substr(0, MAGIC_PREFIX.size()) == MAGIC_PREFIX)
+        {
+            return make_pair(false, result.substr(MAGIC_PREFIX.size()));
+        }
+        LOG(FORMAT(task_id), BIN_FORMAT(result));
+        return make_pair(true, result);
     }
-    LOG(FORMAT(task_id), BIN_FORMAT(result));
-    return make_pair(true, result);
+    catch (const std::exception &e)
+    {
+        return make_pair(false, "Timeout");
+    }
 }
 
 string Worker::call_server_info()

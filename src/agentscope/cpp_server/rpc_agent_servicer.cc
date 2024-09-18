@@ -154,6 +154,10 @@ public:
                             CallFuncResponse *response) override {
     auto task_id = request->task_id();
     auto [is_ok, result] = _worker->call_update_placeholder(task_id);
+    if (!is_ok && result == "Timeout")
+    {
+      return Status(grpc::StatusCode::DEADLINE_EXCEEDED, result);
+    }
     response->set_ok(is_ok);
     response->set_value(result);
     LOG(FORMAT(task_id), FORMAT(is_ok), FORMAT(result.size()), BIN_FORMAT(result));
