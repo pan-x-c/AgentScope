@@ -4,6 +4,7 @@
 from abc import ABCMeta
 from typing import Any, Callable
 import uuid
+import copy
 from loguru import logger
 
 from .rpc_object import RpcObject
@@ -86,7 +87,7 @@ class RpcMeta(ABCMeta):
         return super().__new__(mcs, name, bases, attrs)  # type: ignore[misc]
 
     def __call__(cls, *args: tuple, **kwargs: dict) -> Any:
-        to_dist = kwargs.pop("to_dist", False)
+        to_dist = copy.deepcopy(kwargs.pop("to_dist", False))
         if to_dist is True:
             to_dist = {}
         if to_dist is not False and to_dist is not None:

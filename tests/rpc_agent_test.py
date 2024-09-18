@@ -231,6 +231,52 @@ class AgentWithCustomFunc(AgentBase):
         return 1
 
 
+class RecusiveAgent(AgentBase):
+    """A demo agent to test recursive call"""
+    def __init__(self, name: str, value: int, dist_config: dict) -> None:
+        super().__init__(name)
+        self.value = value
+        if value != 0:
+            self.child_agent = RecusiveAgent(f"{name}_{value}", value - 1, dist_config=dist_config, to_dist=dist_config)
+        else:
+            self.child_agent = None
+
+    def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
+        child_value = self.child_agent.reply().content["value"] if self.child_agent else 0
+        value_sum = self.value + child_value
+        return Msg(
+            name=self.name,
+            role="assistant",
+            content={
+                "value": value_sum,
+            },
+        )
+
+
+class FibonacciAgent(AgentBase):
+    """A demo agent to test recursive call"""
+    def __init__(self, name_prefix: str, idx: int, dist_config: dict) -> None:
+        super().__init__(name=f'{name_prefix}_{idx}')
+        if idx > 1:
+            self.child_agent_a = FibonacciAgent(name_prefix, idx - 1, dist_config=dist_config, to_dist=dist_config)
+            self.child_agent_b = self.child_agent_a.child_agent_a
+        else:
+            self.child_agent_a, self.child_agent_b = None, None
+
+    def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
+        if self.child_agent_a and self.child_agent_b:
+            fib_value = self.child_agent_a.reply().content["value"] + self.child_agent_b.reply().content["value"]
+        else:
+            fib_value = 1
+        return Msg(
+            name=self.name,
+            role="assistant",
+            content={
+                "value": fib_value,
+            },
+        )
+
+
 class BasicRpcAgentTest(unittest.TestCase):
     """Test cases for Rpc Agent"""
 
@@ -858,3 +904,37 @@ class BasicRpcAgentTest(unittest.TestCase):
         self.assertEqual(r4, 2)
         r5 = agent.long_running_func()
         self.assertEqual(r5.result(), 1)
+
+    def test_recusive_call(self) -> None:
+        """Test recusive call"""
+        launcher = RpcAgentServerLauncher(
+            host="localhost",
+            port=12010,
+            local_mode=False,
+            custom_agent_classes=[RecusiveAgent],
+            capacity=2,
+        )
+        launcher.launch()
+        dist_config = {
+            "host": "localhost",
+            "port": launcher.port,
+        }
+
+        agent = RecusiveAgent(
+            name="recusive_agent",
+            value=4,
+            dist_config=dist_config,
+            to_dist=dist_config,
+        )
+        result = agent.reply()
+        self.assertEqual(result.content["value"], 10)
+
+        fib_agent = FibonacciAgent(
+            name_prefix="fib",
+            idx=6,
+            dist_config=dist_config,
+            to_dist=dist_config,
+        )
+        fib_result = fib_agent.reply()
+        self.assertEqual(fib_result.content["value"], 8)
+        launcher.shutdown()
