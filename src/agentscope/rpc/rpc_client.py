@@ -153,6 +153,35 @@ class RpcClient:
                 f"Fail to stop the agent server: {e}",
             )
 
+    def _create_agent_async(
+        self,
+        agent_configs: dict,
+        agent_id: str = None,
+    ) -> int:
+        """Create a new agent in async way"""
+        try:
+            stub = RpcAgentStub(RpcClient._get_channel(self.url))
+            resp = stub.create_agent(
+                agent_pb2.CreateAgentRequest(
+                    agent_id=agent_id,
+                    agent_init_args=pickle.dumps(agent_configs),
+                ),
+            )
+            if not resp.ok:
+                logger.error(
+                    f"Error when creating agent [{agent_id}]",
+                )
+            return pickle.loads(resp.value)
+        except Exception as e:
+            # check the server and raise a more reasonable error
+            if not self.is_alive():
+                raise AgentServerNotAliveError(
+                    host=self.host,
+                    port=self.port,
+                    message=str(e),
+                ) from e
+            raise AgentCreationError(host=self.host, port=self.port) from e
+
     def create_agent(
         self,
         agent_configs: dict,
@@ -168,27 +197,20 @@ class RpcClient:
         Returns:
             bool: Indicate whether the creation is successful
         """
+        from agentscope.rpc.rpc_async import AsyncResult
+
         try:
-            stub = RpcAgentStub(RpcClient._get_channel(self.url))
-            status = stub.create_agent(
-                agent_pb2.CreateAgentRequest(
-                    agent_id=agent_id,
-                    agent_init_args=pickle.dumps(agent_configs),
-                ),
+            task_id = self._create_agent_async(
+                agent_configs=agent_configs,
+                agent_id=agent_id,
             )
-            if not status.ok:
-                logger.error(
-                    f"Error when creating agent: {status.message}",
-                )
-            return status.ok
         except Exception as e:
-            # check the server and raise a more reasonable error
-            if not self.is_alive():
-                raise AgentServerNotAliveError(
-                    host=self.host,
-                    port=self.port,
-                    message=str(e),
-                ) from e
+            raise e
+        res = AsyncResult(host=self.host, port=self.port, task_id=task_id)
+        try:
+            return res.result()
+        except Exception as e:
+            logger.error(f"Error when waiting for agent creation: {e}")
             raise AgentCreationError(host=self.host, port=self.port) from e
 
     def delete_agent(
@@ -252,12 +274,12 @@ class RpcClient:
                     raise AgentCallError(
                         host=self.host,
                         port=self.port,
-                        message=f"Failed to update placeholder: {str(e)}",
+                        message=f"Failed to update result: {str(e)}",
                     ) from e
                 # wait for a random time between retries
                 interval = (random.random() + 0.5) * retry_interval
                 logger.debug(
-                    f"Update placeholder timeout, retrying after {interval} s...",
+                    f"Update result timeout, retrying after {interval} s...",
                 )
                 time.sleep(interval)
                 retry_interval *= 2
@@ -267,13 +289,13 @@ class RpcClient:
             raise AgentCallError(
                 host=self.host,
                 port=self.port,
-                message="Failed to update placeholder: timeout",
+                message="Failed to update result: timeout",
             )
         if not resp.ok:
             raise AgentCallError(
                 host=self.host,
                 port=self.port,
-                message=f"Failed to update placeholder: {resp.message}",
+                message=f"Failed to update result: {resp.message}",
             )
         return resp.value
 

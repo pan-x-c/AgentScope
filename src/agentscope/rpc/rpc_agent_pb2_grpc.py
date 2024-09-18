@@ -16,7 +16,9 @@ import agentscope.rpc.rpc_agent_pb2 as rpc__agent__pb2
 
 
 class RpcAgentStub(object):
-    """Servicer for rpc agent server"""
+    """TODO: rename to RpcServicer
+    Servicer for rpc agent server
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -37,7 +39,7 @@ class RpcAgentStub(object):
         self.create_agent = channel.unary_unary(
             "/RpcAgent/create_agent",
             request_serializer=rpc__agent__pb2.CreateAgentRequest.SerializeToString,
-            response_deserializer=rpc__agent__pb2.GeneralResponse.FromString,
+            response_deserializer=rpc__agent__pb2.CallFuncResponse.FromString,
         )
         self.delete_agent = channel.unary_unary(
             "/RpcAgent/delete_agent",
@@ -92,7 +94,9 @@ class RpcAgentStub(object):
 
 
 class RpcAgentServicer(object):
-    """Servicer for rpc agent server"""
+    """TODO: rename to RpcServicer
+    Servicer for rpc agent server
+    """
 
     def is_alive(self, request, context):
         """check server is alive"""
@@ -107,13 +111,17 @@ class RpcAgentServicer(object):
         raise NotImplementedError("Method not implemented!")
 
     def create_agent(self, request, context):
-        """create a new agent on the server"""
+        """TODO: rename to create_object
+        create a new object on the server
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
     def delete_agent(self, request, context):
-        """delete agent from the server"""
+        """TODO: rename to delete_object
+        delete agent from the server
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
@@ -125,7 +133,9 @@ class RpcAgentServicer(object):
         raise NotImplementedError("Method not implemented!")
 
     def clone_agent(self, request, context):
-        """clone an agent with specific agent_id"""
+        """TODO: remove this function
+        clone an agent with specific agent_id
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
@@ -155,13 +165,17 @@ class RpcAgentServicer(object):
         raise NotImplementedError("Method not implemented!")
 
     def call_agent_func(self, request, context):
-        """call funcs of agent running on the server"""
+        """TODO: rename to call_object_func
+        call funcs of agent running on the server
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
     def update_placeholder(self, request, context):
-        """update value of PlaceholderMessage"""
+        """TODO: rename to update_async_result
+        update value of PlaceholderMessage
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
@@ -188,7 +202,7 @@ def add_RpcAgentServicer_to_server(servicer, server):
         "create_agent": grpc.unary_unary_rpc_method_handler(
             servicer.create_agent,
             request_deserializer=rpc__agent__pb2.CreateAgentRequest.FromString,
-            response_serializer=rpc__agent__pb2.GeneralResponse.SerializeToString,
+            response_serializer=rpc__agent__pb2.CallFuncResponse.SerializeToString,
         ),
         "delete_agent": grpc.unary_unary_rpc_method_handler(
             servicer.delete_agent,
@@ -250,7 +264,9 @@ def add_RpcAgentServicer_to_server(servicer, server):
 
 # This class is part of an EXPERIMENTAL API.
 class RpcAgent(object):
-    """Servicer for rpc agent server"""
+    """TODO: rename to RpcServicer
+    Servicer for rpc agent server
+    """
 
     @staticmethod
     def is_alive(
@@ -328,7 +344,7 @@ class RpcAgent(object):
             target,
             "/RpcAgent/create_agent",
             rpc__agent__pb2.CreateAgentRequest.SerializeToString,
-            rpc__agent__pb2.GeneralResponse.FromString,
+            rpc__agent__pb2.CallFuncResponse.FromString,
             options,
             channel_credentials,
             insecure,

@@ -132,10 +132,13 @@ class RpcObject(ABC):
 
     def create(self, configs: dict) -> None:
         """create the object on the rpc server."""
-        self._creating_stub = _call_func_in_thread(
-            self.client.create_agent,
-            configs,
-            self._oid,
+        self._creating_stub = AsyncResult(
+            host=self.host,
+            port=self.port,
+            task_id=self.client._create_agent_async(  # pylint: disable=W0212
+                configs,
+                self._oid,
+            ),
         )
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
@@ -173,10 +176,11 @@ class RpcObject(ABC):
     def _check_created(self) -> None:
         """Check if the object is created on the rpc server."""
         if self._creating_stub is not None:
-            response = self._creating_stub.result()
+            try:
+                response = self._creating_stub.result()
+            except Exception as ex:
+                raise AgentCreationError(self.host, self.port) from ex
             if response is not True:
-                if issubclass(response.__class__, Exception):
-                    raise response
                 raise AgentCreationError(self.host, self.port)
             self._creating_stub = None
 

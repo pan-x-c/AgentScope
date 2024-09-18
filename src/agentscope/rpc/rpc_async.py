@@ -46,13 +46,12 @@ class AsyncResult:
         """Fetch result from the server."""
         if self._task_id is None:
             self._task_id = self._get_task_id()
-        self._data = pickle.loads(
-            RpcClient(self._host, self._port).update_result(
-                self._task_id,
-                retry_times=retry_times,
-                retry_interval=retry_interval,
-            ),
+        raw_data = RpcClient(self._host, self._port).update_result(
+            self._task_id,
+            retry_times=retry_times,
+            retry_interval=retry_interval,
         )
+        self._data = pickle.loads(raw_data)
         # NOTE: its a hack here to download files
         # TODO: opt this
         self._check_and_download_files()

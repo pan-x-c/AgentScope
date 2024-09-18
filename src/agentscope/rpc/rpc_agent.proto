@@ -13,7 +13,7 @@ service RpcAgent {
 
     // TODO: rename to create_object
     // create a new object on the server
-    rpc create_agent (CreateAgentRequest) returns (GeneralResponse) {}
+    rpc create_agent (CreateAgentRequest) returns (CallFuncResponse) {}
 
     // TODO: rename to delete_object
     // delete agent from the server

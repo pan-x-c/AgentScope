@@ -182,62 +182,18 @@ class AgentServerServicer(RpcAgentServicer):
         self,
         request: agent_pb2.CreateAgentRequest,
         context: ServicerContext,
-    ) -> agent_pb2.GeneralResponse:
+    ) -> agent_pb2.CallFuncResponse:
         """Create a new agent on the server."""
         agent_id = request.agent_id
-        agent_configs = pickle.loads(request.agent_init_args)
-        cls_name = agent_configs["class_name"]
-        try:
-            cls = RpcMeta.get_class(cls_name)
-        except ValueError as e:
-            err_msg = (f"Class [{cls_name}] not found: {str(e)}",)
-            logger.error(err_msg)
-            return agent_pb2.GeneralResponse(ok=False, message=err_msg)
-        try:
-            instance = cls(
-                *agent_configs["args"],
-                **agent_configs["kwargs"],
-            )
-        except Exception as e:
-            err_msg = f"Failed to create agent instance <{cls_name}>: {str(e)}"
-
-            logger.error(err_msg)
-            return agent_pb2.GeneralResponse(ok=False, message=err_msg)
-
-        # Reset the __reduce_ex__ method of the instance
-        # With this method, all objects stored in agent_pool will be serialized
-        # into their Rpc version
-        rpc_init_cfg = (
-            cls,
+        agent_configs = request.agent_init_args
+        task_id = self.result_pool.prepare()
+        self.executor.submit(
+            self._create_object,
+            task_id,
             agent_id,
-            self.host,
-            self.port,
-            True,
+            agent_configs,
         )
-        instance._dist_config = {  # pylint: disable=W0212
-            "args": rpc_init_cfg,
-        }
-
-        def to_rpc(obj, _) -> tuple:  # type: ignore[no-untyped-def]
-            return (
-                RpcObject,
-                obj._dist_config["args"],  # pylint: disable=W0212
-            )
-
-        instance.__reduce_ex__ = to_rpc.__get__(  # pylint: disable=E1120
-            instance,
-        )
-        instance._oid = agent_id  # pylint: disable=W0212
-
-        with self.agent_id_lock:
-            if agent_id in self.agent_pool:
-                return agent_pb2.GeneralResponse(
-                    ok=False,
-                    message=f"Agent with agent_id [{agent_id}] already exists",
-                )
-            self.agent_pool[agent_id] = instance
-        logger.info(f"create agent instance <{cls_name}>[{agent_id}]")
-        return agent_pb2.GeneralResponse(ok=True)
+        return agent_pb2.CallFuncResponse(ok=True, value=pickle.dumps(task_id))
 
     def delete_agent(
         self,
@@ -454,6 +410,76 @@ class AgentServerServicer(RpcAgentServicer):
                 if not piece:
                     break
                 yield agent_pb2.ByteMsg(data=piece)
+
+    def _create_object(
+        self,
+        task_id: int,
+        agent_id: str,
+        raw_agent_configs: bytes,
+    ) -> None:
+        """Create an object on the server."""
+        agent_configs = pickle.loads(raw_agent_configs)
+        cls_name = agent_configs["class_name"]
+        try:
+            cls = RpcMeta.get_class(cls_name)
+        except ValueError as e:
+            err_msg = f"Class [{cls_name}] not found: {str(e)}"
+            logger.error(err_msg)
+            self.result_pool.set(
+                task_id,
+                MAGIC_PREFIX + err_msg.encode("utf-8"),
+            )
+            return
+        try:
+            instance = cls(
+                *agent_configs["args"],
+                **agent_configs["kwargs"],
+            )
+        except Exception as e:
+            err_msg = f"Failed to create agent instance <{cls_name}>: {str(e)}"
+            logger.error(err_msg)
+            self.result_pool.set(
+                task_id,
+                MAGIC_PREFIX + err_msg.encode("utf-8"),
+            )
+            return
+
+        # Reset the __reduce_ex__ method of the instance
+        # With this method, all objects stored in agent_pool will be serialized
+        # into their Rpc version
+        rpc_init_cfg = (
+            cls,
+            agent_id,
+            self.host,
+            self.port,
+            True,
+        )
+        instance._dist_config = {  # pylint: disable=W0212
+            "args": rpc_init_cfg,
+        }
+
+        def to_rpc(obj, _) -> tuple:  # type: ignore[no-untyped-def]
+            return (
+                RpcObject,
+                obj._dist_config["args"],  # pylint: disable=W0212
+            )
+
+        instance.__reduce_ex__ = to_rpc.__get__(  # pylint: disable=E1120
+            instance,
+        )
+        instance._oid = agent_id  # pylint: disable=W0212
+
+        with self.agent_id_lock:
+            if agent_id in self.agent_pool:
+                err_msg = f"Agent with agent_id [{agent_id}] already exists"
+                self.result_pool.set(
+                    task_id,
+                    MAGIC_PREFIX + err_msg.encode("utf-8"),
+                )
+                return
+            self.agent_pool[agent_id] = instance
+        logger.info(f"create agent instance <{cls_name}>[{agent_id}]")
+        self.result_pool.set(task_id, pickle.dumps(True))
 
     def _process_task(
         self,
