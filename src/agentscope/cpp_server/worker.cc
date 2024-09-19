@@ -146,7 +146,8 @@ Worker::Worker(
             ERROR("ftok (" + filename + ")");
             kill(_main_worker_pid, SIGINT);
         }
-        int semid = semget(key, _sem_num_per_sem_id, 0666 | IPC_CREAT);
+        int sem_num = std::min(_sem_num_per_sem_id, _max_call_id - i * _sem_num_per_sem_id);
+        int semid = semget(key, sem_num, 0666 | IPC_CREAT);
         if (semid == -1)
         {
             ERROR("semget (" + to_string(key) + ")");

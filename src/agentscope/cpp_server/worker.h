@@ -69,7 +69,7 @@ private:
     int _worker_id;
     vector<pid_t> _worker_pids;
 
-    const int _sem_num_per_sem_id;
+    const unsigned int _sem_num_per_sem_id;
     const unsigned int _call_shm_size;
     const unsigned int _max_call_id;
     const unsigned int _small_obj_size;
@@ -234,8 +234,9 @@ public:
             auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
             std::cout << (is_output_to_terminal ? "\033[0;32m" : "");
             std::cout << std::put_time(localTime, "%Y-%m-%d %H:%M:%S") 
-                << '.' << std::setw(3) << std::setfill('0') << milliseconds.count() << " | ";
+                << '.' << std::setw(3) << std::setfill('0') << milliseconds.count();
             std::cout << (is_output_to_terminal ? "\033[0m" : "");
+            std::cout << " | ";
 
             std::cout << "port = " << _port << " worker_id = " << std::setw(3) << std::setfill(' ') << _worker_id
                 << " tid = " << std::this_thread::get_id() << " | ";

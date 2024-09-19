@@ -15,7 +15,6 @@ from loguru import logger
 import requests
 
 try:
-    import dill
     import grpc
     from agentscope.rpc.rpc_agent_pb2_grpc import (
         add_RpcAgentServicer_to_server,
@@ -23,7 +22,6 @@ try:
 except ImportError as import_error:
     from agentscope.utils.common import ImportErrorReporter
 
-    dill = ImportErrorReporter(import_error, "distribute")
     grpc = ImportErrorReporter(import_error, "distribute")
     add_RpcAgentServicer_to_server = ImportErrorReporter(
         import_error,
