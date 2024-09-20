@@ -67,7 +67,8 @@ Worker::Worker(
                                       _small_obj_shm_name("/small_obj_" + port),
                                       _func_args_shm_prefix("/args_" + port + "_"),
                                       _func_result_shm_prefix("/result_" + port + "_"),
-                                      _call_id(0),
+                                      _call_id_counter(0),
+                                      _worker_id_counter(0),
                                       _use_logger(calc_use_logger()),
                                       _max_timeout_seconds(std::max(max_timeout_seconds, 1u))
 {
@@ -188,6 +189,9 @@ Worker::Worker(
         {
             // parent process
             _worker_pids.push_back(pid);
+            _result_mutexes.push_back(std::make_unique<mutex>());
+            _result_cvs.push_back(std::make_unique<condition_variable>());
+            _result_maps.push_back(std::make_shared<unordered_map<int, string>>());
             release_set_result(worker_id);
         }
         else if (pid == 0)
@@ -216,6 +220,7 @@ Worker::Worker(
                 int call_id = *(int *)shm_ptr;
                 function_ids function_id = *(function_ids *)(shm_ptr + sizeof(int));
                 int obj_id = *(int *)(shm_ptr + sizeof(int) * 2);
+                release_set_args();
                 LOG(FORMAT(call_id), FUNC_FORMAT(function_id), FORMAT(obj_id));
                 thread work;
                 switch (function_id)
@@ -267,7 +272,6 @@ Worker::Worker(
                 }
                 }
                 work.detach();
-                release_set_args();
             }
             kill(_main_worker_pid, SIGINT);
         }
@@ -374,19 +378,7 @@ int Worker::release_get_result()
 
 int Worker::find_avail_worker_id()
 {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, _num_workers - 1);
-    int worker_id;
-    for (auto cnt = 0u; cnt < 4 * _num_workers; cnt++)
-    {
-        worker_id = dis(gen);
-        if (acquire_set_args(worker_id, IPC_NOWAIT) == 0)
-        {
-            LOG(FORMAT(worker_id));
-            return worker_id;
-        }
-    }
+    int worker_id = _worker_id_counter.fetch_add(1) % _num_workers;
     acquire_set_args(worker_id);
     LOG(FORMAT(worker_id));
     return worker_id;
@@ -394,8 +386,7 @@ int Worker::find_avail_worker_id()
 
 int Worker::get_call_id()
 {
-    unique_lock<mutex> lock(_call_id_mutex);
-    return _call_id++;
+    return _call_id_counter.fetch_add(1);
 }
 
 int Worker::get_obj_id(const int call_id, const unsigned int obj_size)
@@ -516,25 +507,26 @@ void Worker::wait_result()
                 int obj_id = *(int *)(_worker_shm + (worker_id * 2 + 1) * _worker_shm_size + sizeof(int));
                 release_set_result(worker_id);
                 {
-                    unique_lock<mutex> lock(_result_mutex);
+                    unique_lock<mutex> lock(*_result_mutexes[worker_id]);
                     string result = get_content(_func_result_shm_prefix, call_id, obj_id);
                     LOG(FORMAT(call_id), FORMAT(obj_id), FORMAT(result.size()), BIN_FORMAT(result));
-                    _result_map.insert(make_pair(call_id, result));
+                    _result_maps[worker_id]->insert(make_pair(call_id, result));
                 }
-                _result_cv.notify_all();
+                _result_cvs[worker_id]->notify_all();
             }
         }
     }
 }
 
-string Worker::get_result(const int call_id)
+string Worker::get_result(const int call_id, const int worker_id)
 {
-    unique_lock<mutex> lock(_result_mutex);
+    unique_lock<mutex> lock(*_result_mutexes[worker_id]);
     LOG(FORMAT(call_id));
-    _result_cv.wait(lock, [this, call_id]
-                    { return !_result_map.empty() && _result_map.find(call_id) != _result_map.end(); });
-    string result = _result_map[call_id];
-    _result_map.erase(call_id);
+    auto result_map = _result_maps[worker_id];
+    _result_cvs[worker_id]->wait(lock, [result_map, call_id]
+                    { return result_map->find(call_id) != result_map->end(); });
+    string result = result_map->at(call_id);
+    result_map->erase(call_id);
     return result;
 }
 
@@ -599,7 +591,7 @@ string Worker::call_create_agent(const string &agent_id, const string &agent_ini
     args.set_agent_source_code(agent_source_code);
     int call_id = call_worker_func(worker_id, function_ids::create_agent, &args, false);
     LOG(FORMAT(agent_id), FORMAT(call_id), FORMAT(worker_id));
-    string result = get_result(call_id);
+    string result = get_result(call_id, worker_id);
     if (result.empty())
     {
         unique_lock<shared_mutex> lock(_agent_id_map_mutex);
@@ -652,7 +644,7 @@ string Worker::call_delete_agent(const string &agent_id)
         unique_lock<shared_mutex> lock(_agent_id_map_mutex);
         _agent_id_map.erase(agent_id);
     }
-    string result = get_result(call_id);
+    string result = get_result(call_id, worker_id);
     return result;
 }
 
@@ -690,9 +682,10 @@ string Worker::call_delete_all_agents()
         _agent_id_map.clear();
     }
     string final_result;
-    for (auto call_id : call_id_list)
+    for (auto worker_id = 0u; worker_id < _num_workers; worker_id++)
     {
-        string result = get_result(call_id);
+        int call_id = call_id_list[worker_id];
+        string result = get_result(call_id, worker_id);
         final_result += result;
     }
     py::gil_scoped_acquire acquire;
@@ -726,7 +719,7 @@ pair<bool, string> Worker::call_clone_agent(const string &agent_id)
     AgentArgs args;
     args.set_agent_id(agent_id);
     int call_id = call_worker_func(worker_id, function_ids::clone_agent, &args);
-    string clone_agent_id = get_result(call_id);
+    string clone_agent_id = get_result(call_id, worker_id);
     {
         unique_lock<shared_mutex> lock(_agent_id_map_mutex);
         _agent_id_map.insert(std::make_pair(clone_agent_id, worker_id));
@@ -773,9 +766,10 @@ string Worker::call_get_agent_list()
         }
     }
     vector<string> result_list;
-    for (auto call_id : call_id_list)
+    for (auto worker_id = 0u; worker_id < _num_workers; worker_id++)
     {
-        string result_str = get_result(call_id);
+        int call_id = call_id_list[worker_id];
+        string result_str = get_result(call_id, worker_id);
         LOG(FORMAT(call_id));
         AgentListReturn result;
         result.ParseFromString(result_str);
@@ -816,9 +810,10 @@ string Worker::call_set_model_configs(const string &model_configs)
         call_id_list.push_back(call_id);
     }
     string final_result;
-    for (auto call_id : call_id_list)
+    for (auto worker_id = 0u; worker_id < _num_workers; worker_id++)
     {
-        string result = get_result(call_id);
+        int call_id = call_id_list[worker_id];
+        string result = get_result(call_id, worker_id);
         final_result += result;
     }
     return final_result;
@@ -846,7 +841,7 @@ pair<bool, string> Worker::call_get_agent_memory(const string &agent_id)
     AgentArgs args;
     args.set_agent_id(agent_id);
     int call_id = call_worker_func(worker_id, function_ids::get_agent_memory, &args);
-    string result_str = get_result(call_id);
+    string result_str = get_result(call_id, worker_id);
     MsgReturn result;
     result.ParseFromString(result_str);
     return make_pair(result.ok(), result.message());
@@ -895,7 +890,7 @@ pair<bool, string> Worker::call_agent_func(const string &agent_id, const string 
     args.set_raw_value(raw_value);
     LOG(FORMAT(agent_id), FORMAT(func_name), BIN_FORMAT(raw_value));
     int call_id = call_worker_func(worker_id, function_ids::agent_func, &args);
-    string result_str = get_result(call_id);
+    string result_str = get_result(call_id, worker_id);
     AgentFuncReturn result;
     result.ParseFromString(result_str);
     LOG(FORMAT(agent_id), FORMAT(func_name), FORMAT(result.ok()), BIN_FORMAT(result.value()));
@@ -1011,7 +1006,7 @@ string Worker::call_server_info()
 {
     int worker_id = find_avail_worker_id();
     int call_id = call_worker_func(worker_id, function_ids::server_info, nullptr, false);
-    string result = get_result(call_id);
+    string result = get_result(call_id, worker_id);
     return result;
 }
 

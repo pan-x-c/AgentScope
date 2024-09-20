@@ -153,8 +153,12 @@ class CMakeBuild(build_ext):
                       '-DPython3_EXECUTABLE=' + sys.executable,
                       '-Dpybind11_DIR=' + os.path.join(site.getsitepackages()[0], 'pybind11', 'share', 'cmake', 'pybind11')]
 
-        cfg = 'Debug' if self.debug else 'Release'
+        cfg = 'Release'
         build_args = ['--config', cfg]
+        if self.debug:
+            cmake_args += ['-DCMAKE_CXX_FLAGS=-g -DDEBUG']
+        else:
+            cmake_args += ['-DCMAKE_CXX_FLAGS=-O3']
 
         cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
 

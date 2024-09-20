@@ -17,6 +17,7 @@
 #include <sys/ipc.h>
 #include <ctime>
 #include <chrono>
+#include <atomic>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -31,6 +32,7 @@ using std::pair;
 using std::string;
 using std::unordered_map;
 using std::vector;
+using std::atomic;
 
 using std::condition_variable;
 using std::condition_variable_any;
@@ -40,13 +42,19 @@ using std::shared_mutex;
 using std::thread;
 using std::unique_lock;
 using std::unique_ptr;
+using std::shared_ptr;
 
 namespace py = pybind11;
 
 using google::protobuf::Message;
 
 
+#ifdef DEBUG
 #define RAW_LOGGER(worker, ...) worker->logger(__FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#else
+#define RAW_LOGGER(worker, ...)
+#endif
+
 #define FORMAT(var) #var, "=", var
 #define BIN_FORMAT(var) #var, "=", bin_format(var)
 #define FUNC_FORMAT(var) "worker_func =", Worker::function_ids_to_str(var)
@@ -54,7 +62,15 @@ using google::protobuf::Message;
 inline string bin_format(const string &var)
 {
     bool is_output_to_terminal = isatty(fileno(stdout));
-    return is_output_to_terminal ? "\033[1;31m" + var + "\033[1;37m" : "[" + var + "]";
+    string converted = var;
+    for (char &ch : converted)
+    {
+        if (!std::isprint(static_cast<unsigned char>(ch)))
+        {
+            ch = ' ';
+        }
+    }
+    return is_output_to_terminal ? "\033[1;31m" + converted + "\033[1;37m" : "[" + converted + "]";
 }
 
 
@@ -80,8 +96,9 @@ private:
     const string _func_args_shm_prefix;
     const string _func_result_shm_prefix;
 
-    int _call_id;
-    mutex _call_id_mutex;
+    atomic<int> _call_id_counter;
+    atomic<int> _worker_id_counter;
+
     vector<int> _worker_sem_ids;
     int _worker_shm_fd;
     char *_worker_shm;
@@ -90,9 +107,9 @@ private:
     int _small_obj_shm_fd;
     char *_small_obj_shm;
 
-    mutex _result_mutex;
-    condition_variable _result_cv;
-    unordered_map<int, string> _result_map;
+    vector<unique_ptr<mutex>> _result_mutexes;
+    vector<unique_ptr<condition_variable>> _result_cvs;
+    vector<shared_ptr<unordered_map<int, string>>> _result_maps;
 
     const bool _use_logger;
     mutex _logger_mutex;
@@ -167,7 +184,7 @@ private:
     string get_args_repr(const int call_id, const int obj_id);
     void set_args_repr(const int call_id, const int obj_id, const string &args_repr);
     void wait_result();
-    string get_result(const int call_id);
+    string get_result(const int call_id, const int worker_id);
     void set_result(const int call_id, const string &result);
     int get_worker_id_by_agent_id(const string &agent_id);
 
