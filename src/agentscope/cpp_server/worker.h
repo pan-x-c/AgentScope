@@ -70,27 +70,29 @@ private:
     vector<pid_t> _worker_pids;
 
     const unsigned int _sem_num_per_sem_id;
-    const unsigned int _call_shm_size;
-    const unsigned int _max_call_id;
+    const unsigned int _worker_shm_size;
+    const unsigned int _max_small_obj_num;
     const unsigned int _small_obj_size;
     const unsigned int _small_obj_shm_size;
 
-    const string _call_worker_shm_name;
+    const string _worker_shm_name;
+    const string _small_obj_shm_name;
     const string _func_args_shm_prefix;
     const string _func_result_shm_prefix;
-    const string _worker_avail_sem_prefix;
-    const string _func_ready_sem_prefix;
-    const string _small_obj_pool_shm_name;
 
-    vector<int> _call_sem_ids;
-    int _call_worker_shm_fd;
-    char *_call_worker_shm;
-    vector<pair<sem_t *, sem_t *>> _worker_semaphores;
-    int _small_obj_pool_shm_fd;
-    void *_small_obj_pool_shm;
+    int _call_id;
     mutex _call_id_mutex;
-    condition_variable _call_id_cv;
-    queue<int> _call_id_pool;
+    vector<int> _worker_sem_ids;
+    int _worker_shm_fd;
+    char *_worker_shm;
+
+    vector<int> _small_obj_sem_ids;
+    int _small_obj_shm_fd;
+    char *_small_obj_shm;
+
+    mutex _result_mutex;
+    condition_variable _result_cv;
+    unordered_map<int, string> _result_map;
 
     const bool _use_logger;
     mutex _logger_mutex;
@@ -149,33 +151,43 @@ private:
         }
     }
 
+    int acquire_set_args(const int worker_id, const short sem_flg = 0);
+    int release_set_args();
+    int acquire_get_args();
+    int release_get_args(const int worker_id);
+    int acquire_set_result();
+    int release_set_result(const int worker_id);
+    int acquire_get_result(const int worker_id, const short sem_flg = 0);
+    int release_get_result();
     int find_avail_worker_id();
     int get_call_id();
-    string get_content(const string &prefix, const int call_id);
-    void set_content(const string &prefix, const int call_id, const string &content);
-    string get_args_repr(const int call_id);
-    void set_args_repr(const int call_id, const string &args_repr);
+    int get_obj_id(const int call_id, const unsigned int obj_size);
+    string get_content(const string &prefix, const int call_id, const int obj_id);
+    void set_content(const string &prefix, const int call_id, const int obj_id, const string &content);
+    string get_args_repr(const int call_id, const int obj_id);
+    void set_args_repr(const int call_id, const int obj_id, const string &args_repr);
+    void wait_result();
     string get_result(const int call_id);
     void set_result(const int call_id, const string &result);
     int get_worker_id_by_agent_id(const string &agent_id);
 
-    static const unsigned int _default_max_call_id = 10000;
-    static unsigned int calc_max_call_id()
+    static const unsigned int _default_max_small_obj_num = 10000;
+    static unsigned int calc_max_small_obj_num()
     {
-        char *max_call_id = getenv("AGENTSCOPE_MAX_CALL_ID");
-        if (max_call_id != nullptr)
+        char *max_small_obj_num = getenv("AGENTSCOPE_MAX_SMALL_OBJ_NUM");
+        if (max_small_obj_num != nullptr)
         {
             try {
-                return std::stoi(max_call_id);
+                return std::stoi(max_small_obj_num);
             } catch (const std::invalid_argument&) {
-                return _default_max_call_id;
+                return _default_max_small_obj_num;
             } catch (const std::out_of_range&) {
-                return _default_max_call_id;
+                return _default_max_small_obj_num;
             }
         }
         else
         {
-            return _default_max_call_id;
+            return _default_max_small_obj_num;
         }
     }
     static bool calc_use_logger()
@@ -196,14 +208,14 @@ private:
     }
     int call_worker_func(const int worker_id, const function_ids func_id, const Message *args, const bool need_wait = true);
 
-    void create_agent_worker(const int call_id);
-    void delete_agent_worker(const int call_id);
+    void create_agent_worker(const int call_id, const int obj_id);
+    void delete_agent_worker(const int call_id, const int obj_id);
     void delete_all_agents_worker(const int call_id);
-    void clone_agent_worker(const int call_id);
+    void clone_agent_worker(const int call_id, const int obj_id);
     void get_agent_list_worker(const int call_id);
-    void set_model_configs_worker(const int call_id);
-    void get_agent_memory_worker(const int call_id);
-    void agent_func_worker(const int call_id);
+    void set_model_configs_worker(const int call_id, const int obj_id);
+    void get_agent_memory_worker(const int call_id, const int obj_id);
+    void agent_func_worker(const int call_id, const int obj_id);
     void server_info_worker(const int call_id);
 
 public:
