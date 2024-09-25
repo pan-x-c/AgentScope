@@ -111,7 +111,7 @@ private:
     vector<unique_ptr<condition_variable>> _result_cvs;
     vector<shared_ptr<unordered_map<int, string>>> _result_maps;
 
-    const bool _use_logger;
+    const bool _enable_logger;
     mutex _logger_mutex;
 
     unordered_map<string, int> _agent_id_map; // map agent id to worker id
@@ -124,9 +124,11 @@ private:
     py::object _result_pool;
 
     // common used functions
+    const bool _enable_py_logger;
     string MAGIC_PREFIX;
     py::object _serialize, _deserialize;
     py::object _pickle_loads, _pickle_dumps;
+    py::object _rpc_meta;
     py::object _py_logger;
 
     enum function_ids
@@ -207,10 +209,15 @@ private:
             return _default_max_small_obj_num;
         }
     }
-    static bool calc_use_logger()
+    static bool calc_enable_logger()
     {
-        char *use_logger = getenv("AGENTSCOPE_USE_CPP_LOGGER");
-        return (use_logger != nullptr && std::string(use_logger) == "True");
+        char *enable_logger = getenv("AGENTSCOPE_ENABLE_CPP_LOGGER");
+        return (enable_logger != nullptr && std::string(enable_logger) == "True");
+    }
+    static bool calc_enable_py_logger()
+    {
+        char *enable_py_logger = getenv("AGENTSCOPE_ENABLE_PY_LOGGER");
+        return (enable_py_logger != nullptr && std::string(enable_py_logger) == "True");
     }
 
     inline long long get_current_timestamp()
@@ -252,7 +259,7 @@ public:
     template<typename... Args>
     void logger(const string &file_name, const string &func_name, const int line_num, Args... args)
     {
-        if (_use_logger)
+        if (_enable_logger)
         {
             unique_lock<std::mutex> lock(_logger_mutex);
             bool is_output_to_terminal = isatty(fileno(stdout));

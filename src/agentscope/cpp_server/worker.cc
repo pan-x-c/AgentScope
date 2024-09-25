@@ -32,6 +32,8 @@ using WorkerArgs::MsgReturn;
     LOG(ERROR_MSG_FORMAT(msg)); \
     perror(ERROR_MSG_FORMAT(msg).c_str())
 
+#define PY_LOG(level, content) if (_enable_py_logger) { _py_logger.attr(level)(content); }
+
 inline int P(int semid, unsigned short sem_num, short sem_flg = 0)
 {
     struct sembuf sb = {sem_num, -1, sem_flg};
@@ -69,8 +71,9 @@ Worker::Worker(
                                       _func_result_shm_prefix("/result_" + port + "_"),
                                       _call_id_counter(0),
                                       _worker_id_counter(0),
-                                      _use_logger(calc_use_logger()),
-                                      _max_timeout_seconds(std::max(max_timeout_seconds, 1u))
+                                      _enable_logger(calc_enable_logger()),
+                                      _max_timeout_seconds(std::max(max_timeout_seconds, 1u)),
+                                      _enable_py_logger(calc_enable_py_logger())
 {
     py::object get_pool = py::module::import("agentscope.server.async_result_pool").attr("get_pool");
     _result_pool = get_pool("redis", max_expire_time, max_pool_size, redis_url);
@@ -84,6 +87,8 @@ Worker::Worker(
     py::object pickle = py::module::import("cloudpickle");
     _pickle_loads = pickle.attr("loads");
     _pickle_dumps = pickle.attr("dumps");
+
+    _rpc_meta = py::module::import("agentscope.rpc.rpc_meta").attr("RpcMeta");
     _py_logger = py::module::import("loguru").attr("logger").attr("opt")("depth"_a = -1);
     py::gil_scoped_release release;
 
@@ -581,7 +586,11 @@ string Worker::call_create_agent(const string &agent_id, const string &agent_ini
 {
     if (get_worker_id_by_agent_id(agent_id) != -1)
     {
-        return "Agent with agent_id [" + agent_id + "] already exists.";
+        string msg = "Agent with agent_id [" + agent_id + "] already exists.";
+        LOG(msg);
+        py::gil_scoped_acquire acquire;
+        PY_LOG("warning", msg)
+        return "";
     }
     LOG(FORMAT(agent_id));
     int worker_id = find_avail_worker_id();
@@ -613,15 +622,41 @@ void Worker::create_agent_worker(const int call_id, const int obj_id)
     LOG(FORMAT(call_id), FORMAT(agent_id));
 
     py::gil_scoped_acquire acquire;
-    py::tuple create_result = py::module::import("agentscope.cpp_server").attr("create_agent")(agent_id, py::bytes(agent_init_args), _host, std::atoi(_port.c_str()));
-    py::object agent = create_result[0];
-    py::object error_msg = create_result[1];
-    string result = error_msg.cast<string>();
+    LOG(FORMAT(call_id), FORMAT(agent_id));
+    py::object agent_configs = _pickle_loads(py::bytes(agent_init_args));
+    string cls_name = agent_configs["class_name"].cast<string>();
+    string result;
+    py::object agent;
+    try
+    {
+        py::object cls = _rpc_meta.attr("get_class")(cls_name);
+        try
+        {
+            agent_configs["kwargs"]["_oid"] = agent_id;
+            LOG(FORMAT(call_id), FORMAT(agent_id));
+            agent = cls(*agent_configs["args"], **agent_configs["kwargs"]);
+        }
+        catch(const std::exception& e)
+        {
+            result = "Failed to create agent instance <" + cls_name + ">: " + e.what();
+            LOG(FORMAT(result));
+            PY_LOG("error", result);
+        }
+    }
+    catch (const std::exception &e)
+    {
+        result = "(Class [" + cls_name + "] not found: " + e.what() + ",)";
+        LOG(FORMAT(result));
+        PY_LOG("error", result);
+    }
     if (result.empty())
     {
-        shared_lock<shared_mutex> lock(_agent_pool_delete_mutex);
-        unique_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
-        _agent_pool.insert(std::make_pair(agent_id, agent));
+        {
+            shared_lock<shared_mutex> lock(_agent_pool_delete_mutex);
+            unique_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
+            _agent_pool.insert(std::make_pair(agent_id, agent));
+        }
+        PY_LOG("info", "Create agent instance <" + cls_name + ">[" + agent_id + "]");
     }
     LOG(FORMAT(call_id), FORMAT(agent_id), FORMAT(result));
     set_result(call_id, result);
@@ -634,7 +669,7 @@ string Worker::call_delete_agent(const string &agent_id)
     {
         py::gil_scoped_acquire acquire;
         string msg = "Try to delete a non-existent agent [" + agent_id + "].";
-        _py_logger.attr("warning")(msg);
+        PY_LOG("warning", msg);
         return msg;
     }
     AgentArgs args;
@@ -665,7 +700,7 @@ void Worker::delete_agent_worker(const int call_id, const int obj_id)
         agent.attr("__del__")();
     }
     _agent_pool.erase(agent_id);
-    _py_logger.attr("info")("delete agent instance <" + class_name + ">[" + agent_id + "]");
+    PY_LOG("info", "delete agent instance <" + class_name + ">[" + agent_id + "]");
     set_result(call_id, "");
 }
 
@@ -689,7 +724,7 @@ string Worker::call_delete_all_agents()
         final_result += result;
     }
     py::gil_scoped_acquire acquire;
-    _py_logger.attr("info")("Deleting all agent instances on the server");
+    PY_LOG("info", "Deleting all agent instances on the server");
     return final_result;
 }
 
@@ -950,7 +985,7 @@ void Worker::agent_func_worker(const int call_id, const int obj_id)
             {
                 string error_msg = "Agent [" + agent_id + "] error: " + e.what();
                 _result_pool.attr("set")(task_id, MAGIC_PREFIX + error_msg);
-                _py_logger.attr("error")(error_msg);
+                PY_LOG("error", error_msg);
             }
         }
         else if (agent.attr("__class__").attr("_sync_func").contains(func_name))
@@ -975,7 +1010,7 @@ void Worker::agent_func_worker(const int call_id, const int obj_id)
     catch (const std::exception &e)
     {
         string error_msg = "Agent [" + agent_id + "] error: " + e.what();
-        _py_logger.attr("error")(error_msg);
+        PY_LOG("error", error_msg);
         return_result.set_ok(false);
         return_result.set_value(error_msg);
         set_result(call_id, return_result.SerializeAsString());

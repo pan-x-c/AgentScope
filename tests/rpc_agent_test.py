@@ -150,6 +150,39 @@ class DemoGatherAgent(AgentBase):
         )
 
 
+class DemoGatherAgentVariant(AgentBase):
+    """A demo agent to gather value"""
+
+    def __init__(
+        self,
+        name: str,
+        agent_values: list[int],
+        to_dist: dict = None,
+    ) -> None:
+        super().__init__(name, to_dist=to_dist)
+        self.agents = []
+        for value in agent_values:
+            self.agents.append(DemoGeneratorAgent(name + f'_{value}', value))
+
+    def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
+        result = []
+        stime = time.time()
+        for agent in self.agents:
+            result.append(agent())
+        value = 0
+        for r in result:
+            value += r.content["value"]
+        etime = time.time()
+        return Msg(
+            name=self.name,
+            role="assistant",
+            content={
+                "value": value,
+                "time": etime - stime,
+            },
+        )
+
+
 class DemoErrorAgent(AgentBase):
     """A demo Rpc agent that raise Error"""
 
@@ -265,7 +298,9 @@ class FibonacciAgent(AgentBase):
 
     def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
         if self.child_agent_a and self.child_agent_b:
-            fib_value = self.child_agent_a.reply().content["value"] + self.child_agent_b.reply().content["value"]
+            reply_a = self.child_agent_a.reply()
+            reply_b = self.child_agent_b.reply()
+            fib_value = reply_a.content["value"] + reply_b.content["value"]
         else:
             fib_value = 1
         return Msg(
@@ -672,6 +707,56 @@ class BasicRpcAgentTest(unittest.TestCase):
         self.assertEqual(r2.content["value"], 22)
         self.assertTrue(0.5 < r1.content["time"] < 2)
         self.assertTrue(0.5 < r2.content["time"] < 2)
+
+        local_agents = [
+            DemoGeneratorAgent(name=f"b_{i}", value=i)
+            for i in range(4)
+        ]
+        gather3 = DemoGatherAgent(  # pylint: disable=E1123
+            name="g3",
+            agents=local_agents,
+            to_dist={
+                "host": host,
+                "port": launcher1.port,
+            },
+        )
+        r3 = gather3()
+        self.assertEqual(r3.content["value"], 6)
+        self.assertTrue(0.5 < r3.content["time"] < 2)
+
+        gather4 = DemoGatherAgentVariant(  # pylint: disable=E1123
+            name="g4",
+            agent_values=range(4, 8),
+            to_dist={
+                "host": host,
+                "port": launcher2.port,
+            },
+        )
+        r4 = gather4()
+        self.assertEqual(r4.content["value"], 22)
+        self.assertTrue(0.5 < r4.content["time"] < 2)
+
+        new_local_agents = [
+            DemoGeneratorAgent(name=f"b_{i}", value=i)
+            for i in range(4)
+        ]
+        gather5 = DemoGatherAgent(  # pylint: disable=E1123
+            name="g5",
+            agents=new_local_agents,
+        )
+        gather5 = gather5.to_dist(host=host, port=launcher1.port)
+        r5 = gather5()
+        self.assertEqual(r5.content["value"], 6)
+        self.assertTrue(0.5 < r5.content["time"] < 2)
+
+        gather6 = DemoGatherAgentVariant(  # pylint: disable=E1123
+            name="g6",
+            agent_values=range(4, 8),
+        )
+        gather6 = gather6.to_dist(host=host, port=launcher2.port)
+        r6 = gather6()
+        self.assertEqual(r6.content["value"], 22)
+        self.assertTrue(0.5 < r6.content["time"] < 2)
         launcher1.shutdown()
         launcher2.shutdown()
 

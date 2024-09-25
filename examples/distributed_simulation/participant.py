@@ -112,8 +112,9 @@ class Moderator(AgentBase):
     ) -> None:
         super().__init__(name)
         self.max_value = max_value
-        def create_llm_participant(config):
-            return LLMParticipant(
+        if agent_type == "llm":
+            self.participants = [
+                LLMParticipant(
                     name=config["name"],
                     model_config_name=config["model_config_name"],
                     max_value=max_value,
@@ -121,24 +122,20 @@ class Moderator(AgentBase):
                     host=config["host"],
                     port=config["port"],
                 )
-
-        def create_random_participant(config):
-            return RandomParticipant(
-                name=config["name"],
-                max_value=max_value,
-                sleep_time=sleep_time,
-            ).to_dist(
-                host=config["host"],
-                port=config["port"],
-            )
-        create_participant = {"random": create_random_participant, "llm": create_llm_participant}[agent_type]
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = {executor.submit(create_participant, config) for config in part_configs}
-
-            self.participants = []
-            for future in concurrent.futures.as_completed(futures):
-                result = future.result()
-                self.participants.append(result)
+                for config in part_configs
+            ]
+        else:
+            self.participants = [
+                RandomParticipant(
+                    name=config["name"],
+                    max_value=max_value,
+                    sleep_time=sleep_time,
+                ).to_dist(
+                    host=config["host"],
+                    port=config["port"],
+                )
+                for config in part_configs
+            ]
 
     def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
         msg = Msg(

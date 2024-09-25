@@ -226,6 +226,10 @@ async def _setup_agent_server_async(  # pylint: disable=R0912
     # update agent registry
     for cls in custom_classes:
         RpcMeta.register_class(cls)
+    RpcMeta.server_config = {
+        "host": host,
+        "port": port,
+    }
 
     async def shutdown_signal_handler() -> None:
         logger.info(

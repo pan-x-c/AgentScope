@@ -57,6 +57,7 @@ class RpcMeta(ABCMeta):
     """The metaclass for all classes that can run on rpc server."""
 
     _REGISTRY = {}
+    server_config = None
 
     def __init__(cls, name: Any, bases: Any, attrs: Any) -> None:
         if name in RpcMeta._REGISTRY:
@@ -87,6 +88,7 @@ class RpcMeta(ABCMeta):
         return super().__new__(mcs, name, bases, attrs)  # type: ignore[misc]
 
     def __call__(cls, *args: tuple, **kwargs: dict) -> Any:
+        oid = kwargs.pop("_oid", generate_oid())
         to_dist = copy.deepcopy(kwargs.pop("to_dist", False))
         if to_dist is True:
             to_dist = {}
@@ -94,7 +96,7 @@ class RpcMeta(ABCMeta):
             if cls is not RpcObject:
                 return RpcObject(
                     cls=cls,
-                    oid=generate_oid(),
+                    oid=oid,
                     host=to_dist.pop(  # type: ignore[arg-type]
                         "host",
                         "localhost",
@@ -124,13 +126,55 @@ class RpcMeta(ABCMeta):
                     },
                 )
         instance = super().__call__(*args, **kwargs)
+        if RpcMeta.server_config is not None:
+            items = instance.__dict__.copy()
+            for key, value in items.items():
+                setattr(instance, key, RpcMeta.convert(value))
+            # Reset the __reduce_ex__ method of the instance
+            # With this method, all objects stored in agent_pool
+            # will be serialized into their Rpc version
+            rpc_init_cfg = (
+                cls,
+                oid,
+                RpcMeta.server_config["host"],
+                RpcMeta.server_config["port"],
+                True,
+            )
+            instance._dist_config = {  # pylint: disable=W0212
+                "args": rpc_init_cfg,
+            }
+
+            def to_rpc(obj, _) -> tuple:  # type: ignore[no-untyped-def]
+                return (
+                    RpcObject,
+                    obj._dist_config["args"],  # pylint: disable=W0212
+                )
+
+            instance.__reduce_ex__ = to_rpc.__get__(  # pylint: disable=E1120
+                instance,
+            )
         instance._init_settings = {
             "args": args,
             "kwargs": kwargs,
             "class_name": cls.__name__,
         }
-        instance._oid = generate_oid()
+        instance._oid = oid
         return instance
+
+    @staticmethod
+    def convert(obj: Any) -> Any:
+        """Convert the object to RpcObject if its metaclass is RpcMeta."""
+        if isinstance(obj, (list, tuple, set)):
+            return type(obj)(RpcMeta.convert(item) for item in obj)
+        elif isinstance(obj, dict):
+            return {
+                RpcMeta.convert(key): RpcMeta.convert(value)
+                for key, value in obj.items()
+            }
+        elif issubclass(obj.__class__.__class__, RpcMeta):
+            return obj.to_dist(**RpcMeta.server_config)
+        else:
+            return obj
 
     @staticmethod
     def get_class(cls_name: str) -> Any:
