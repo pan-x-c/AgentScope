@@ -4,6 +4,7 @@ import random
 import time
 import re
 from typing import Optional, Union, Sequence
+import concurrent.futures
 
 from loguru import logger
 
@@ -137,20 +138,23 @@ class Moderator(AgentBase):
             ]
 
     def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
-        results = []
         msg = Msg(
             name="moderator",
             role="user",
             content=f"Now give a number between 0 and {self.max_value}.",
         )
-        for p in self.participants:
-            results.append(p(msg))
-        summ = 0
-        for r in results:
-            try:
-                summ += int(r.content)
-            except Exception as e:
-                print(e)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = {
+                executor.submit(lambda p: p(msg), p) for p in self.participants
+            }
+            futures_2 = {
+                executor.submit(lambda r: int(r.content), future.result())
+                for future in concurrent.futures.as_completed(futures)
+            }
+            summ = sum(
+                future.result()
+                for future in concurrent.futures.as_completed(futures_2)
+            )
         return Msg(
             name=self.name,
             role="assistant",

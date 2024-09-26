@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=W0212
+# pylint: disable=W0212,C0302
 """
 Unit tests for rpc agent classes
 """
@@ -150,6 +150,39 @@ class DemoGatherAgent(AgentBase):
         )
 
 
+class DemoGatherAgentVariant(AgentBase):
+    """A demo agent to gather value"""
+
+    def __init__(
+        self,
+        name: str,
+        agent_values: list[int],
+        to_dist: dict = None,
+    ) -> None:
+        super().__init__(name, to_dist=to_dist)
+        self.agents = []
+        for value in agent_values:
+            self.agents.append(DemoGeneratorAgent(name + f"_{value}", value))
+
+    def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
+        result = []
+        stime = time.time()
+        for agent in self.agents:
+            result.append(agent())
+        value = 0
+        for r in result:
+            value += r.content["value"]
+        etime = time.time()
+        return Msg(
+            name=self.name,
+            role="assistant",
+            content={
+                "value": value,
+                "time": etime - stime,
+            },
+        )
+
+
 class DemoErrorAgent(AgentBase):
     """A demo Rpc agent that raise Error"""
 
@@ -229,6 +262,82 @@ class AgentWithCustomFunc(AgentBase):
         """A custom function that executes in sync"""
         time.sleep(5)
         return 1
+
+
+class RecusiveAgent(AgentBase):
+    """A demo agent to test recursive call"""
+
+    def __init__(
+        self,
+        name: str,
+        value: int,
+        dist_config: dict,
+        **kwargs: dict,
+    ) -> None:
+        super().__init__(name, **kwargs)
+        self.value = value
+        if value != 0:
+            self.child_agent = RecusiveAgent(
+                f"{name}_{value}",
+                value - 1,
+                dist_config=dist_config,
+                to_dist=dist_config,
+            )
+        else:
+            self.child_agent = None
+
+    def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
+        child_value = (
+            self.child_agent.reply().content["value"]
+            if self.child_agent
+            else 0
+        )
+        value_sum = self.value + child_value
+        return Msg(
+            name=self.name,
+            role="assistant",
+            content={
+                "value": value_sum,
+            },
+        )
+
+
+class FibonacciAgent(AgentBase):
+    """A demo agent to test recursive call"""
+
+    def __init__(
+        self,
+        name_prefix: str,
+        idx: int,
+        dist_config: dict,
+        **kwargs: dict,
+    ) -> None:
+        super().__init__(name=f"{name_prefix}_{idx}", **kwargs)
+        if idx > 1:
+            self.child_agent_a = FibonacciAgent(
+                name_prefix,
+                idx - 1,
+                dist_config=dist_config,
+                to_dist=dist_config,
+            )
+            self.child_agent_b = self.child_agent_a.child_agent_a
+        else:
+            self.child_agent_a, self.child_agent_b = None, None
+
+    def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
+        if self.child_agent_a and self.child_agent_b:
+            reply_a = self.child_agent_a.reply()
+            reply_b = self.child_agent_b.reply()
+            fib_value = reply_a.content["value"] + reply_b.content["value"]
+        else:
+            fib_value = 1
+        return Msg(
+            name=self.name,
+            role="assistant",
+            content={
+                "value": fib_value,
+            },
+        )
 
 
 class BasicRpcAgentTest(unittest.TestCase):
@@ -626,6 +735,54 @@ class BasicRpcAgentTest(unittest.TestCase):
         self.assertEqual(r2.content["value"], 22)
         self.assertTrue(0.5 < r1.content["time"] < 2)
         self.assertTrue(0.5 < r2.content["time"] < 2)
+
+        local_agents = [
+            DemoGeneratorAgent(name=f"b_{i}", value=i) for i in range(4)
+        ]
+        gather3 = DemoGatherAgent(  # pylint: disable=E1123
+            name="g3",
+            agents=local_agents,
+            to_dist={
+                "host": host,
+                "port": launcher1.port,
+            },
+        )
+        r3 = gather3()
+        self.assertEqual(r3.content["value"], 6)
+        self.assertTrue(0.5 < r3.content["time"] < 2)
+
+        gather4 = DemoGatherAgentVariant(  # pylint: disable=E1123
+            name="g4",
+            agent_values=list(range(4, 8)),
+            to_dist={
+                "host": host,
+                "port": launcher2.port,
+            },
+        )
+        r4 = gather4()
+        self.assertEqual(r4.content["value"], 22)
+        self.assertTrue(0.5 < r4.content["time"] < 2)
+
+        new_local_agents = [
+            DemoGeneratorAgent(name=f"b_{i}", value=i) for i in range(4)
+        ]
+        gather5 = DemoGatherAgent(  # pylint: disable=E1123
+            name="g5",
+            agents=new_local_agents,
+        )
+        gather5 = gather5.to_dist(host=host, port=launcher1.port)
+        r5 = gather5()
+        self.assertEqual(r5.content["value"], 6)
+        self.assertTrue(0.5 < r5.content["time"] < 2)
+
+        gather6 = DemoGatherAgentVariant(  # pylint: disable=E1123
+            name="g6",
+            agent_values=list(range(4, 8)),
+        )
+        gather6 = gather6.to_dist(host=host, port=launcher2.port)
+        r6 = gather6()
+        self.assertEqual(r6.content["value"], 22)
+        self.assertTrue(0.5 < r6.content["time"] < 2)
         launcher1.shutdown()
         launcher2.shutdown()
 
@@ -858,3 +1015,37 @@ class BasicRpcAgentTest(unittest.TestCase):
         self.assertEqual(r4, 2)
         r5 = agent.long_running_func()
         self.assertEqual(r5.result(), 1)
+
+    def test_recusive_call(self) -> None:
+        """Test recusive call"""
+        launcher = RpcAgentServerLauncher(
+            host="localhost",
+            port=12010,
+            local_mode=False,
+            custom_agent_classes=[RecusiveAgent],
+            capacity=2,
+        )
+        launcher.launch()
+        dist_config = {
+            "host": "localhost",
+            "port": launcher.port,
+        }
+
+        agent = RecusiveAgent(
+            name="recusive_agent",
+            value=4,
+            dist_config=dist_config,
+            to_dist=dist_config,
+        )
+        result = agent.reply()
+        self.assertEqual(result.content["value"], 10)
+
+        fib_agent = FibonacciAgent(
+            name_prefix="fib",
+            idx=6,
+            dist_config=dist_config,
+            to_dist=dist_config,
+        )
+        fib_result = fib_agent.reply()
+        self.assertEqual(fib_result.content["value"], 8)
+        launcher.shutdown()
