@@ -57,6 +57,7 @@ def _register_server_to_studio(
         logger.error(f"Failed to register server: {resp.text}")
         raise StudioRegisterError(f"Failed to register server: {resp.text}")
     from agentscope.manager import ASManager
+
     run_id = ASManager.get_instance().run_id
     _studio_client.initialize(run_id, studio_url)
 
@@ -149,7 +150,7 @@ def _setup_agent_server(
     )
 
 
-async def _setup_agent_server_async(  # pylint: disable=R0912
+async def _setup_agent_server_async(  # pylint: disable=R0912,R0915
     host: str,
     port: int,
     server_id: str,
@@ -258,13 +259,29 @@ async def _setup_agent_server_async(  # pylint: disable=R0912
 
     # start cpp server
     if os.environ.get("AGENTSCOPE_USE_CPP_SERVER", "").lower() == "yes":
-        from agentscope.cpp_server.cpp_server import setup_cpp_server, shutdown_cpp_server
-        num_workers = int(os.environ.get('AGENTSCOPE_NUM_WORKERS', f'{multiprocessing.cpu_count()}'))
+        from agentscope.cpp_server.cpp_server import (  # pylint: disable=E0611
+            setup_cpp_server,
+            shutdown_cpp_server,
+        )
+
+        num_workers = int(
+            os.environ.get(
+                "AGENTSCOPE_NUM_WORKERS",
+                f"{multiprocessing.cpu_count()}",
+            ),
+        )
         setup_cpp_server(
-            host, str(port), server_id, str(studio_url),
-            pool_type, redis_url, max_pool_size,
-            max_expire_time, max_timeout_seconds,
-            True, num_workers
+            host,
+            str(port),
+            server_id,
+            str(studio_url),
+            pool_type,
+            redis_url,
+            max_pool_size,
+            max_expire_time,
+            max_timeout_seconds,
+            True,
+            num_workers,
         )
         logger.info(
             f"CPP agent server [{server_id}] at {host}:{port} "

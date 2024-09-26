@@ -167,7 +167,9 @@ def run_main_process(
                         * participant_per_moderator
                     ],
                     host=hosts[i // moderator_per_host],
-                    port=base_port + server_per_host + i % moderator_per_host if not cpp_server else base_port,
+                    port=base_port + server_per_host + i % moderator_per_host
+                    if not cpp_server
+                    else base_port,
                     agent_type=agent_type,
                     max_value=max_value,
                     sleep_time=sleep_time,

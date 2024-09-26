@@ -27,7 +27,6 @@ except ImportError as import_error:
         "distribute",
     )
 
-from agentscope.rpc.rpc_object import RpcObject
 from agentscope.rpc.rpc_meta import RpcMeta
 import agentscope.rpc.rpc_agent_pb2 as agent_pb2
 from agentscope.rpc import AsyncResult
@@ -151,7 +150,9 @@ class AgentServerServicer(RpcAgentServicer):
         agent_id = request.agent_id
         with self.agent_id_lock:
             if agent_id in self.agent_pool:
-                logger.warning(f"Agent with agent_id [{agent_id}] already exists")
+                logger.warning(
+                    f"Agent with agent_id [{agent_id}] already exists",
+                )
                 return agent_pb2.GeneralResponse(ok=True)
         agent_configs = pickle.loads(request.agent_init_args)
         cls_name = agent_configs["class_name"]

@@ -1,14 +1,14 @@
-#include <csignal>
-#include <iostream>
-#include <string>
-#include <utility>
-
 #include <grpc/grpc.h>
 #include <grpcpp/security/server_credentials.h>
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
 #include <pybind11/pybind11.h>
+
+#include <csignal>
+#include <iostream>
+#include <string>
+#include <utility>
 
 #include "rpc_agent.grpc.pb.h"
 #include "worker.h"
@@ -31,10 +31,10 @@ Worker *worker = nullptr;
 #define LOG(...) RAW_LOGGER(worker, __VA_ARGS__)
 
 class RpcAgentServiceImpl final : public RpcAgent::Service {
-private:
+ private:
   Worker *_worker;
 
-public:
+ public:
   RpcAgentServiceImpl(Worker *worker) : _worker(worker) {}
 
   ~RpcAgentServiceImpl() {}
@@ -138,7 +138,8 @@ public:
     auto agent_id = request->agent_id();
     auto func_name = request->target_func();
     auto raw_value = request->value();
-    pair<bool, string> result = _worker->call_agent_func(agent_id, func_name, raw_value);
+    pair<bool, string> result =
+        _worker->call_agent_func(agent_id, func_name, raw_value);
     if (result.first) {
       response->set_ok(true);
       response->set_value(result.second);
@@ -154,13 +155,13 @@ public:
                             CallFuncResponse *response) override {
     auto task_id = request->task_id();
     auto [is_ok, result] = _worker->call_update_placeholder(task_id);
-    if (!is_ok && result == "Timeout")
-    {
+    if (!is_ok && result == "Timeout") {
       return Status(grpc::StatusCode::DEADLINE_EXCEEDED, result);
     }
     response->set_ok(is_ok);
     response->set_value(result);
-    LOG(FORMAT(task_id), FORMAT(is_ok), FORMAT(result.size()), BIN_FORMAT(result));
+    LOG(FORMAT(task_id), FORMAT(is_ok), FORMAT(result.size()),
+        BIN_FORMAT(result));
     return Status::OK;
   }
 
@@ -228,28 +229,25 @@ void signal_handler(int signum) {
 void SetupCppServer(const string &host, const string &port,
                     const string &server_id, const string &studio_url,
                     const string &pool_type, const string &redis_url,
-                    const int max_pool_size,
-                    const int max_expire_time, const int max_timeout_seconds,
-                    const bool local_mode,  const int num_workers) {
+                    const int max_pool_size, const int max_expire_time,
+                    const int max_timeout_seconds, const bool local_mode,
+                    const int num_workers) {
   struct sigaction act;
   act.sa_handler = signal_handler;
   sigemptyset(&act.sa_mask);
   act.sa_flags = 0;
   sigaction(SIGINT, &act, NULL);
   std::string server_address;
-  if (local_mode)
-  {
+  if (local_mode) {
     server_address = "localhost:" + port;
-  }
-  else {
+  } else {
     server_address = "0.0.0.0:" + port;
   }
-  worker = new Worker(host, port, server_id, studio_url,
-                      pool_type, redis_url, max_pool_size,
-                      max_expire_time, max_timeout_seconds, num_workers);
+  worker = new Worker(host, port, server_id, studio_url, pool_type, redis_url,
+                      max_pool_size, max_expire_time, max_timeout_seconds,
+                      num_workers);
   RunServer(server_address);
 }
-
 
 void ShutdownCppServer() {
   server->Shutdown();
@@ -259,9 +257,10 @@ void ShutdownCppServer() {
 PYBIND11_MODULE(cpp_server, m) {
   m.doc() = "cpp_server module";
   m.def("setup_cpp_server", &SetupCppServer, "Run the gRPC server",
-        py::arg("host"), py::arg("port"), py::arg("server_id"), py::arg("studio_url"),
-        py::arg("pool_type"), py::arg("redis_url"),
-        py::arg("max_pool_size"), py::arg("max_expire_time"), py::arg("max_timeout_seconds"),
-        py::arg("local_mode"), py::arg("num_workers"));
+        py::arg("host"), py::arg("port"), py::arg("server_id"),
+        py::arg("studio_url"), py::arg("pool_type"), py::arg("redis_url"),
+        py::arg("max_pool_size"), py::arg("max_expire_time"),
+        py::arg("max_timeout_seconds"), py::arg("local_mode"),
+        py::arg("num_workers"));
   m.def("shutdown_cpp_server", &ShutdownCppServer, "Shutdown the gRPC server");
 }

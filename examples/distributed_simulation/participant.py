@@ -144,9 +144,17 @@ class Moderator(AgentBase):
             content=f"Now give a number between 0 and {self.max_value}.",
         )
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = {executor.submit(lambda p: p(msg), p) for p in self.participants}
-            futures_2 = {executor.submit(lambda r: int(r.content), future.result()) for future in concurrent.futures.as_completed(futures)}
-            summ = sum(future.result() for future in concurrent.futures.as_completed(futures_2))
+            futures = {
+                executor.submit(lambda p: p(msg), p) for p in self.participants
+            }
+            futures_2 = {
+                executor.submit(lambda r: int(r.content), future.result())
+                for future in concurrent.futures.as_completed(futures)
+            }
+            summ = sum(
+                future.result()
+                for future in concurrent.futures.as_completed(futures_2)
+            )
         return Msg(
             name=self.name,
             role="assistant",

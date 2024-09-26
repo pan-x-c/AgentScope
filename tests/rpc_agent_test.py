@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=W0212
+# pylint: disable=W0212,C0302
 """
 Unit tests for rpc agent classes
 """
@@ -162,7 +162,7 @@ class DemoGatherAgentVariant(AgentBase):
         super().__init__(name, to_dist=to_dist)
         self.agents = []
         for value in agent_values:
-            self.agents.append(DemoGeneratorAgent(name + f'_{value}', value))
+            self.agents.append(DemoGeneratorAgent(name + f"_{value}", value))
 
     def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
         result = []
@@ -266,16 +266,32 @@ class AgentWithCustomFunc(AgentBase):
 
 class RecusiveAgent(AgentBase):
     """A demo agent to test recursive call"""
-    def __init__(self, name: str, value: int, dist_config: dict) -> None:
-        super().__init__(name)
+
+    def __init__(
+        self,
+        name: str,
+        value: int,
+        dist_config: dict,
+        **kwargs: dict,
+    ) -> None:
+        super().__init__(name, **kwargs)
         self.value = value
         if value != 0:
-            self.child_agent = RecusiveAgent(f"{name}_{value}", value - 1, dist_config=dist_config, to_dist=dist_config)
+            self.child_agent = RecusiveAgent(
+                f"{name}_{value}",
+                value - 1,
+                dist_config=dist_config,
+                to_dist=dist_config,
+            )
         else:
             self.child_agent = None
 
     def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
-        child_value = self.child_agent.reply().content["value"] if self.child_agent else 0
+        child_value = (
+            self.child_agent.reply().content["value"]
+            if self.child_agent
+            else 0
+        )
         value_sum = self.value + child_value
         return Msg(
             name=self.name,
@@ -288,10 +304,22 @@ class RecusiveAgent(AgentBase):
 
 class FibonacciAgent(AgentBase):
     """A demo agent to test recursive call"""
-    def __init__(self, name_prefix: str, idx: int, dist_config: dict) -> None:
-        super().__init__(name=f'{name_prefix}_{idx}')
+
+    def __init__(
+        self,
+        name_prefix: str,
+        idx: int,
+        dist_config: dict,
+        **kwargs: dict,
+    ) -> None:
+        super().__init__(name=f"{name_prefix}_{idx}", **kwargs)
         if idx > 1:
-            self.child_agent_a = FibonacciAgent(name_prefix, idx - 1, dist_config=dist_config, to_dist=dist_config)
+            self.child_agent_a = FibonacciAgent(
+                name_prefix,
+                idx - 1,
+                dist_config=dist_config,
+                to_dist=dist_config,
+            )
             self.child_agent_b = self.child_agent_a.child_agent_a
         else:
             self.child_agent_a, self.child_agent_b = None, None
@@ -709,8 +737,7 @@ class BasicRpcAgentTest(unittest.TestCase):
         self.assertTrue(0.5 < r2.content["time"] < 2)
 
         local_agents = [
-            DemoGeneratorAgent(name=f"b_{i}", value=i)
-            for i in range(4)
+            DemoGeneratorAgent(name=f"b_{i}", value=i) for i in range(4)
         ]
         gather3 = DemoGatherAgent(  # pylint: disable=E1123
             name="g3",
@@ -726,7 +753,7 @@ class BasicRpcAgentTest(unittest.TestCase):
 
         gather4 = DemoGatherAgentVariant(  # pylint: disable=E1123
             name="g4",
-            agent_values=range(4, 8),
+            agent_values=list(range(4, 8)),
             to_dist={
                 "host": host,
                 "port": launcher2.port,
@@ -737,8 +764,7 @@ class BasicRpcAgentTest(unittest.TestCase):
         self.assertTrue(0.5 < r4.content["time"] < 2)
 
         new_local_agents = [
-            DemoGeneratorAgent(name=f"b_{i}", value=i)
-            for i in range(4)
+            DemoGeneratorAgent(name=f"b_{i}", value=i) for i in range(4)
         ]
         gather5 = DemoGatherAgent(  # pylint: disable=E1123
             name="g5",
@@ -751,7 +777,7 @@ class BasicRpcAgentTest(unittest.TestCase):
 
         gather6 = DemoGatherAgentVariant(  # pylint: disable=E1123
             name="g6",
-            agent_values=range(4, 8),
+            agent_values=list(range(4, 8)),
         )
         gather6 = gather6.to_dist(host=host, port=launcher2.port)
         r6 = gather6()

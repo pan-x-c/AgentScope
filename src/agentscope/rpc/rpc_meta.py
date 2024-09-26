@@ -57,7 +57,7 @@ class RpcMeta(ABCMeta):
     """The metaclass for all classes that can run on rpc server."""
 
     _REGISTRY = {}
-    server_config = None
+    server_config = {}
 
     def __init__(cls, name: Any, bases: Any, attrs: Any) -> None:
         if name in RpcMeta._REGISTRY:
@@ -88,8 +88,13 @@ class RpcMeta(ABCMeta):
         return super().__new__(mcs, name, bases, attrs)  # type: ignore[misc]
 
     def __call__(cls, *args: tuple, **kwargs: dict) -> Any:
-        oid = kwargs.pop("_oid", generate_oid())
-        to_dist = copy.deepcopy(kwargs.pop("to_dist", False))
+        to_dist = copy.deepcopy(
+            kwargs.pop(
+                "to_dist",
+                "_oid" not in kwargs and bool(RpcMeta.server_config),
+            ),
+        )
+        oid = str(kwargs.pop("_oid", generate_oid()))
         if to_dist is True:
             to_dist = {}
         if to_dist is not False and to_dist is not None:
@@ -99,9 +104,12 @@ class RpcMeta(ABCMeta):
                     oid=oid,
                     host=to_dist.pop(  # type: ignore[arg-type]
                         "host",
-                        "localhost",
+                        RpcMeta.server_config.get("host", "localhost"),
                     ),
-                    port=to_dist.pop("port", None),  # type: ignore[arg-type]
+                    port=to_dist.pop(  # type: ignore[arg-type]
+                        "port",
+                        RpcMeta.server_config.get("port", None),
+                    ),
                     max_pool_size=kwargs.pop(  # type: ignore[arg-type]
                         "max_pool_size",
                         8192,
@@ -126,7 +134,7 @@ class RpcMeta(ABCMeta):
                     },
                 )
         instance = super().__call__(*args, **kwargs)
-        if RpcMeta.server_config is not None:
+        if RpcMeta.server_config:
             items = instance.__dict__.copy()
             for key, value in items.items():
                 setattr(instance, key, RpcMeta.convert(value))
@@ -252,8 +260,8 @@ class RpcMeta(ABCMeta):
             functionality
         """
 
-        if isinstance(self, RpcObject):
-            return self
+        if port is None:
+            port = RpcMeta.server_config.get("port", None)
         return RpcObject(
             cls=self.__class__,
             host=host,
