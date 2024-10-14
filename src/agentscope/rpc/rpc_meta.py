@@ -4,6 +4,7 @@ from abc import ABCMeta
 from typing import Any, Callable
 import uuid
 import copy
+import os
 from loguru import logger
 
 from .rpc_object import RpcObject, _ClassInfo
@@ -58,6 +59,7 @@ class RpcMeta(ABCMeta):
 
     _REGISTRY = {}
     _SERVER_CONFIG = {}
+    _AUTO_DIST = False
 
     def __init__(cls, name: Any, bases: Any, attrs: Any) -> None:
         if name in RpcMeta._REGISTRY:
@@ -127,9 +129,10 @@ class RpcMeta(ABCMeta):
                 )
         instance = super().__call__(*args, **kwargs)
         if RpcMeta._SERVER_CONFIG:
-            items = instance.__dict__.copy()
-            for key, value in items.items():
-                setattr(instance, key, RpcMeta.convert(value))
+            if RpcMeta._AUTO_DIST:
+                items = instance.__dict__.copy()
+                for key, value in items.items():
+                    setattr(instance, key, RpcMeta.convert(value))
             # Reset the __reduce_ex__ method of the instance
             # With this method, all objects stored in agent_pool
             # will be serialized into their Rpc version

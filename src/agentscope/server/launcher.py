@@ -81,6 +81,7 @@ def _setup_agent_server(
     studio_url: str = None,
     custom_agent_classes: list = None,
     agent_dir: str = None,
+    auto_dist: bool = False,
 ) -> None:
     """Setup agent server.
 
@@ -127,6 +128,8 @@ def _setup_agent_server(
         agent_dir (`str`, defaults to `None`):
             The abs path to the directory containing customized agent python
             files.
+        auto_dist (`bool`, defaults to `False`):
+            Whether to automatically distribute agent to the remote server.
     """
     asyncio.run(
         _setup_agent_server_async(
@@ -147,6 +150,7 @@ def _setup_agent_server(
             studio_url=studio_url,
             custom_classes=custom_agent_classes,
             agent_dir=agent_dir,
+            auto_dist=auto_dist,
         ),
     )
 
@@ -169,6 +173,7 @@ async def _setup_agent_server_async(  # pylint: disable=R0912,R0915
     studio_url: str = None,
     custom_classes: list = None,
     agent_dir: str = None,
+    auto_dist: bool = False,
 ) -> None:
     """Setup agent server in an async way.
 
@@ -215,6 +220,8 @@ async def _setup_agent_server_async(  # pylint: disable=R0912,R0915
         agent_dir (`str`, defaults to `None`):
             The abs path to the directory containing customized agent python
             files.
+        auto_dist (`bool`, defaults to `False`):
+            Whether to automatically distribute agent to the remote server.
     """
     if init_settings is not None:
         from agentscope.manager import ASManager
@@ -232,6 +239,7 @@ async def _setup_agent_server_async(  # pylint: disable=R0912,R0915
         "host": host,
         "port": port,
     }
+    RpcMeta._AUTO_DIST = auto_dist
 
     async def shutdown_signal_handler() -> None:
         logger.info(
@@ -428,6 +436,7 @@ class RpcAgentServerLauncher:
         custom_agent_classes: list = None,
         server_id: str = None,
         studio_url: str = None,
+        auto_dist: bool = False,
     ) -> None:
         """Init a launcher of agent server.
 
@@ -466,6 +475,8 @@ class RpcAgentServerLauncher:
                 will be generated.
             studio_url (`Optional[str]`, defaults to `None`):
                 The url of the agentscope studio.
+            auto_dist (`bool`, defaults to `False`):
+                Whether to automatically distribute agent to the remote server.
         """
         self.host = host
         self.port = _check_port(port)
@@ -489,6 +500,7 @@ class RpcAgentServerLauncher:
             else server_id
         )
         self.studio_url = studio_url
+        self.auto_dist = auto_dist
 
     @classmethod
     def generate_server_id(cls, host: str, port: int) -> str:
@@ -516,6 +528,7 @@ class RpcAgentServerLauncher:
                 custom_classes=self.custom_agent_classes,
                 agent_dir=self.agent_dir,
                 studio_url=self.studio_url,
+                auto_dist=self.auto_dist,
             ),
         )
 
@@ -555,6 +568,7 @@ class RpcAgentServerLauncher:
                 "studio_url": self.studio_url,
                 "custom_agent_classes": self.custom_agent_classes,
                 "agent_dir": self.agent_dir,
+                "auto_dist": self.auto_dist,
             },
         )
         server_process.start()
@@ -730,6 +744,12 @@ def as_server() -> None:
         help="the url of agentscope studio",
     )
     start_parser.add_argument(
+        "--auto-dist",
+        type=bool,
+        default=False,
+        help="Whether to automatically distribute agent to the remote server",
+    )
+    start_parser.add_argument(
         "--agent-dir",
         type=str,
         default=None,
@@ -792,6 +812,7 @@ def as_server() -> None:
             max_timeout_seconds=args.max_timeout_seconds,
             local_mode=args.local_mode,
             studio_url=args.studio_url,
+            auto_dist=args.auto_dist,
         )
         launcher.launch(in_subprocess=False)
         launcher.wait_until_terminate()

@@ -766,8 +766,11 @@ void Worker::get_agent_list_worker(const int call_id) {
     shared_lock<shared_mutex> lock(_agent_pool_delete_mutex);
     shared_lock<shared_mutex> insert_lock(_agent_pool_insert_mutex);
     py::gil_scoped_acquire acquire;
+    py::object agent_base_class = py::module::import("agentscope.agents").attr("AgentBase");
     for (auto &iter : _agent_pool) {
-      result.add_agent_str_list(iter.second.attr("__str__")().cast<string>());
+      if (py::isinstance(iter.second, agent_base_class)) {
+        result.add_agent_str_list(iter.second.attr("__str__")().cast<string>());
+      }
     }
   }
   set_result(call_id, result.SerializeAsString());
@@ -887,7 +890,7 @@ void Worker::agent_func_worker(const int call_id, const int obj_id) {
   AgentFuncReturn return_result;
   py::gil_scoped_acquire acquire;
   try {
-    if (agent.attr("__class__").attr("_async_func").contains(func_name)) {
+    if (agent.attr("__class__").attr("_info").attr("async_func").contains(func_name)) {
       int task_id = _result_pool.attr("prepare")().cast<int>();
       return_result.set_ok(true);
       return_result.set_value(_pickle_dumps(task_id).cast<string>());
@@ -914,7 +917,7 @@ void Worker::agent_func_worker(const int call_id, const int obj_id) {
         _result_pool.attr("set")(task_id, MAGIC_PREFIX + error_msg);
         PY_LOG("error", error_msg);
       }
-    } else if (agent.attr("__class__").attr("_sync_func").contains(func_name)) {
+    } else if (agent.attr("__class__").attr("_info").attr("sync_func").contains(func_name)) {
       py::object args = _pickle_loads(py::bytes(raw_value));
       py::object result = agent.attr(func_name.c_str())(
           *args.attr("get")("args", py::tuple()),

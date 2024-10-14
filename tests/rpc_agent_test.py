@@ -719,6 +719,7 @@ class BasicRpcAgentTest(unittest.TestCase):
             port=12010,
             local_mode=False,
             custom_agent_classes=[DemoGatherAgent, DemoGeneratorAgent],
+            auto_dist=True,
         )
         launcher2 = RpcAgentServerLauncher(
             # choose port automatically
@@ -726,6 +727,7 @@ class BasicRpcAgentTest(unittest.TestCase):
             port=12011,
             local_mode=False,
             custom_agent_classes=[DemoGatherAgent, DemoGeneratorAgent],
+            auto_dist=True,
         )
         launcher1.launch()
         launcher2.launch()
