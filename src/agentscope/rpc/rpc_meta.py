@@ -58,7 +58,7 @@ class RpcMeta(ABCMeta):
     """The metaclass for all classes that can run on rpc server."""
 
     _REGISTRY = {}
-    server_config = {}
+    _SERVER_CONFIG = {}
 
     def __init__(cls, name: Any, bases: Any, attrs: Any) -> None:
         if name in RpcMeta._REGISTRY:
@@ -92,7 +92,7 @@ class RpcMeta(ABCMeta):
         to_dist = copy.deepcopy(
             kwargs.pop(
                 "to_dist",
-                "_oid" not in kwargs and bool(RpcMeta.server_config),
+                "_oid" not in kwargs and bool(RpcMeta._SERVER_CONFIG),
             ),
         )
         oid = str(kwargs.pop("_oid", generate_oid()))
@@ -105,11 +105,11 @@ class RpcMeta(ABCMeta):
                     oid=oid,
                     host=to_dist.pop(  # type: ignore[arg-type]
                         "host",
-                        RpcMeta.server_config.get("host", "localhost"),
+                        RpcMeta._SERVER_CONFIG.get("host", "localhost"),
                     ),
                     port=to_dist.pop(  # type: ignore[arg-type]
                         "port",
-                        RpcMeta.server_config.get("port", None),
+                        RpcMeta._SERVER_CONFIG.get("port", None),
                     ),
                     max_pool_size=kwargs.pop(  # type: ignore[arg-type]
                         "max_pool_size",
@@ -139,7 +139,7 @@ class RpcMeta(ABCMeta):
                     },
                 )
         instance = super().__call__(*args, **kwargs)
-        if RpcMeta.server_config:
+        if RpcMeta._SERVER_CONFIG:
             items = instance.__dict__.copy()
             for key, value in items.items():
                 setattr(instance, key, RpcMeta.convert(value))
@@ -149,8 +149,8 @@ class RpcMeta(ABCMeta):
             rpc_init_cfg = (
                 cls,
                 oid,
-                RpcMeta.server_config["host"],
-                RpcMeta.server_config["port"],
+                RpcMeta._SERVER_CONFIG["host"],
+                RpcMeta._SERVER_CONFIG["port"],
                 True,
             )
             instance._dist_config = {  # pylint: disable=W0212
@@ -187,7 +187,7 @@ class RpcMeta(ABCMeta):
                 },
             )
         elif issubclass(obj.__class__.__class__, RpcMeta):
-            return obj.to_dist(**RpcMeta.server_config)
+            return obj.to_dist(**RpcMeta._SERVER_CONFIG)
         else:
             return obj
 
@@ -271,7 +271,7 @@ class RpcMeta(ABCMeta):
         """
 
         if port is None:
-            port = RpcMeta.server_config.get("port", None)
+            port = RpcMeta._SERVER_CONFIG.get("port", None)
         return RpcObject(
             cls=self.__class__,
             host=host,
