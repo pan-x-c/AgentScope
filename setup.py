@@ -139,67 +139,66 @@ class CMakeBuild(build_ext):
         """Check CMake and build CPP server."""
         if platform.system() == "Windows":
             return
+        from setuptools import Distribution
+
+        distribution = Distribution()
+        distribution.parse_config_files()
         try:
-            from setuptools import Distribution
+            _ = subprocess.check_output(["cmake", "--version"])
+        except OSError as exc:
+            raise RuntimeError(
+                "CMake must be installed to build the following extensions: "
+                + ", ".join(e.name for e in self.extensions),
+            ) from exc
 
-            distribution = Distribution()
-            distribution.parse_config_files()
-            try:
-                _ = subprocess.check_output(["cmake", "--version"])
-            except OSError as exc:
-                raise RuntimeError(
-                    "CMake must be installed to build "
-                    "the following extensions: "
-                    + ", ".join(e.name for e in self.extensions),
-                ) from exc
-
-            for ext in self.extensions:
-                self.build_extension(ext)
-        except Exception as e:
-            print(f"CPP server build failed with {e}.")
+        for ext in self.extensions:
+            self.build_extension(ext)
         super().run()
 
     def build_extension(self, ext: Extension) -> None:
         """Build CPP server."""
-        extdir = os.path.abspath(
-            os.path.dirname(self.get_ext_fullpath(ext.name)),
-        )
-        cmake_args = [
-            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
-            "-DPython3_EXECUTABLE=" + sys.executable,
-            "-Dpybind11_DIR="
-            + os.path.join(
-                site.getsitepackages()[0],
-                "pybind11",
-                "share",
-                "cmake",
-                "pybind11",
-            ),
-        ]
+        try:
+            extdir = os.path.abspath(
+                os.path.dirname(self.get_ext_fullpath(ext.name)),
+            )
+            cmake_args = [
+                "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
+                "-DPython3_EXECUTABLE=" + sys.executable,
+                "-Dpybind11_DIR="
+                + os.path.join(
+                    site.getsitepackages()[0],
+                    "pybind11",
+                    "share",
+                    "cmake",
+                    "pybind11",
+                ),
+            ]
 
-        cfg = "Release"
-        build_args = ["--config", cfg]
-        if self.debug:
-            cmake_args += ["-DCMAKE_CXX_FLAGS=-g -DDEBUG"]
-        else:
-            cmake_args += ["-DCMAKE_CXX_FLAGS=-O3"]
+            cfg = "Release"
+            build_args = ["--config", cfg]
+            if self.debug:
+                cmake_args += ["-DCMAKE_CXX_FLAGS=-g -DDEBUG"]
+            else:
+                cmake_args += ["-DCMAKE_CXX_FLAGS=-O3"]
 
-        cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
+            cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
 
-        if not os.path.exists(self.build_temp):
-            os.makedirs(self.build_temp)
-        subprocess.check_call(
-            ["cmake", "-B", "build", ext.sourcedir] + cmake_args,
-            cwd=self.build_temp,
-        )
-        subprocess.check_call(
-            ["cmake", "--build", "build"] + build_args,
-            cwd=self.build_temp,
-        )
-        subprocess.check_call(
-            ["cmake", "--install", "build"],
-            cwd=self.build_temp,
-        )
+            if not os.path.exists(self.build_temp):
+                os.makedirs(self.build_temp)
+            subprocess.check_call(
+                ["cmake", "-B", "build", ext.sourcedir] + cmake_args,
+                cwd=self.build_temp,
+            )
+            subprocess.check_call(
+                ["cmake", "--build", "build"] + build_args,
+                cwd=self.build_temp,
+            )
+            subprocess.check_call(
+                ["cmake", "--install", "build"],
+                cwd=self.build_temp,
+            )
+        except Exception as e:
+            print(f"CPP server build failed with {e}.")
 
 
 setuptools.setup(
