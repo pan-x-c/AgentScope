@@ -148,14 +148,15 @@ class CMakeBuild(build_ext):
                 _ = subprocess.check_output(["cmake", "--version"])
             except OSError as exc:
                 raise RuntimeError(
-                    "CMake must be installed to build the following extensions: "
+                    "CMake must be installed to build "
+                    "the following extensions: "
                     + ", ".join(e.name for e in self.extensions),
                 ) from exc
 
             for ext in self.extensions:
                 self.build_extension(ext)
         except Exception as e:
-            print(f'CPP server build failed.')
+            print(f"CPP server build failed with {e}.")
         super().run()
 
     def build_extension(self, ext: Extension) -> None:

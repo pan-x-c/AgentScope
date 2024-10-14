@@ -345,17 +345,21 @@ class FibonacciAgent(AgentBase):
 
 
 class MyContent(dict):
-    def __init__(self, name):
+    """A subclass of dict"""
+
+    def __init__(self, name: str):
         super().__init__(name=name)
         self.name = name
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "hello"
 
 
 class DictAgent(AgentBase):
-    def __init__(self, name, **kwargs):
-        super().__init__(name=name)
+    """A agent using a subclass of dict"""
+
+    def __init__(self, name: str, **kwargs: dict):
+        super().__init__(name=name, **kwargs)
         self.content = MyContent(name)
 
     def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
@@ -1080,6 +1084,7 @@ class BasicRpcAgentTest(unittest.TestCase):
         launcher.shutdown()
 
     def test_dictagent(self) -> None:
+        """Test the agent using the subclass of dict"""
         launcher = RpcAgentServerLauncher(
             host="localhost",
             port=12010,

@@ -180,10 +180,12 @@ class RpcMeta(ABCMeta):
         if isinstance(obj, (list, tuple, set)):
             return type(obj)(RpcMeta.convert(item) for item in obj)
         elif isinstance(obj, dict):
-            return type(obj)(**{
-                RpcMeta.convert(key): RpcMeta.convert(value)
-                for key, value in obj.items()
-            })
+            return type(obj)(
+                **{
+                    RpcMeta.convert(key): RpcMeta.convert(value)
+                    for key, value in obj.items()
+                },
+            )
         elif issubclass(obj.__class__.__class__, RpcMeta):
             return obj.to_dist(**RpcMeta.server_config)
         else:
