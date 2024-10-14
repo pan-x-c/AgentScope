@@ -62,6 +62,7 @@ class WebAgent(AgentBase):
     def reply(self, x: dict = None) -> dict:
         return Msg(
             name=self.name,
+            role="assistant",
             content=self.get_answer(x.content["url"], x.content["query"])
         )
 
@@ -213,14 +214,14 @@ The above code calls the `to_dist` function on an already initialized agent. `to
 
 This process has a potential issue: the original agent is initialized twice, once in the main process and once in the agent server process. These two initializations occur sequentially, lacking the ability to be parallelized. For agents with low initialization costs, directly calling the `to_dist` function will not significantly impact performance. However, for agents with high initialization costs, repeated initialization should be avoided. Therefore, AgentScope distributed mode provides another method for initializing in distributed mode, which entails passing the `to_dist` parameter directly within the initialization function of any agent. The following code modifies the `init_with_dist` function in `dist_main.py`.
 
-- For independent mode, simply pass `to_dist=True` in the initialization function.
+- For child mode, simply pass `to_dist=True` in the initialization function.
 
     ```python
     def init_with_dist():
         return [WebAgent(f"W{i}", to_dist=True) for i in range(len(URLS))]
     ```
 
-- For child mode, pass the parameters previously given to the `to_dist` function as a dictionary to the `to_dist` field.
+- For independent mode, pass the parameters previously given to the `to_dist` function as a dictionary to the `to_dist` field.
 
     ```python
     def init_with_dist():
@@ -242,6 +243,8 @@ The core logic of the AgentScope distributed model is:
 
 **By using the `to_dist` function or initialization parameters, objects that originally run in any Python process are transferred to an RPC server. In the original process, a `RpcObject` proxy is retained, and any function call or attribute access on this `RpcObject` will be forwarded to the object on the RPC server. When calling functions, you can decide whether to use synchronous or asynchronous invocation.**
 
+The following graph illustrate the workflow of `to_dist`, synchronous and asynchronous invocation.
+
 ```{mermaid}
 sequenceDiagram
     User -->> Process: initialize
@@ -260,7 +263,11 @@ sequenceDiagram
     Process -->> User: async result
 ```
 
-From the above description, it is evident that the AgentScope distributed mode is essentially a Client-Server architecture. The Client is primarily responsible for sending local objects to the Server for execution and forwarding local function calls and attribute accesses to the Server. The Server, on the other hand, receives objects sent by the Client and handles various invocation requests from the Client.
+As illustrated in the previous figure, the distributed mode of AgentScope essentially follows a Client-Server architecture. In this setup, the user-authored agent applications (Processes) act as the Client, while the agent server process (RPC Server) functions as the Server. In distributed mode, the Client side sends the local agents to the Server side for execution. The Client forwards local function calls and property accesses to the Server, which is responsible for receiving the agents and handling various invocation requests from the Client.
+
+```{note}
+Communication between the Client and Server in AgentScope's distributed mode is implemented using gRPC. There is a strict limitation on the size of messages send/recv; by default, a single message cannot exceed 32 MB. This value can be further increased by modifying the `_DEFAULT_RPC_OPTIONS` parameter in `src/agentscope/constants.py`.
+```
 
 Next, we'll introduce the implementation of the Client and Server respectively.
 
@@ -399,7 +406,7 @@ The implementation of `AgentServerLauncher` is located at `src/agentscope/server
 - The method to launch through command line is as follows. In addition to specifying `host` and `port`, you also need to specify `model_config_path` and `agent_dir`, which correspond to the model configuration file path and the directory where custom agent classes are located, respectively. When installing `agentscope`, the `as_server` command will be installed by default, so you can directly use this command in the command line.
 
     ```shell
-    as_server --host localhost --port 12345 --model-config-path model_config_path --agent-dir parent_dir_of_myagents.py
+    as_server start --host localhost --port 12345 --model-config-path model_config_path --agent-dir parent_dir_of_myagents.py
     ```
 
 ```{warning}
@@ -434,7 +441,7 @@ launcher = RpcAgentServerLauncher(
 ```
 
 ```shell
-as_server --host localhost --port 12345 --model-config-path model_config_path --agent-dir parent_dir_of_myagents --capacity 10
+as_server start --host localhost --port 12345 --model-config-path model_config_path --agent-dir parent_dir_of_myagents --capacity 10
 ```
 
 ##### `result_pool`
@@ -456,7 +463,7 @@ launcher = RpcAgentServerLauncher(
 ```
 
 ```shell
-as_server --host localhost --port 12345 --model-config-path model_config_path --agent-dir parent_dir_of_myagents --pool-type redis --redis-url redis://localhost:6379 --max-expire-time 7200
+as_server start --host localhost --port 12345 --model-config-path model_config_path --agent-dir parent_dir_of_myagents --pool-type redis --redis-url redis://localhost:6379 --max-expire-time 7200
 ```
 
 [[Back to the top]](#208-distribute-en)

@@ -39,7 +39,7 @@ if [ ! -d "log" ]; then
 fi
 
 # activate your environment
-source /root/miniconda3/bin/activate as
+source /mnt/conda/miniconda3/bin/activate as
 
 # start all agent servers
 for ((i=0; i<(agent_server_num + env_server_num); i++)); do
