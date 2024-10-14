@@ -34,6 +34,10 @@ upper_dir=$(dirname "$script_dir")
 cd $upper_dir
 touch .pid
 
+if [ ! -d "log" ]; then
+    mkdir "log"
+fi
+
 # activate your environment
 source /root/miniconda3/bin/activate as
 

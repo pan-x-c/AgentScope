@@ -340,6 +340,30 @@ class FibonacciAgent(AgentBase):
         )
 
 
+class MyContent(dict):
+    def __init__(self, name):
+        super().__init__(name=name)
+        self.name = name
+
+    def __str__(self):
+        return "hello"
+
+
+class DictAgent(AgentBase):
+    def __init__(self, name, **kwargs):
+        super().__init__(name=name)
+        self.content = MyContent(name)
+
+    def reply(self, x: Optional[Union[Msg, Sequence[Msg]]] = None) -> Msg:
+        return Msg(
+            name=self.name,
+            role="assistant",
+            content={
+                "value": "DictAgent",
+            },
+        )
+
+
 class BasicRpcAgentTest(unittest.TestCase):
     """Test cases for Rpc Agent"""
 
@@ -1048,4 +1072,23 @@ class BasicRpcAgentTest(unittest.TestCase):
         )
         fib_result = fib_agent.reply()
         self.assertEqual(fib_result.content["value"], 8)
+        launcher.shutdown()
+
+    def test_dictagent(self) -> None:
+        launcher = RpcAgentServerLauncher(
+            host="localhost",
+            port=12010,
+            local_mode=False,
+            custom_agent_classes=[DictAgent],
+            capacity=2,
+        )
+        launcher.launch()
+        dist_config = {
+            "host": "localhost",
+            "port": launcher.port,
+        }
+        agent = DictAgent(name="Alice", to_dist=dist_config)
+        s = str(agent.content)
+        logger.info(f"agent.content = {agent.content} {type(agent.content)}")
+        self.assertEqual(s, "hello")
         launcher.shutdown()

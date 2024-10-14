@@ -139,20 +139,23 @@ class CMakeBuild(build_ext):
         """Check CMake and build CPP server."""
         if platform.system() == "Windows":
             return
-        from setuptools import Distribution
-
-        distribution = Distribution()
-        distribution.parse_config_files()
         try:
-            _ = subprocess.check_output(["cmake", "--version"])
-        except OSError as exc:
-            raise RuntimeError(
-                "CMake must be installed to build the following extensions: "
-                + ", ".join(e.name for e in self.extensions),
-            ) from exc
+            from setuptools import Distribution
 
-        for ext in self.extensions:
-            self.build_extension(ext)
+            distribution = Distribution()
+            distribution.parse_config_files()
+            try:
+                _ = subprocess.check_output(["cmake", "--version"])
+            except OSError as exc:
+                raise RuntimeError(
+                    "CMake must be installed to build the following extensions: "
+                    + ", ".join(e.name for e in self.extensions),
+                ) from exc
+
+            for ext in self.extensions:
+                self.build_extension(ext)
+        except Exception as e:
+            print(f'CPP server build failed.')
         super().run()
 
     def build_extension(self, ext: Extension) -> None:
