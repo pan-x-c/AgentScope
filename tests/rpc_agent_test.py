@@ -28,6 +28,10 @@ from agentscope.exception import (
     QuotaExceededError,
     AgentCreationError,
 )
+from agentscope.rpc.retry_strategy import (
+    RetryFixedTimes,
+    RetryExpential,
+)
 
 
 class DemoRpcAgent(AgentBase):
@@ -833,6 +837,7 @@ class BasicRpcAgentTest(unittest.TestCase):
             judge_func=lambda x: "$PASS$" in x,
             to_dist={
                 "max_timeout_seconds": 1,
+                "retry_strategy": RetryFixedTimes(max_retries=2, delay=5),
             },
         )
 
@@ -858,3 +863,69 @@ class BasicRpcAgentTest(unittest.TestCase):
         self.assertEqual(r4, 2)
         r5 = agent.long_running_func()
         self.assertEqual(r5.result(), 1)
+
+    def test_retry_strategy(self) -> None:
+        """Test retry strategy"""
+        max_retries = 3
+        delay = 1
+        max_delay = 2
+        fix_retry = RetryFixedTimes(max_retries=max_retries, delay=delay)
+        exp_retry = RetryExpential(
+            max_retries=max_retries,
+            base_delay=delay,
+            max_delay=max_delay,
+        )
+        # Retry on exception
+        mock_func = MagicMock(side_effect=Exception("Test exception"))
+        st = time.time()
+        self.assertRaises(TimeoutError, fix_retry.retry, mock_func)
+        et = time.time()
+        self.assertTrue(et - st > max_retries * delay * 0.5)
+        self.assertTrue(et - st < max_retries * delay * 1.5 + 1)
+        st = time.time()
+        self.assertRaises(TimeoutError, exp_retry.retry, mock_func)
+        et = time.time()
+        self.assertTrue(
+            et - st
+            > min(delay * 0.5, max_delay)
+            + min(delay * 2 * 0.5, max_delay)
+            + min(delay * 4 * 0.5, max_delay),
+        )
+        self.assertTrue(
+            et - st
+            < min(delay * 1.5, max_delay)
+            + min(delay * 2 * 1.5, max_delay)
+            + min(delay * 4 * 1.5, max_delay)
+            + 1,
+        )
+        # Retry on success
+        mock_func = MagicMock(return_value="Success")
+        st = time.time()
+        result = fix_retry.retry(mock_func)
+        et = time.time()
+        self.assertTrue(et - st < 0.2)
+        self.assertEqual(result, "Success")
+        st = time.time()
+        result = exp_retry.retry(mock_func)
+        et = time.time()
+        self.assertTrue(et - st < 0.2)
+        self.assertEqual(result, "Success")
+        # Mix Exception and Success
+        mock_func = MagicMock(
+            side_effect=[Exception("Test exception"), "Success"],
+        )
+        st = time.time()
+        result = fix_retry.retry(mock_func)
+        et = time.time()
+        self.assertGreaterEqual(et - st, delay * 0.5)
+        self.assertLessEqual(et - st, delay * 1.5 + 0.2)
+        self.assertEqual(result, "Success")
+        mock_func = MagicMock(
+            side_effect=[Exception("Test exception"), "Success"],
+        )
+        st = time.time()
+        result = exp_retry.retry(mock_func)
+        et = time.time()
+        self.assertGreaterEqual(et - st, delay * 0.5)
+        self.assertLessEqual(et - st, delay * 1.5 + 0.2)
+        self.assertEqual(result, "Success")

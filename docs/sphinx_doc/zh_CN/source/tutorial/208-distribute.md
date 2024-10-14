@@ -1,6 +1,6 @@
 (208-distribute-zh)=
 
-# 并行/分布式
+# 分布式
 
 为了提供更好的性能以及支持更多的 Agent 同时运行，AgentScope 实现了基于 Actor 范式的 并行/分布式模式（后续简称为分布式模式）。该模式相比传统单进程模式具有以下特点：
 
@@ -63,6 +63,7 @@ class WebAgent(AgentBase):
     def reply(self, x: dict = None) -> dict:
         return Msg(
             name=self.name,
+            role="assistant",
             content=self.get_answer(x.content["url"], x.content["query"])
         )
 
@@ -215,14 +216,14 @@ def init_with_dist():
 
 这样的流程存在一个潜在问题，即原 Agent 被初始化了两次，一次是在主进程中，一次是在智能体服务器进程中，并且这两次初始化是依次执行的，无法通过并行加速。对于初始化成本比较低的 Agent，直接调用 `to_dist` 函数不会对性能产生明显影响，但是对于初始化成本较高的 Agent，则需要尽量避免重复初始化行为，为此 AgentScope 分布式模式提供了另一种分布式模式的初始化方法，即直接在任意 Agent 的初始化函数内部传入 `to_dist` 参数，例如下面的代码就是对 `dist_main.py` 的`init_with_dist` 函数的修改。
 
-- 对于独立进程模式，只需要在初始化函数中传入 `to_dist=True` 即可。
+- 对于子进程模式，只需要在初始化函数中传入 `to_dist=True` 即可。
 
     ```python
     def init_with_dist():
         return [WebAgent(f"W{i}", to_dist=True) for i in range(len(URLS))]
     ```
 
-- 对于子进程模式，则需要将原来传入`to_dist`函数的参数以字典的形式传入到 `to_dist` 域中。
+- 对于独立进程模式，则需要将原来传入`to_dist`函数的参数以字典的形式传入到 `to_dist` 域中。
 
     ```python
     def init_with_dist():
@@ -244,6 +245,8 @@ AgentScope 分布式模式的主要逻辑是:
 
 **将原本运行在任意 Python 进程中的对象通过 `to_dist` 函数或是初始化参数转移到 RPC 服务器中运行，并在原进程中保留一个 `RpcObject` 作为代理，任何 `RpcObject` 上的函数调用或是属性访问都会转发到 RPC 服务器中的对象上，并且在调用函数时可以自行决定是使用同步调用还是异步调用。**
 
+下图展示了`to_dist`初始化、同步函数调用以及异步函数调用的交互流程：
+
 ```{mermaid}
 sequenceDiagram
     User -->> Process: initialize
@@ -262,7 +265,11 @@ sequenceDiagram
     Process -->> User: async result
 ```
 
-从上述介绍中可以发现 AgentScope 分布式模式本质是一个 Client-Server 架构，Client 端主要负责将本地对象发送到 Server 端运行，并将本地的函数调用以及属性访问转发到 Server 端，而Server 端则负责接收 Client 端发送的对象，并接收 Client 端发来的各种调用请求。
+从上图可以观察到 AgentScope 分布式模式本质是一个 Client-Server 架构，用户编写的智能体应用（Process）作为Client 端，而智能体服务器进程（RPC Server）作为 Server 端。分布式模式下 Client 端将本地的智能体发送到 Server 端运行，并将本地的函数调用以及属性访问转发到 Server 端，而 Server 端则负责接收 Client 端发送的对象，并接收 Client 端发来的各种调用请求。
+
+```{note}
+AgentScope 分布式模式中 Client 与 Server 通信基于 gRPC 实现，对发送消息的大小有严格的限制，默认情况下单条消息不能超过 32 MB。可以通过修改 `src/agentscope/constants.py` 中的 `_DEFAULT_RPC_OPTIONS` 参数来进一步扩大该值。
+```
 
 接下来将分别介绍 Client 端以及 Server 端的实现。
 
@@ -405,7 +412,7 @@ Server 端主要基于 gRPC 实现，主要包含 `AgentServerServicer` 和 `Rpc
 - 通过命令行启动的具体方法如下，除了需要指定 `host` 和 `port` 外，还需要指定 `model_config_path` 和 `agent_dir`，分别对应模型配置文件路径和自定义 Agent 类所在的目录。在安装 `agentscope` 时默认会安装 `as_server` 指令，所以可以直接在命令行中使用该指令。
 
     ```shell
-    as_server --host localhost --port 12345 --model-config-path model_config_path  --agent-dir parent_dir_of_myagents.py
+    as_server start --host localhost --port 12345 --model-config-path model_config_path  --agent-dir parent_dir_of_myagents.py
     ```
 
 ```{warning}
@@ -441,7 +448,7 @@ launcher = RpcAgentServerLauncher(
 ```
 
 ```shell
-as_server --host localhost --port 12345 --model-config-path model_config_path  --agent-dir parent_dir_of_myagents --capacity 10
+as_server start --host localhost --port 12345 --model-config-path model_config_path  --agent-dir parent_dir_of_myagents --capacity 10
 ```
 
 ##### `result_pool`
@@ -463,7 +470,7 @@ launcher = RpcAgentServerLauncher(
 ```
 
 ```shell
-as_server --host localhost --port 12345 --model-config-path model_config_path  --agent-dir parent_dir_of_myagents --pool-type redis --redis-url redis://localhost:6379 --max-expire-time 7200
+as_server start --host localhost --port 12345 --model-config-path model_config_path  --agent-dir parent_dir_of_myagents --pool-type redis --redis-url redis://localhost:6379 --max-expire-time 7200
 ```
 
 [[回到顶部]](#208-distribute-zh)

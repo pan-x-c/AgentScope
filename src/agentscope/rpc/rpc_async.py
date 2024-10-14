@@ -14,7 +14,7 @@ except ImportError as import_error:
 from ..message import Msg
 from .rpc_client import RpcClient
 from ..utils.common import _is_web_url
-from ..constants import _DEFAULT_RPC_RETRY_TIMES, _DEFAULT_RPC_TIMEOUT
+from .retry_strategy import RetryBase, _DEAFULT_RETRY_STRATEGY
 
 
 class AsyncResult:
@@ -26,10 +26,12 @@ class AsyncResult:
         port: int,
         task_id: int = None,
         stub: Future = None,
+        retry: RetryBase = _DEAFULT_RETRY_STRATEGY,
     ) -> None:
         self._host = host
         self._port = port
         self._stub = None
+        self._retry = retry
         self._task_id: int = None
         if task_id is not None:
             self._task_id = task_id
@@ -40,18 +42,16 @@ class AsyncResult:
 
     def _fetch_result(
         self,
-        retry_times: int = _DEFAULT_RPC_RETRY_TIMES,
-        retry_interval: float = _DEFAULT_RPC_TIMEOUT,
     ) -> None:
         """Fetch result from the server."""
         if self._task_id is None:
             self._task_id = self._get_task_id()
-        raw_data = RpcClient(self._host, self._port).update_result(
-            self._task_id,
-            retry_times=retry_times,
-            retry_interval=retry_interval,
+        self._data = pickle.loads(
+            RpcClient(self._host, self._port).update_result(
+                self._task_id,
+                retry=self._retry,
+            ),
         )
-        self._data = pickle.loads(raw_data)
         # NOTE: its a hack here to download files
         # TODO: opt this
         self._check_and_download_files()
