@@ -4,7 +4,6 @@ from abc import ABCMeta
 from typing import Any, Callable
 import uuid
 import copy
-import os
 from loguru import logger
 
 from .rpc_object import RpcObject, _ClassInfo

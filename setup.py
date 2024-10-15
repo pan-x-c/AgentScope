@@ -128,7 +128,13 @@ class CMakeExtension(Extension):
     """An extension over CMake."""
 
     def __init__(self, name: str, sourcedir: str = "."):
-        Extension.__init__(self, name, sources=[], language="c++")
+        Extension.__init__(
+            self,
+            name,
+            sources=[],
+            language="c++",
+            optional=True,
+        )
         self.sourcedir = os.path.abspath(sourcedir)
 
 
@@ -157,34 +163,34 @@ class CMakeBuild(build_ext):
 
     def build_extension(self, ext: Extension) -> None:
         """Build CPP server."""
+        extdir = os.path.abspath(
+            os.path.dirname(self.get_ext_fullpath(ext.name)),
+        )
+        cmake_args = [
+            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
+            "-DPython3_EXECUTABLE=" + sys.executable,
+            "-Dpybind11_DIR="
+            + os.path.join(
+                site.getsitepackages()[0],
+                "pybind11",
+                "share",
+                "cmake",
+                "pybind11",
+            ),
+        ]
+
+        cfg = "Release"
+        build_args = ["--config", cfg]
+        if self.debug:
+            cmake_args += ["-DCMAKE_CXX_FLAGS=-g -DDEBUG"]
+        else:
+            cmake_args += ["-DCMAKE_CXX_FLAGS=-O3"]
+
+        cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
+
+        if not os.path.exists(self.build_temp):
+            os.makedirs(self.build_temp)
         try:
-            extdir = os.path.abspath(
-                os.path.dirname(self.get_ext_fullpath(ext.name)),
-            )
-            cmake_args = [
-                "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
-                "-DPython3_EXECUTABLE=" + sys.executable,
-                "-Dpybind11_DIR="
-                + os.path.join(
-                    site.getsitepackages()[0],
-                    "pybind11",
-                    "share",
-                    "cmake",
-                    "pybind11",
-                ),
-            ]
-
-            cfg = "Release"
-            build_args = ["--config", cfg]
-            if self.debug:
-                cmake_args += ["-DCMAKE_CXX_FLAGS=-g -DDEBUG"]
-            else:
-                cmake_args += ["-DCMAKE_CXX_FLAGS=-O3"]
-
-            cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
-
-            if not os.path.exists(self.build_temp):
-                os.makedirs(self.build_temp)
             subprocess.check_call(
                 ["cmake", "-B", "build", ext.sourcedir] + cmake_args,
                 cwd=self.build_temp,
@@ -198,7 +204,7 @@ class CMakeBuild(build_ext):
                 cwd=self.build_temp,
             )
         except Exception as e:
-            print(f"CPP server build failed with {e}.")
+            print(f"CPP server build failed with {e}.", file=sys.stderr)
 
 
 setuptools.setup(
