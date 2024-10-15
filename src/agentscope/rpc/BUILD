@@ -1,5 +1,8 @@
-load("@io_bazel_rules_protobuf//:protobuf.bzl", "proto_library", "cc_proto_library")
-load("@com_github_grpc_grpc//:build_defs.bzl", "grpc_cc_library")
+# load("@io_bazel_rules_protobuf//:protobuf.bzl", "proto_library", "cc_proto_library")
+# load("@com_github_grpc_grpc//bazel:grpc_build_system.bzl", "grpc_cc_library")
+# load("@com_github_grpc_grpc//:build_defs.bzl", "grpc_cc_library")
+load("@com_google_protobuf//:protobuf.bzl", "proto_library")
+load("@com_github_grpc_grpc//bazel:grpc_build_system.bzl", "grpc_cc_library")
 
 # 生成 protobuf 文件
 proto_library(
