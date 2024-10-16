@@ -3,8 +3,15 @@
 from __future__ import absolute_import, division, print_function
 
 import re
-
+import os
+import sys
+import site
+import platform
+import subprocess
 import setuptools
+from setuptools import Extension
+from setuptools.command.build_ext import build_ext
+
 
 # obtain version from src/agentscope/_version.py
 with open("src/agentscope/_version.py", encoding="UTF-8") as f:
@@ -116,6 +123,84 @@ extra_online_requires = extra_full_requires + [
 with open("README.md", "r", encoding="UTF-8") as fh:
     long_description = fh.read()
 
+
+class CMakeExtension(Extension):
+    """An extension over CMake."""
+
+    def __init__(self, name: str, sourcedir: str = "."):
+        Extension.__init__(self, name, sources=[], language="c++")
+        self.sourcedir = os.path.abspath(sourcedir)
+
+
+class CMakeBuild(build_ext):
+    """Build CPP server with CMake."""
+
+    def run(self) -> None:
+        """Check CMake and build CPP server."""
+        if platform.system() == "Windows":
+            return
+        from setuptools import Distribution
+
+        distribution = Distribution()
+        distribution.parse_config_files()
+        try:
+            _ = subprocess.check_output(["cmake", "--version"])
+        except OSError as exc:
+            raise RuntimeError(
+                "CMake must be installed to build the following extensions: "
+                + ", ".join(e.name for e in self.extensions),
+            ) from exc
+
+        for ext in self.extensions:
+            self.build_extension(ext)
+        super().run()
+
+    def build_extension(self, ext: Extension) -> None:
+        """Build CPP server."""
+        try:
+            extdir = os.path.abspath(
+                os.path.dirname(self.get_ext_fullpath(ext.name)),
+            )
+            cmake_args = [
+                "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
+                "-DPython3_EXECUTABLE=" + sys.executable,
+                "-Dpybind11_DIR="
+                + os.path.join(
+                    site.getsitepackages()[0],
+                    "pybind11",
+                    "share",
+                    "cmake",
+                    "pybind11",
+                ),
+            ]
+
+            cfg = "Release"
+            build_args = ["--config", cfg]
+            if self.debug:
+                cmake_args += ["-DCMAKE_CXX_FLAGS=-g -DDEBUG"]
+            else:
+                cmake_args += ["-DCMAKE_CXX_FLAGS=-O3"]
+
+            cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
+
+            if not os.path.exists(self.build_temp):
+                os.makedirs(self.build_temp)
+            subprocess.check_call(
+                ["cmake", "-B", "build", ext.sourcedir] + cmake_args,
+                cwd=self.build_temp,
+            )
+            subprocess.check_call(
+                ["cmake", "--build", "build"] + build_args,
+                cwd=self.build_temp,
+            )
+            subprocess.check_call(
+                ["cmake", "--install", "build"],
+                cwd=self.build_temp,
+            )
+        except Exception as e:
+            print(f"CPP server build failed with {e}.")
+
+
 setuptools.setup(
     name=NAME,
     version=VERSION,
@@ -152,6 +237,8 @@ setuptools.setup(
         # With online workstation requires
         "online": extra_online_requires,
     },
+    ext_modules=[CMakeExtension("agentscope.cpp_server.cpp_server")],
+    cmdclass={"build_ext": CMakeBuild},
     license="Apache License 2.0",
     classifiers=[
         "Development Status :: 4 - Beta",
