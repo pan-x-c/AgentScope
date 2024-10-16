@@ -757,6 +757,7 @@ string Worker::call_get_agent_list() {
   LOG(FORMAT(result_list.size()));
   py::gil_scoped_acquire acquire;
   string final_result = _serialize(result_list).cast<string>();
+  PY_LOG("info", "call_get_agent_list = [" + final_result + "]");
   return final_result;
 }
 
