@@ -603,7 +603,7 @@ class RpcAgentServerLauncher:
             if self.stop_event is not None:
                 self.stop_event.set()
                 self.stop_event = None
-            self.server.join()
+            self.server.join(10)
             if self.server.is_alive():
                 self.server.kill()
                 logger.info(
