@@ -301,11 +301,11 @@ async def _setup_agent_server_async(  # pylint: disable=R0912,R0915
             start_event.set()
         if stop_event is not None:
             stop_event.wait()
+            shutdown_cpp_server()
             logger.info(
                 f"CPP agent server [{server_id}] at {host}:{port} "
                 "stopped successfully",
             )
-            shutdown_cpp_server()
         return
 
     servicer = AgentServerServicer(
