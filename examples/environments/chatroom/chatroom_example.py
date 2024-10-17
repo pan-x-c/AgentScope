@@ -72,9 +72,7 @@ def main(args: argparse.Namespace) -> None:
         r"""the following chat history. When you need to mention someone, """
         r"""you can use @ to remind them. You only need to output Alice's """
         r"""possible replies, without giving anyone else's replies or """
-        r"""continuing the conversation. When the discussion is complete, """
-        r"""you need to reply with a message containing 'Goodbye' to """
-        r"""indicate exiting the conversation.""",
+        r"""continuing the conversation.""",
         model_config_name=YOUR_MODEL_CONFIGURATION_NAME,
         to_dist=args.use_dist,
     )
@@ -90,9 +88,7 @@ def main(args: argparse.Namespace) -> None:
         r"""historical records. When you need to mention someone, you can """
         r"""use @ to remind them. You only need to output Bob's possible """
         r"""replies, without giving anyone else's replies or continuing """
-        r"""the conversation. When the discussion is complete, you need """
-        r"""to reply with a message containing 'Goodbye' to indicate """
-        r"""exiting the conversation.""",
+        r"""the conversation.""",
         model_config_name=YOUR_MODEL_CONFIGURATION_NAME,
         to_dist=args.use_dist,
     )
@@ -107,9 +103,7 @@ def main(args: argparse.Namespace) -> None:
         r"""on the following chat history. When you need to mention """
         r"""someone, you can use @ to remind them. You only need to output """
         r"""Carol's possible replies, without giving anyone else's replies """
-        r"""or continuing the conversation. When the discussion is """
-        r"""complete, you need to reply with a message containing """
-        r"""'Goodbye' to indicate exiting the conversation.""",
+        r"""or continuing the conversation.""",
         model_config_name=YOUR_MODEL_CONFIGURATION_NAME,
         to_dist=args.use_dist,
     )
@@ -119,7 +113,7 @@ def main(args: argparse.Namespace) -> None:
     r.chat_freely(
         delay=10,
         interval=10,
-        max_round=10,
+        max_round=3, # 10,
     )
 
 

@@ -168,7 +168,7 @@ class ChatRoom(BasicEnv):
 
     def describe(self, agent_name: str, **kwargs: Any) -> str:
         """Get the description of the chatroom."""
-        ann = self.announcement if self.announcement else "EMPTY"
+        ann = self.announcement.content if self.announcement else "EMPTY"
         history = "\n\n".join(
             [
                 f"{msg.name}: {msg.content}"
@@ -285,6 +285,7 @@ class Notifier(EventListener):
 
     def __call__(self, room: Env, event: Event) -> None:
         names = self.pattern.findall(str(event.args["message"].content))
+        names = list(set(names))
 
         for name in names:
             if name in room.children:
@@ -313,6 +314,8 @@ class ChatRoomAgent(AgentBase):
             sys_prompt=sys_prompt,
             model_config_name=model_config_name,
         )
+        self.room_history_length = 0
+        self.room_slient_count = 0
         self.room = None
         self.mentioned_messages = []
         self.mentioned_messages_lock = threading.Lock()
@@ -381,6 +384,12 @@ class ChatRoomAgent(AgentBase):
 
     def reply(self, x: Msg = None) -> Msg:
         """Generate reply to chat room"""
+        room_history_length = len(self.room.history)
+        if room_history_length != self.room_history_length:
+            self.room_history_length = room_history_length
+            self.room_slient_count = 0
+        else:
+            self.room_slient_count += 1
         room_info = self.room.describe(self.name)
         system_hint = (
             f"{self.sys_prompt}\n\nYou are participating in a chatroom.\n"
@@ -403,7 +412,7 @@ class ChatRoomAgent(AgentBase):
             )
         else:
             # decide whether to speak
-            if self._want_to_speak(room_info):
+            if self.room_history_length <= 3 or (self.room_slient_count <= 2 and self._want_to_speak(room_info)):
                 prompt = self.model.format(
                     Msg(
                         name="system",
