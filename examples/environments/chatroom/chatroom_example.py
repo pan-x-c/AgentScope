@@ -59,20 +59,12 @@ def main(args: argparse.Namespace) -> None:
         ),
         role="system",
     )
-    r = ChatRoom(name="chat", announcement=ann, to_dist=args.use_dist)
+    r = ChatRoom(name="chat", announcement=ann, model_config_name=YOUR_MODEL_CONFIGURATION_NAME, to_dist=args.use_dist)
 
     # Setup the persona of Alice, Bob and Carol
     alice = ChatRoomAgent(  # Game Art Designer
         name="Alice",
-        sys_prompt=r"""You are a game art designer named Alice. """
-        r"""Programmer Bob and game planner Carol are your colleagues, """
-        r"""and you need to collaborate with them to complete an open """
-        r"""world game. Please ask appropriate question to planner or """
-        r"""generate appropriate responses in this work group based on """
-        r"""the following chat history. When you need to mention someone, """
-        r"""you can use @ to remind them. You only need to output Alice's """
-        r"""possible replies, without giving anyone else's replies or """
-        r"""continuing the conversation.""",
+        sys_prompt=r"""You are a game art designer named Alice.""",
         model_config_name=YOUR_MODEL_CONFIGURATION_NAME,
         to_dist=args.use_dist,
     )
@@ -80,15 +72,7 @@ def main(args: argparse.Namespace) -> None:
 
     bob = ChatRoomAgent(  # Game Programmer
         name="Bob",
-        sys_prompt=r"""You are a game programmer named Bob. """
-        r"""Art designer Alice and game planner Carol are your colleagues, """
-        r"""and you need to collaborate with them to complete an open """
-        r"""world game. Please ask appropriate questions or generate """
-        r"""appropriate responses in the work group based on the following """
-        r"""historical records. When you need to mention someone, you can """
-        r"""use @ to remind them. You only need to output Bob's possible """
-        r"""replies, without giving anyone else's replies or continuing """
-        r"""the conversation.""",
+        sys_prompt=r"""You are a game programmer named Bob.""",
         model_config_name=YOUR_MODEL_CONFIGURATION_NAME,
         to_dist=args.use_dist,
     )
@@ -96,14 +80,7 @@ def main(args: argparse.Namespace) -> None:
 
     carol = ChatRoomAgent(  # Game Designer
         name="Carol",
-        sys_prompt=r"""You are a game planner named Carol. """
-        r"""Programmer Bob and art designer Alice are your colleagues, """
-        r"""and you need to guide them in developing an open world game. """
-        r"""Please generate a suitable response in this work group based """
-        r"""on the following chat history. When you need to mention """
-        r"""someone, you can use @ to remind them. You only need to output """
-        r"""Carol's possible replies, without giving anyone else's replies """
-        r"""or continuing the conversation.""",
+        sys_prompt=r"""You are a game planner named Carol.""",
         model_config_name=YOUR_MODEL_CONFIGURATION_NAME,
         to_dist=args.use_dist,
     )
