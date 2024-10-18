@@ -8,8 +8,7 @@
 
 The code under this folder is the experiment of the paper [Very Large-Scale Multi-Agent Simulation in AgentScope](https://arxiv.org/abs/2407.17789).
 
-In the experiment, we set up a large number of agents to participate in the classic game "guess the 2/3 of the average", where each agent reports a real number between 0 and 100 and the agent who reports a number closest to 2
-3 of the average of all the reported numbers wins the game.
+In the experiment, we set up a large number of agents to participate in the classic game "guess the 2/3 of the average", where each agent reports a real number between 0 and 100 and the agent who reports a number closest to 2/3 of the average of all the reported numbers wins the game.
 
 ## Tested Models
 
@@ -62,7 +61,7 @@ Modify the following files according to your environment:
 Suppose you have 4 machines whose hostnames are `worker1`, `worker2`, `worker3` and `worker4`, respectively, you can run all your experiment cases by the following command:
 
 ```
-python benchmark.py -name large_scale -config experiment --hosts worker1 worker2 worker3 worker4
+python benchmark.py --name large_scale --config experiment --hosts worker1 worker2 worker3 worker4
 ```
 
 ### Step 4: View the Results
