@@ -8,7 +8,6 @@ from concurrent import futures
 from multiprocessing.synchronize import Event as EventClass
 from typing import Any
 from loguru import logger
-import requests
 
 try:
     import cloudpickle as pickle
@@ -28,37 +27,12 @@ except ImportError as import_error:
         "distribute",
     )
 
-from agentscope.rpc.rpc_object import RpcObject
 from agentscope.rpc.rpc_meta import RpcMeta
 import agentscope.rpc.rpc_agent_pb2 as agent_pb2
-from agentscope.studio._client import _studio_client
-from agentscope.exception import StudioRegisterError
 from agentscope.rpc import AsyncResult
 from agentscope.rpc.rpc_agent_pb2_grpc import RpcAgentServicer
 from agentscope.server.async_result_pool import get_pool
 from agentscope.serialize import serialize
-
-
-def _register_server_to_studio(
-    studio_url: str,
-    server_id: str,
-    host: str,
-    port: int,
-) -> None:
-    """Register a server to studio."""
-    url = f"{studio_url}/api/servers/register"
-    resp = requests.post(
-        url,
-        json={
-            "server_id": server_id,
-            "host": host,
-            "port": port,
-        },
-        timeout=10,  # todo: configurable timeout
-    )
-    if resp.status_code != 200:
-        logger.error(f"Failed to register server: {resp.text}")
-        raise StudioRegisterError(f"Failed to register server: {resp.text}")
 
 
 # todo: opt this
@@ -111,17 +85,6 @@ class AgentServerServicer(RpcAgentServicer):
         self.port = port
         self.server_id = server_id
         self.studio_url = studio_url
-        if studio_url is not None:
-            from agentscope.manager import ASManager
-
-            _register_server_to_studio(
-                studio_url=studio_url,
-                server_id=server_id,
-                host=host,
-                port=port,
-            )
-            run_id = ASManager.get_instance().run_id
-            _studio_client.initialize(run_id, studio_url)
 
         self.result_pool = get_pool(
             pool_type=pool_type,
@@ -185,6 +148,12 @@ class AgentServerServicer(RpcAgentServicer):
     ) -> agent_pb2.GeneralResponse:
         """Create a new agent on the server."""
         agent_id = request.agent_id
+        with self.agent_id_lock:
+            if agent_id in self.agent_pool:
+                logger.warning(
+                    f"Agent with agent_id [{agent_id}] already exists",
+                )
+                return agent_pb2.GeneralResponse(ok=True)
         agent_configs = pickle.loads(request.agent_init_args)
         cls_name = agent_configs["class_name"]
         try:
@@ -194,6 +163,7 @@ class AgentServerServicer(RpcAgentServicer):
             logger.error(err_msg)
             return agent_pb2.GeneralResponse(ok=False, message=err_msg)
         try:
+            agent_configs["kwargs"]["_oid"] = agent_id
             instance = cls(
                 *agent_configs["args"],
                 **agent_configs["kwargs"],
@@ -204,39 +174,9 @@ class AgentServerServicer(RpcAgentServicer):
             logger.error(err_msg)
             return agent_pb2.GeneralResponse(ok=False, message=err_msg)
 
-        # Reset the __reduce_ex__ method of the instance
-        # With this method, all objects stored in agent_pool will be serialized
-        # into their Rpc version
-        rpc_init_cfg = (
-            cls,
-            agent_id,
-            self.host,
-            self.port,
-            True,
-        )
-        instance._dist_config = {  # pylint: disable=W0212
-            "args": rpc_init_cfg,
-        }
-
-        def to_rpc(obj, _) -> tuple:  # type: ignore[no-untyped-def]
-            return (
-                RpcObject,
-                obj._dist_config["args"],  # pylint: disable=W0212
-            )
-
-        instance.__reduce_ex__ = to_rpc.__get__(  # pylint: disable=E1120
-            instance,
-        )
-        instance._oid = agent_id  # pylint: disable=W0212
-
         with self.agent_id_lock:
-            if agent_id in self.agent_pool:
-                return agent_pb2.GeneralResponse(
-                    ok=False,
-                    message=f"Agent with agent_id [{agent_id}] already exists",
-                )
             self.agent_pool[agent_id] = instance
-        logger.info(f"create agent instance <{cls_name}>[{agent_id}]")
+        logger.info(f"Create agent instance <{cls_name}>[{agent_id}]")
         return agent_pb2.GeneralResponse(ok=True)
 
     def delete_agent(
