@@ -95,7 +95,7 @@ def main(args: argparse.Namespace) -> None:
     r.chat_freely(
         delay=10,
         interval=10,
-        max_round=3, # 10,
+        max_round=10,
     )
 
 
