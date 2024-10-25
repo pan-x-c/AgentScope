@@ -50,14 +50,14 @@ jobs:
       run: |
         pip install -q -e .[full]
         pip install coverage
+    - name: CPP gRPC Server Tests
+      if: ${{ matrix.os != 'windows-latest' }}
+      run: |
+        redis-server &> redis.log &
+        AGENTSCOPE_ENABLE_PY_LOGGER=True AGENTSCOPE_USE_CPP_SERVER=YES AGENTSCOPE_NUM_WORKERS=5 python -m unittest tests/rpc_agent_test.py
     - name: Run tests with coverage
       run: |
         coverage run tests/run.py
     - name: Generate coverage report
       run: |
         coverage report -m
-    - name: CPP gRPC Server Tests
-      if: ${{ matrix.os != 'windows-latest' }}
-      run: |
-        redis-server &> redis.log &
-        AGENTSCOPE_ENABLE_PY_LOGGER=True AGENTSCOPE_USE_CPP_SERVER=YES AGENTSCOPE_NUM_WORKERS=5 python -m unittest tests/rpc_agent_test.py

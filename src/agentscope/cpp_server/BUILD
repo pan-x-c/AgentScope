@@ -10,8 +10,8 @@ pybind_library(
     ],
     hdrs = ["worker.h"],
     deps = [
-        "worker_proto",
-        "server_grpc",
+        "//src/agentscope/rpc:worker_cc_proto",
+        "//src/agentscope/rpc:server_grpc",
         # "@pybind11//:pybind11",
         # "@rules_python//python/cc:current_py_cc_libs",
         "@com_github_grpc_grpc//:grpc++"

@@ -235,11 +235,11 @@ async def _setup_agent_server_async(  # pylint: disable=R0912,R0915
     # update agent registry
     for cls in custom_classes:
         RpcMeta.register_class(cls)
-    RpcMeta._SERVER_CONFIG = {
+    RpcMeta._SERVER_CONFIG = {  # pylint: disable=W0212
         "host": host,
         "port": port,
     }
-    RpcMeta._AUTO_DIST = auto_dist
+    RpcMeta._AUTO_DIST = auto_dist  # pylint: disable=W0212
 
     async def shutdown_signal_handler() -> None:
         logger.info(
@@ -301,11 +301,11 @@ async def _setup_agent_server_async(  # pylint: disable=R0912,R0915
             start_event.set()
         if stop_event is not None:
             stop_event.wait()
+            shutdown_cpp_server()
             logger.info(
                 f"CPP agent server [{server_id}] at {host}:{port} "
                 "stopped successfully",
             )
-            shutdown_cpp_server()
         return
 
     servicer = AgentServerServicer(
@@ -603,7 +603,7 @@ class RpcAgentServerLauncher:
             if self.stop_event is not None:
                 self.stop_event.set()
                 self.stop_event = None
-            self.server.join()
+            self.server.join(10)
             if self.server.is_alive():
                 self.server.kill()
                 logger.info(
