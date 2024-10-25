@@ -4,7 +4,6 @@ from abc import ABCMeta
 from typing import Any, Callable
 import uuid
 import copy
-import os
 from loguru import logger
 
 from .rpc_object import RpcObject, _ClassInfo
@@ -55,7 +54,16 @@ def generate_oid() -> str:
 
 
 class RpcMeta(ABCMeta):
-    """The metaclass for all classes that can run on rpc server."""
+    """The metaclass for all classes that can use `to_dist` and other
+    distributed related functionality.
+
+    Note:
+
+        The `RpcMeta` will automatically add the `to_dist` method and
+        initialization parameter to its subclasses. And it will also
+        detect all public functions and register them into the `_info`
+        attribute of the class.
+    """
 
     _REGISTRY = {}
     _SERVER_CONFIG = {}

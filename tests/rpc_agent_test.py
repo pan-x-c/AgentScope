@@ -931,8 +931,11 @@ class BasicRpcAgentTest(unittest.TestCase):
             },
         )
         self.assertIsNotNone(dia_agent)
+        logger.info("test_agent_server_management_funcs 1.")
         self.assertTrue(client.delete_all_agent())
+        logger.info("test_agent_server_management_funcs 2.")
         self.assertEqual(len(client.get_agent_list()), 0)
+        logger.info("test_agent_server_management_funcs passed.")
         # client.stop()
         # time.sleep(1)
         # self.assertFalse(client.is_alive())
