@@ -7,11 +7,13 @@ import signal
 import argparse
 import time
 import importlib
+import multiprocessing
 import json
 from multiprocessing import Process, Event, Pipe
 from multiprocessing.synchronize import Event as EventClass
 from concurrent import futures
 from loguru import logger
+import requests
 
 try:
     import grpc
@@ -27,10 +29,38 @@ except ImportError as import_error:
         "distribute",
     )
 import agentscope
+from agentscope.studio._client import _studio_client
+from agentscope.exception import StudioRegisterError
 from ..rpc.rpc_meta import RpcMeta
 from ..server.servicer import AgentServerServicer
 from ..utils.common import _check_port, _generate_id_from_seed
 from ..constants import _DEFAULT_RPC_OPTIONS
+
+
+def _register_server_to_studio(
+    studio_url: str,
+    server_id: str,
+    host: str,
+    port: int,
+) -> None:
+    """Register a server to studio."""
+    url = f"{studio_url}/api/servers/register"
+    resp = requests.post(
+        url,
+        json={
+            "server_id": server_id,
+            "host": host,
+            "port": port,
+        },
+        timeout=10,  # todo: configurable timeout
+    )
+    if resp.status_code != 200:
+        logger.error(f"Failed to register server: {resp.text}")
+        raise StudioRegisterError(f"Failed to register server: {resp.text}")
+    from agentscope.manager import ASManager
+
+    run_id = ASManager.get_instance().run_id
+    _studio_client.initialize(run_id, studio_url)
 
 
 def _setup_agent_server(
@@ -51,6 +81,7 @@ def _setup_agent_server(
     studio_url: str = None,
     custom_agent_classes: list = None,
     agent_dir: str = None,
+    auto_dist: bool = False,
 ) -> None:
     """Setup agent server.
 
@@ -97,6 +128,8 @@ def _setup_agent_server(
         agent_dir (`str`, defaults to `None`):
             The abs path to the directory containing customized agent python
             files.
+        auto_dist (`bool`, defaults to `False`):
+            Whether to automatically distribute agent to the remote server.
     """
     asyncio.run(
         _setup_agent_server_async(
@@ -117,11 +150,12 @@ def _setup_agent_server(
             studio_url=studio_url,
             custom_classes=custom_agent_classes,
             agent_dir=agent_dir,
+            auto_dist=auto_dist,
         ),
     )
 
 
-async def _setup_agent_server_async(  # pylint: disable=R0912
+async def _setup_agent_server_async(  # pylint: disable=R0912,R0915
     host: str,
     port: int,
     server_id: str,
@@ -139,6 +173,7 @@ async def _setup_agent_server_async(  # pylint: disable=R0912
     studio_url: str = None,
     custom_classes: list = None,
     agent_dir: str = None,
+    auto_dist: bool = False,
 ) -> None:
     """Setup agent server in an async way.
 
@@ -185,26 +220,14 @@ async def _setup_agent_server_async(  # pylint: disable=R0912
         agent_dir (`str`, defaults to `None`):
             The abs path to the directory containing customized agent python
             files.
+        auto_dist (`bool`, defaults to `False`):
+            Whether to automatically distribute agent to the remote server.
     """
-
     if init_settings is not None:
         from agentscope.manager import ASManager
 
         ASManager.get_instance().load_dict(init_settings)
 
-    servicer = AgentServerServicer(
-        stop_event=stop_event,
-        host=host,
-        port=port,
-        server_id=server_id,
-        studio_url=studio_url,
-        capacity=capacity,
-        pool_type=pool_type,
-        redis_url=redis_url,
-        max_pool_size=max_pool_size,
-        max_expire_time=max_expire_time,
-        max_timeout_seconds=max_timeout_seconds,
-    )
     if custom_classes is None:
         custom_classes = []
     if agent_dir is not None:
@@ -212,6 +235,11 @@ async def _setup_agent_server_async(  # pylint: disable=R0912
     # update agent registry
     for cls in custom_classes:
         RpcMeta.register_class(cls)
+    RpcMeta._SERVER_CONFIG = {  # pylint: disable=W0212
+        "host": host,
+        "port": port,
+    }
+    RpcMeta._AUTO_DIST = auto_dist  # pylint: disable=W0212
 
     async def shutdown_signal_handler() -> None:
         logger.info(
@@ -230,6 +258,69 @@ async def _setup_agent_server_async(  # pylint: disable=R0912
                 sig,
                 lambda: asyncio.create_task(shutdown_signal_handler()),
             )
+    if studio_url is not None:
+        _register_server_to_studio(
+            studio_url=studio_url,
+            server_id=server_id,
+            host=host,
+            port=port,
+        )
+
+    # start cpp server
+    if os.environ.get("AGENTSCOPE_USE_CPP_SERVER", "").lower() == "yes":
+        from agentscope.cpp_server.cpp_server import (  # pylint: disable=E0611
+            setup_cpp_server,
+            shutdown_cpp_server,
+        )
+
+        num_workers = int(
+            os.environ.get(
+                "AGENTSCOPE_NUM_WORKERS",
+                f"{multiprocessing.cpu_count()}",
+            ),
+        )
+        setup_cpp_server(
+            host,
+            str(port),
+            server_id,
+            str(studio_url),
+            pool_type,
+            redis_url,
+            max_pool_size,
+            max_expire_time,
+            max_timeout_seconds,
+            True,
+            num_workers,
+        )
+        logger.info(
+            f"CPP agent server [{server_id}] at {host}:{port} "
+            "started successfully",
+        )
+        if start_event is not None:
+            pipe.send(port)
+            start_event.set()
+        if stop_event is not None:
+            stop_event.wait()
+            shutdown_cpp_server()
+            logger.info(
+                f"CPP agent server [{server_id}] at {host}:{port} "
+                "stopped successfully",
+            )
+        return
+
+    servicer = AgentServerServicer(
+        stop_event=stop_event,
+        host=host,
+        port=port,
+        server_id=server_id,
+        studio_url=studio_url,
+        capacity=capacity,
+        pool_type=pool_type,
+        redis_url=redis_url,
+        max_pool_size=max_pool_size,
+        max_expire_time=max_expire_time,
+        max_timeout_seconds=max_timeout_seconds,
+    )
     while True:
         try:
             port = _check_port(port)
@@ -309,20 +400,20 @@ def load_agents_from_dir(agent_dir: str) -> list:
     abs_agent_dir = os.path.abspath(agent_dir)
     sys.path.insert(0, abs_agent_dir)
     try:
-        custom_agent_classes = []
+        custom_classes = []
         for root, _, files in os.walk(agent_dir):
             for file in files:
                 if file.endswith(".py"):
                     try:
                         module_path = os.path.join(root, file)
-                        custom_agent_classes.extend(
+                        custom_classes.extend(
                             load_custom_class_from_file(module_path),
                         )
                     except Exception as e:
                         logger.error(
                             f"Failed to load agent class from [{file}]: {e}",
                         )
-        return custom_agent_classes
+        return custom_classes
     finally:
         sys.path = original_sys_path
 
@@ -345,6 +436,7 @@ class RpcAgentServerLauncher:
         custom_agent_classes: list = None,
         server_id: str = None,
         studio_url: str = None,
+        auto_dist: bool = False,
     ) -> None:
         """Init a launcher of agent server.
 
@@ -383,6 +475,8 @@ class RpcAgentServerLauncher:
                 will be generated.
             studio_url (`Optional[str]`, defaults to `None`):
                 The url of the agentscope studio.
+            auto_dist (`bool`, defaults to `False`):
+                Whether to automatically distribute agent to the remote server.
         """
         self.host = host
         self.port = _check_port(port)
@@ -406,6 +500,7 @@ class RpcAgentServerLauncher:
             else server_id
         )
         self.studio_url = studio_url
+        self.auto_dist = auto_dist
 
     @classmethod
     def generate_server_id(cls, host: str, port: int) -> str:
@@ -433,6 +528,7 @@ class RpcAgentServerLauncher:
                 custom_classes=self.custom_agent_classes,
                 agent_dir=self.agent_dir,
                 studio_url=self.studio_url,
+                auto_dist=self.auto_dist,
             ),
         )
 
@@ -472,6 +568,7 @@ class RpcAgentServerLauncher:
                 "studio_url": self.studio_url,
                 "custom_agent_classes": self.custom_agent_classes,
                 "agent_dir": self.agent_dir,
+                "auto_dist": self.auto_dist,
             },
         )
         server_process.start()
@@ -506,7 +603,7 @@ class RpcAgentServerLauncher:
             if self.stop_event is not None:
                 self.stop_event.set()
                 self.stop_event = None
-            self.server.join()
+            self.server.join(10)
             if self.server.is_alive():
                 self.server.kill()
                 logger.info(
@@ -647,6 +744,12 @@ def as_server() -> None:
         help="the url of agentscope studio",
     )
     start_parser.add_argument(
+        "--auto-dist",
+        type=bool,
+        default=False,
+        help="Whether to automatically distribute agent to the remote server",
+    )
+    start_parser.add_argument(
         "--agent-dir",
         type=str,
         default=None,
@@ -709,6 +812,7 @@ def as_server() -> None:
             max_timeout_seconds=args.max_timeout_seconds,
             local_mode=args.local_mode,
             studio_url=args.studio_url,
+            auto_dist=args.auto_dist,
         )
         launcher.launch(in_subprocess=False)
         launcher.wait_until_terminate()
