@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# preprocess and load datasets
+"""preprocess and load datasets"""
 
 from __future__ import annotations
 import os
@@ -14,19 +14,21 @@ DATASET_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 
 class Dataset(ABC):
+    """Base class for datasets."""
+
     @classmethod
     @abstractmethod
     def preprocess(cls) -> None:
-        pass
+        """Preprocess the dataset."""
 
     @classmethod
     @abstractmethod
     def format_sample(cls, sample: dict) -> dict:
         """Format a sample into a dict."""
-        pass
 
     @classmethod
     def from_dict(cls, config: dict) -> Dataset:
+        """Load a dataset from a config."""
         if config["name"] == "mmlu_pro":
             return MMLUPro(
                 max_instance=config["max_instance"],
@@ -37,10 +39,12 @@ class Dataset(ABC):
 
     @abstractmethod
     def calculate_stats(self, sample: dict, candidates: List[dict]) -> dict:
-        pass
+        """Calculate statistics for a sample and its candidates."""
 
 
 class MMLUPro(Dataset):
+    """MMLU-Pro dataset."""
+
     PROMPT_TEMPLATE = """
 Question: {question}
 Options:
@@ -52,6 +56,11 @@ Options:
     def __init__(self, categories: List[str], max_instance: int):
         self.categories = categories
         self.max_instance = max_instance
+        self.cur_category_index = 0
+        self.cur_instance_index = 0
+        self.total_samples = 0
+        self.samples = []
+        self.pbar = None
 
     @classmethod
     def preprocess(cls) -> None:
@@ -72,13 +81,13 @@ Options:
             vali_filtered = ds["validation"].filter(
                 lambda example: example["category"] == category,
             )
-            category = category.replace(" ", "_").lower()
+            ct = category.replace(" ", "_").lower()
             test_filtered.to_json(
                 os.path.join(
                     DATASET_DIR,
                     "mmlu_pro",
                     "test",
-                    f"{category}.jsonl",
+                    f"{ct}.jsonl",
                 ),
                 lines=True,
                 force_ascii=False,
@@ -88,12 +97,12 @@ Options:
                     DATASET_DIR,
                     "mmlu_pro",
                     "validation",
-                    f"{category}.jsonl",
+                    f"{ct}.jsonl",
                 ),
                 lines=True,
                 force_ascii=False,
             )
-            print(f"Saved test and validation data for category: {category}")
+            print(f"Saved test and validation data for category: {ct}")
 
     @classmethod
     def format_sample(cls, sample: dict) -> dict:
@@ -185,9 +194,3 @@ Options:
         self.cur_instance_index += 1
         self.pbar.update(1)
         return self.format_sample(sample)
-
-
-if __name__ == "__main__":
-    samples = MMLUPro.load(category="physics", max_instance=1)
-    print(samples[0])
-    print(MMLUPro.format_sample(samples[0])["question"])

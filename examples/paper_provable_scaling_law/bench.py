@@ -6,16 +6,15 @@ Test-Time Compute of Large Language Models"
 """
 from __future__ import annotations
 import json
-import random
 import argparse
 from loguru import logger
+import agentscope
+from agentscope.server import RpcAgentServerLauncher
+
 from utils.dataset import Dataset
 from utils.cache import Cache
 from utils.worker import MixedGenerator, MixedJudge, Generator, Judge
 from competition import Competition
-
-import agentscope
-from agentscope.server import RpcAgentServerLauncher
 
 
 def run(
@@ -129,7 +128,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", "-c", type=str)
     args = parser.parse_args()
-    config = json.load(open(args.config, "r"))
+    config = json.load(open(args.config, "r", encoding="utf-8"))
     agentscope.init(
         project=config["project"],
         model_configs=config["models"],

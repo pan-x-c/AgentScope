@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Prompter for generation and comparison tasks."""
 from typing import List
 from .parser import Parser
 
@@ -16,7 +17,8 @@ class GenerationPrompter:
         self.parser = parser
         self.sys_prompt = sys_prompt
 
-    def generate_prompt(self, question: str) -> List:
+    def generate_prompt(self, question: str) -> List[dict]:
+        """Generate prompt messages compatible with OpenAI."""
         if self.sys_prompt is None:
             return [
                 {
@@ -46,6 +48,7 @@ class GenerationPrompter:
             ]
 
     def parse_text(self, text: str) -> dict:
+        """Parse the LLM output text into a dictionary."""
         result = {}
         try:
             result = self.parser.parse_to_dict(text)
@@ -74,6 +77,7 @@ class ComparisonPrompter:
         candidate_a: str,
         candidate_b: str,
     ) -> List:
+        """generate prompt messages compatible with OpenAI."""
         if self.sys_prompt is None:
             return [
                 {
@@ -107,6 +111,7 @@ class ComparisonPrompter:
             ]
 
     def parse_text(self, text: str) -> dict:
+        """Parse the LLM output text into a dictionary."""
         result = {}
         try:
             result = self.parser.parse_to_dict(text)

@@ -1,0 +1,79 @@
+{
+    "servers": [
+        {
+            "host": "localhost",
+            "port": null
+        },
+        {
+            "host": "localhost",
+            "port": null
+        }
+    ],
+    "models": [
+        {
+            "model_type": "openai_chat",
+            "config_name": "qwen2.5",
+            "model_name": "",
+            "api_key": "EMPTY",
+            "client_args": {
+                "base_url": "http://127.0.0.1:8010/v1/"
+            },
+            "generate_args": {
+                "temperature": 0.1,
+                "max_tokens": 2048
+            }
+        },
+        {
+            "model_type": "openai_chat",
+            "config_name": "llama3.1",
+            "model_name": "",
+            "api_key": "EMPTY",
+            "client_args": {
+                "base_url": "http://127.0.0.1:8011/v1/"
+            },
+            "generate_args": {
+                "temperature": 0.1,
+                "max_tokens": 2048
+            }
+        }
+    ],
+    "project": "provable_scaling_law",
+    "job": "qwen_llama_cot",
+    "dataset": {
+        "name": "mmlu_pro",
+        "max_instance": 6,
+        "categories": [
+            "math",
+            "physics"
+        ]
+    },
+    "generate": {
+        "workers": [
+            {
+                "type": "mmlu_pro",
+                "model": "qwen2.5"
+            },
+            {
+                "type": "mmlu_pro",
+                "model": "llama3.1"
+            }
+        ]
+    },
+    "judge": {
+        "workers": [
+            {
+                "type": "mmlu_pro",
+                "model": "qwen2.5"
+            },
+            {
+                "type": "mmlu_pro",
+                "model": "llama3.1"
+            }
+        ]
+    },
+    "competition": {
+        "method": "knockout",
+        "candidate_num": 16,
+        "k": 4
+    }
+}

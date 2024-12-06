@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Competition module."""
 from tqdm import tqdm
 from typing import List
 from loguru import logger
@@ -32,6 +33,8 @@ class Competition(metaclass=RpcMeta):
         """
         if method == "knockout":
             return self.knockout(question, candidates, **kwargs)
+        elif method == "league":
+            return self.league(question, candidates, **kwargs)
         else:
             raise NotImplementedError
 
@@ -57,13 +60,13 @@ class Competition(metaclass=RpcMeta):
             k=k,
             category=question["category"],
         )
-        round = 0
+        round_num = 0
         knockout_traj = {
             "final": None,
             "detail": {},
         }
         while len(candidates) > 1:
-            round += 1
+            round_num += 1
             winners = []
             if len(candidates) % 2 == 1:
                 winners.append(candidates[-1])
@@ -81,7 +84,7 @@ class Competition(metaclass=RpcMeta):
             rounds_detail = []
             for i, pair in tqdm(
                 enumerate(pairs),
-                desc=f"Round {round}",
+                desc=f"Round {round_num}",
                 position=1,
                 total=len(pairs),
             ):
@@ -99,9 +102,9 @@ class Competition(metaclass=RpcMeta):
                     winners.append(candidates[i * 2])
                 else:
                     winners.append(candidates[i * 2 + 1])
-            knockout_traj["detail"][f"round_{round}"] = rounds_detail
+            knockout_traj["detail"][f"round_{round_num}"] = rounds_detail
             candidates = winners
-            logger.info(f"Round {round} done")
+            logger.info(f"Round {round_num} done")
         knockout_traj["final"] = candidates[0]
         self.cache.save_knockout(
             detail=knockout_traj,
@@ -111,3 +114,14 @@ class Competition(metaclass=RpcMeta):
             category=question["category"],
         )
         return candidates[0]
+
+    def league(
+        self,
+        question: dict,
+        candidates: List[dict],
+        candidate_num: int,
+        k: int,
+    ) -> dict:
+        """Run league competition."""
+        # TBD
+        pass

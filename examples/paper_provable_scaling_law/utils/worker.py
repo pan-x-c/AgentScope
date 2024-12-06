@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Workers used in the paper."""
 from __future__ import annotations
 import random
 from typing import List
@@ -17,6 +18,8 @@ from .parser import (
 
 
 class Generator(metaclass=RpcMeta):
+    """A basic generator"""
+
     def __init__(
         self,
         prompter: GenerationPrompter,
@@ -29,6 +32,7 @@ class Generator(metaclass=RpcMeta):
 
     @classmethod
     def from_dict(cls, config: dict) -> Generator:
+        """Load a generator from a config dict."""
         if config["type"] == "mmlu_pro":
             return MMLUProGenerator(config["model"])
         else:
@@ -36,11 +40,16 @@ class Generator(metaclass=RpcMeta):
 
     @async_func
     def run(self, question: str) -> dict:
+        """Generate a single candidate for a question."""
         prompt = self.prompter.generate_prompt(question=question)
         return self.prompter.parse_text(self.model(prompt).text)
 
 
 class MixedGenerator(metaclass=RpcMeta):
+    """A mixture of multiple generators.
+    It will generate candidates from multiple generators to ensure diversity.
+    """
+
     def __init__(
         self,
         generators: List[Generator],
@@ -52,6 +61,9 @@ class MixedGenerator(metaclass=RpcMeta):
 
     @async_func
     def generate(self, question: dict, n: int) -> List[dict]:
+        """
+        Generate n candidates for a question with multiple generators.
+        """
         candidates = self.cache.load_generation(
             instance_id=question["id"],
             category=question.get("category", "all"),
@@ -79,6 +91,10 @@ class MixedGenerator(metaclass=RpcMeta):
         return candidates
 
     def calculate_stats(self, question: dict, candidates: List[dict]) -> dict:
+        """Calculate the accuracy and other statistic information
+        of the candidates.
+        """
+
         def _get_majority(candidates: list[dict]) -> str:
             votes = {}
             for c in candidates:
@@ -107,6 +123,8 @@ class MixedGenerator(metaclass=RpcMeta):
 
 
 class Judge(metaclass=RpcMeta):
+    """A basic judge"""
+
     def __init__(
         self,
         prompter: ComparisonPrompter,
@@ -119,6 +137,7 @@ class Judge(metaclass=RpcMeta):
 
     @classmethod
     def from_dict(cls, config: dict) -> Judge:
+        """Load a judge from a config dict."""
         if config["type"] == "mmlu_pro":
             return MMLUProJudge(model_config=config["model"])
         else:
@@ -126,6 +145,7 @@ class Judge(metaclass=RpcMeta):
 
     @async_func
     def run(self, question: str, candidate_a: str, candidate_b: str) -> dict:
+        """Compare two candidates."""
         prompt = self.prompter.generate_prompt(
             question=question,
             candidate_a=candidate_b,
@@ -135,6 +155,10 @@ class Judge(metaclass=RpcMeta):
 
 
 class MixedJudge(metaclass=RpcMeta):
+    """A mixture of multiple judges.
+    It will compare two candidates with multiple judges to ensure diversity.
+    """
+
     def __init__(
         self,
         judges: List[Judge],
@@ -152,6 +176,17 @@ class MixedJudge(metaclass=RpcMeta):
         candidate_b: dict,
         k: int,
     ) -> dict:
+        """
+        Compare two candidates k times and return the winner.
+        Note that this function will automatically swapping the candidates
+        to avoid positional bias.
+
+        Args:
+            question: The question.
+            candidate_a: The first candidate.
+            candidate_b: The second candidate.
+            k: The number of comparisons.
+        """
         cache_result = self.cache.load_pairwise_comparison(
             instance_id=question["id"],
             cid_a=candidate_a["cid"],
@@ -212,6 +247,8 @@ class MixedJudge(metaclass=RpcMeta):
 
 
 class MMLUProGenerator(Generator):
+    """A generator for MMLUPro with CoT prompt."""
+
     GEN_PROMPT = """# Question
 
 {question}
@@ -237,6 +274,8 @@ class MMLUProGenerator(Generator):
 
 
 class MMLUProJudge(Judge):
+    """A judge for MMLUPro with CoT prompt."""
+
     CMP_PROMPT = """---- QUESTION ----
 {question}
 

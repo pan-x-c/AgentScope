@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Parser to parse values from the response of LLM."""
 from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
@@ -7,10 +8,11 @@ from loguru import logger
 
 
 class Parser(ABC):
+    """A base parser to parse the LLM response"""
+
     @abstractmethod
     def parse_to_dict(self, raw: str) -> dict:
         """Parse the raw response as a dict"""
-        pass
 
     @property
     @abstractmethod
@@ -18,20 +20,16 @@ class Parser(ABC):
         """
         The format instruction which can be attached to the end of the prompt
         """
-        pass
 
     @classmethod
     @abstractmethod
     def from_dict(cls, config: dict) -> Parser:
         """Load the parser from dict config"""
-        pass
-
-
-# Tag-based parsers
-# e.g. <tag>content</tag>
 
 
 class TagParser(Parser):
+    """A parser that extracts content inside <{tag_name}></{tag_name}>"""
+
     def __init__(self, name: str, description: str) -> None:
         self.name = name
         self.begin = f"<{name}>"
@@ -43,7 +41,7 @@ class TagParser(Parser):
         left = raw.find(self.begin)
         if left == -1:
             logger.error(f"Tag {self.begin} not found in the content:\n{raw}")
-            raise Exception(
+            raise ValueError(
                 f"Tag {self.begin} not found in the content:\n{raw}",
             )
         right = raw.find(self.end)
@@ -51,7 +49,9 @@ class TagParser(Parser):
             logger.error(
                 f"Tag {self.end} end not found in the content:\n{raw}",
             )
-            raise Exception(f"Tag {self.end} not found in the content:\n{raw}")
+            raise ValueError(
+                f"Tag {self.end} not found in the content:\n{raw}",
+            )
         return raw[left + len(self.begin) : right].strip()
 
     def parse(self, text: str) -> Any:
@@ -127,7 +127,7 @@ class ChoiceParser(TagParser):
         )
         self.choices = choices
 
-    def parse(self, text: str) -> dict:
+    def parse(self, text: str) -> Any:
         if text in self.choices:
             return text
         else:
@@ -151,7 +151,7 @@ class PairWiseParser(ChoiceParser):
             ],
         )
 
-    def parse(self, text: str) -> dict:
+    def parse(self, text: str) -> Any:
         if text == "Solution 1":
             score = [1, 0]
         elif text == "Solution 2":
@@ -183,7 +183,7 @@ class MultiTagsParser(Parser):
             right = raw.find(end)
             if left == -1:
                 logger.error(f"Tag {begin} not found in the content:\n{raw}")
-                raise Exception(
+                raise ValueError(
                     f"Tag {begin} not found in the content:\n{raw}",
                 )
             if right == -1:
@@ -197,7 +197,7 @@ class MultiTagsParser(Parser):
                         logger.error(
                             f"Tag {end} end not found in the content:\n{raw}",
                         )
-                        raise Exception(
+                        raise ValueError(
                             f"Tag {end} not found in the content:\n{raw}",
                         )
                 elif i == len(self.tags) - 1:
@@ -209,7 +209,7 @@ class MultiTagsParser(Parser):
                     logger.error(
                         f"Tag {end} end not found in the content:\n{raw}",
                     )
-                    raise Exception(
+                    raise ValueError(
                         f"Tag {end} not found in the content:\n{raw}",
                     )
             result[self.tags[i].name] = self.tags[i].parse(

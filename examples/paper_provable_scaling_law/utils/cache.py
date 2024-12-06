@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Cache module."""
 import os
 import json
 from typing import List
@@ -8,6 +9,8 @@ DEFAULT_CATEGORY = "all"
 
 
 class Cache:
+    """A cache for storing and loading data"""
+
     def __init__(
         self,
         project_name: str,
@@ -32,8 +35,13 @@ class Cache:
             self.data_dir,
             "comparison",
         )
+        self.competition_dir = os.path.join(
+            self.data_dir,
+            "competition",
+        )
         os.makedirs(self.generation_dir, exist_ok=True)
         os.makedirs(self.comparsion_dir, exist_ok=True)
+        os.makedirs(self.competition_dir, exist_ok=True)
 
     def save_generation_stats(
         self,
@@ -51,6 +59,7 @@ class Cache:
                     f"{instance_id}.json",
                 ),
                 "w",
+                encoding="utf-8",
             ),
             ensure_ascii=False,
             indent=2,
@@ -74,6 +83,7 @@ class Cache:
                 f"{instance_id}.jsonl",
             ),
             "w",
+            encoding="utf-8",
         ) as f:
             for i, c in enumerate(candidates):
                 c["cid"] = i
@@ -114,6 +124,7 @@ class Cache:
         with open(
             os.path.join(pairwise_dir, f"{cid_a}-{cid_b}.json"),
             "w",
+            encoding="utf-8",
         ) as f:
             json.dump(detail, f, ensure_ascii=False, indent=2)
 
@@ -143,11 +154,12 @@ class Cache:
         k: int,
         category: str = DEFAULT_CATEGORY,
     ) -> None:
-        knockout_dir = os.path.join(self.comparsion_dir, "knockout", category)
+        knockout_dir = os.path.join(self.competition_dir, "knockout", category)
         os.makedirs(knockout_dir, exist_ok=True)
         with open(
             os.path.join(knockout_dir, f"{instance_id}_{n}_{k}.json"),
             "w",
+            encoding="utf-8",
         ) as f:
             json.dump(detail, f, ensure_ascii=False, indent=2)
 
@@ -159,7 +171,7 @@ class Cache:
         category: str = DEFAULT_CATEGORY,
     ) -> dict:
         knockout_file = os.path.join(
-            self.comparsion_dir,
+            self.competition_dir,
             "knockout",
             category,
             f"{instance_id}_{n}_{k}.json",
