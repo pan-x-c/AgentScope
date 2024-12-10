@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 import os
-from typing import List
+import re
+from typing import List, Optional
 from abc import ABC, abstractmethod
 from datasets import load_dataset
 from tqdm import tqdm
@@ -25,17 +26,6 @@ class Dataset(ABC):
     @abstractmethod
     def format_sample(cls, sample: dict) -> dict:
         """Format a sample into a dict."""
-
-    @classmethod
-    def from_dict(cls, config: dict) -> Dataset:
-        """Load a dataset from a config."""
-        if config["name"] == "mmlu_pro":
-            return MMLUPro(
-                max_instance=config["max_instance"],
-                categories=config["categories"],
-            )
-        else:
-            raise NotImplementedError(f"Dataset {config['name']} not found.")
 
     @abstractmethod
     def calculate_stats(self, sample: dict, candidates: List[dict]) -> dict:
@@ -61,6 +51,9 @@ Options:
         self.total_samples = 0
         self.samples = []
         self.pbar = None
+
+    def __reduce__(self):
+        return (self.__class__, (self.categories, self.max_instance))
 
     @classmethod
     def preprocess(cls) -> None:
@@ -194,3 +187,223 @@ Options:
         self.cur_instance_index += 1
         self.pbar.update(1)
         return self.format_sample(sample)
+
+
+class MATH(Dataset):
+    """MATH dataset."""
+
+    PROMPT_TEMPLATE = """
+    """
+
+    @classmethod
+    def preprocess(cls) -> None:
+        ds = cls.process_docs(load_dataset("lighteval/MATH-Hard"))
+        categories = set(ds["test"].unique("category"))
+        os.makedirs(
+            os.path.join(DATASET_DIR, "MATH_lv5", "test"),
+            exist_ok=True,
+        )
+        os.makedirs(
+            os.path.join(DATASET_DIR, "MATH_lv5", "train"),
+            exist_ok=True,
+        )
+        for category in categories:
+            test_filtered = ds["test"].filter(
+                lambda example: example["type"] == category,
+            )
+            vali_filtered = ds["train"].filter(
+                lambda example: example["type"] == category,
+            )
+            category = category.replace(" ", "_")
+            test_filtered.to_json(
+                os.path.join(
+                    DATASET_DIR,
+                    "MATH_lv5",
+                    "test",
+                    f"{category}.jsonl",
+                ),
+                lines=True,
+                force_ascii=False,
+            )
+            vali_filtered.to_json(
+                os.path.join(
+                    DATASET_DIR,
+                    "MATH_lv5",
+                    "train",
+                    f"{category}.jsonl",
+                ),
+                lines=True,
+                force_ascii=False,
+            )
+            print(f"Saved test and train data for category: {category}")
+
+    @classmethod
+    def process_docs(cls, dataset: Dataset) -> Dataset:
+        def _process_doc(doc: dict, idx: int) -> dict:
+            out_doc = {
+                "id": idx,
+                "question": doc["problem"],
+                "solution": doc["solution"],
+                "answer": cls.normalize_final_answer(
+                    cls.remove_boxed(
+                        cls.last_boxed_only_string(doc["solution"]),
+                    ),
+                ),
+                "category": doc["type"].replace(" ", "_"),
+            }
+            if getattr(doc, "few_shot", None) is not None:
+                out_doc["few_shot"] = True
+            return out_doc
+
+        return dataset.map(_process_doc, with_indices=True)
+
+    INVALID_ANSWER = "[invalidanswer]"
+
+    SUBSTITUTIONS = [
+        ("an ", ""),
+        ("a ", ""),
+        (".$", "$"),
+        ("\\$", ""),
+        (r"\ ", ""),
+        (" ", ""),
+        ("mbox", "text"),
+        (",\\text{and}", ","),
+        ("\\text{and}", ","),
+        ("\\text{m}", "\\text{}"),
+    ]
+    REMOVED_EXPRESSIONS = [
+        "square",
+        "ways",
+        "integers",
+        "dollars",
+        "mph",
+        "inches",
+        "ft",
+        "hours",
+        "km",
+        "units",
+        "\\ldots",
+        "sue",
+        "points",
+        "feet",
+        "minutes",
+        "digits",
+        "cents",
+        "degrees",
+        "cm",
+        "gm",
+        "pounds",
+        "meters",
+        "meals",
+        "edges",
+        "students",
+        "childrentickets",
+        "multiples",
+        "\\text{s}",
+        "\\text{.}",
+        "\\text{\ns}",
+        "\\text{}^2",
+        "\\text{}^3",
+        "\\text{\n}",
+        "\\text{}",
+        r"\mathrm{th}",
+        r"^\circ",
+        r"^{\circ}",
+        r"\;",
+        r",\!",
+        "{,}",
+        '"',
+        "\\dots",
+    ]
+
+    @classmethod
+    def normalize_final_answer(cls, final_answer: str) -> str:
+        """
+        Normalize a final answer to a quantitative reasoning question.
+
+        Copied character for character from appendix D of Lewkowycz et al. (2022)
+        """
+        final_answer = final_answer.split("=")[-1]
+
+        for before, after in MATH.SUBSTITUTIONS:
+            final_answer = final_answer.replace(before, after)
+        for expr in MATH.REMOVED_EXPRESSIONS:
+            final_answer = final_answer.replace(expr, "")
+
+        # Extract answer that is in LaTeX math, is bold,
+        # is surrounded by a box, etc.
+        final_answer = re.sub(r"(.*?)(\$)(.*?)(\$)(.*)", "$\\3$", final_answer)
+        final_answer = re.sub(r"(\\text\{)(.*?)(\})", "\\2", final_answer)
+        final_answer = re.sub(r"(\\textbf\{)(.*?)(\})", "\\2", final_answer)
+        final_answer = re.sub(r"(\\overline\{)(.*?)(\})", "\\2", final_answer)
+        final_answer = re.sub(r"(\\boxed\{)(.*)(\})", "\\2", final_answer)
+
+        # Normalize shorthand TeX:
+        #  \fracab -> \frac{a}{b}
+        #  \frac{abc}{bef} -> \frac{abc}{bef}
+        #  \fracabc -> \frac{a}{b}c
+        #  \sqrta -> \sqrt{a}
+        #  \sqrtab -> sqrt{a}b
+        final_answer = re.sub(
+            r"(frac)([^{])(.)",
+            "frac{\\2}{\\3}",
+            final_answer,
+        )
+        final_answer = re.sub(r"(sqrt)([^{])", "sqrt{\\2}", final_answer)
+        final_answer = final_answer.replace("$", "")
+
+        # Normalize 100,000 -> 100000
+        if final_answer.replace(",", "").isdigit():
+            final_answer = final_answer.replace(",", "")
+
+        return final_answer
+
+    @classmethod
+    def last_boxed_only_string(cls, string: str) -> Optional[str]:
+        idx = string.rfind("\\boxed")
+        if "\\boxed " in string:
+            return "\\boxed " + string.split("\\boxed ")[-1].split("$")[0]
+        if idx < 0:
+            idx = string.rfind("\\fbox")
+            if idx < 0:
+                return None
+
+        i = idx
+        right_brace_idx = None
+        num_left_braces_open = 0
+        while i < len(string):
+            if string[i] == "{":
+                num_left_braces_open += 1
+            if string[i] == "}":
+                num_left_braces_open -= 1
+                if num_left_braces_open == 0:
+                    right_brace_idx = i
+                    break
+            i += 1
+
+        if right_brace_idx is None:
+            retval = None
+        else:
+            retval = string[idx : right_brace_idx + 1]
+
+        return retval
+
+    @classmethod
+    def remove_boxed(cls, s: str) -> str:
+        try:
+            if "\\boxed " in s:
+                left = "\\boxed "
+                assert s[: len(left)] == left
+                return s[len(left) :]
+
+            left = "\\boxed{"
+
+            assert s[: len(left)] == left
+            assert s[-1] == "}"
+            return s[len(left) : -1]
+        except AssertionError:
+            return MATH.INVALID_ANSWER
+
+
+if __name__ == "__main__":
+    MATH.preprocess()

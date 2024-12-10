@@ -183,10 +183,8 @@ class MultiTagsParser(Parser):
             right = raw.find(end)
             if left == -1:
                 logger.error(f"Tag {begin} not found in the content:\n{raw}")
-                raise ValueError(
-                    f"Tag {begin} not found in the content:\n{raw}",
-                )
-            if right == -1:
+                text = ""
+            elif right == -1:
                 if i < len(self.tags) - 1:
                     logger.warning(
                         f"Tag {end} end not found, "
@@ -195,26 +193,21 @@ class MultiTagsParser(Parser):
                     right = raw.find(self.tags[i + 1].begin)
                     if right == -1:
                         logger.error(
-                            f"Tag {end} end not found in the content:\n{raw}",
+                            f"Tag {self.tags[i + 1].begin} not found in the content:\n{raw}",
                         )
-                        raise ValueError(
-                            f"Tag {end} not found in the content:\n{raw}",
-                        )
+                        text = ""
+                    else:
+                        text = raw[left + len(begin) : right].strip()
                 elif i == len(self.tags) - 1:
-                    result[self.tags[i].name] = self.tags[i].parse(
-                        raw[left + len(begin) :].strip(),
-                    )
-                    continue
+                    text = raw[left + len(begin) :].strip()
                 else:
                     logger.error(
                         f"Tag {end} end not found in the content:\n{raw}",
                     )
-                    raise ValueError(
-                        f"Tag {end} not found in the content:\n{raw}",
-                    )
-            result[self.tags[i].name] = self.tags[i].parse(
-                raw[left + len(begin) : right].strip(),
-            )
+                    text = ""
+            else:
+                text = raw[left + len(begin) : right].strip()
+            result[self.tags[i].name] = self.tags[i].parse(text)
         return result
 
     @property

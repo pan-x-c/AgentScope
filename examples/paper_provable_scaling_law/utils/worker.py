@@ -17,6 +17,24 @@ from .parser import (
 )
 
 
+def get_generator(config: dict) -> Generator:
+    """Get a generator from a config dict."""
+    if config["type"] == "mmlu_pro":
+        return MMLUProGenerator(config["model"])
+    else:
+        raise NotImplementedError
+
+
+def get_judge(config: dict) -> Judge:
+    """Get a judge from a config dict."""
+    if config["type"] == "mmlu_pro_cot":
+        return MMLUProCoTJudge(model_config=config["model"])
+    if config["type"] == "mmlu_pro":
+        return MMLUProJudge(model_config=config["model"])
+    else:
+        raise NotImplementedError
+
+
 class Generator(metaclass=RpcMeta):
     """A basic generator"""
 
@@ -29,14 +47,6 @@ class Generator(metaclass=RpcMeta):
             model_config,
         )
         self.prompter = prompter
-
-    @classmethod
-    def from_dict(cls, config: dict) -> Generator:
-        """Load a generator from a config dict."""
-        if config["type"] == "mmlu_pro":
-            return MMLUProGenerator(config["model"])
-        else:
-            raise NotImplementedError
 
     @async_func
     def run(self, question: str) -> dict:
@@ -53,14 +63,16 @@ class MixedGenerator(metaclass=RpcMeta):
     def __init__(
         self,
         generators: List[Generator],
+        candidate_num: int,
         cache: Cache,
     ) -> None:
         self.generators = generators
         self.generator_num = len(self.generators)
+        self.candidate_num = candidate_num
         self.cache = cache
 
     @async_func
-    def generate(self, question: dict, n: int) -> List[dict]:
+    def generate(self, question: dict) -> List[dict]:
         """
         Generate n candidates for a question with multiple generators.
         """
@@ -68,7 +80,7 @@ class MixedGenerator(metaclass=RpcMeta):
             instance_id=question["id"],
             category=question.get("category", "all"),
         )
-        diff = max(0, n - len(candidates))
+        diff = max(0, self.candidate_num - len(candidates))
         if diff == 0:
             return candidates
         futures = [
@@ -134,14 +146,6 @@ class Judge(metaclass=RpcMeta):
             model_config,
         )
         self.prompter = prompter
-
-    @classmethod
-    def from_dict(cls, config: dict) -> Judge:
-        """Load a judge from a config dict."""
-        if config["type"] == "mmlu_pro":
-            return MMLUProJudge(model_config=config["model"])
-        else:
-            raise NotImplementedError
 
     @async_func
     def run(self, question: str, candidate_a: str, candidate_b: str) -> dict:
@@ -286,6 +290,39 @@ class MMLUProJudge(Judge):
 {candidate_b}
 
 ---- OUTPUT FORMAT ----
+Return your answer directly in the following format.
+```
+{format}
+```
+Do not output anything else.
+"""
+
+    def __init__(self, model_config: str):
+        comparison_prompter = ComparisonPrompter(
+            prompt=MMLUProCoTJudge.CMP_PROMPT,
+            parser=MultiTagsParser(
+                tags=[
+                    PairWiseParser(),
+                ],
+            ),
+            sys_prompt="You are an impartial Judge. Given a question and two candidate solutions, your task is to choose which solution answer the question better. Your judgment should be unbiased, without favoring either Solution 1 or 2.",
+        )
+        super().__init__(comparison_prompter, model_config)
+
+
+class MMLUProCoTJudge(Judge):
+    """A judge for MMLUPro with CoT prompt."""
+
+    CMP_PROMPT = """---- QUESTION ----
+{question}
+
+---- Solution 1 ----
+{candidate_a}
+
+---- Solution 2 ----
+{candidate_b}
+
+---- OUTPUT FORMAT ----
 ```
 {format}
 ```
@@ -293,7 +330,7 @@ class MMLUProJudge(Judge):
 
     def __init__(self, model_config: str):
         comparison_prompter = ComparisonPrompter(
-            prompt=MMLUProJudge.CMP_PROMPT,
+            prompt=MMLUProCoTJudge.CMP_PROMPT,
             parser=MultiTagsParser(
                 tags=[
                     TagParser(

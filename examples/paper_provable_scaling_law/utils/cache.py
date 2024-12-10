@@ -14,17 +14,15 @@ class Cache:
     def __init__(
         self,
         project_name: str,
-        dataset_name: str,
         job_name: str,
+        config: dict = None,
     ) -> None:
         self.project_name = project_name
-        self.dataset_name = dataset_name
         self.job_name = job_name
         self.data_dir = os.path.join(
             os.path.dirname(__file__),
             "output",
             self.project_name,
-            self.dataset_name,
             self.job_name,
         )
         self.generation_dir = os.path.join(
@@ -39,6 +37,23 @@ class Cache:
             self.data_dir,
             "competition",
         )
+        if config:
+            if "generation" in config:
+                self.generation_dir = os.path.join(
+                    os.path.dirname(__file__),
+                    "output",
+                    config["generation"]["project"],
+                    config["generation"]["job"],
+                    "generation",
+                )
+            if "comparison" in config:
+                self.comparsion_dir = os.path.join(
+                    os.path.dirname(__file__),
+                    "output",
+                    config["comparison"]["project"],
+                    config["comparison"]["job"],
+                    "comparison",
+                )
         os.makedirs(self.generation_dir, exist_ok=True)
         os.makedirs(self.comparsion_dir, exist_ok=True)
         os.makedirs(self.competition_dir, exist_ok=True)
@@ -179,3 +194,40 @@ class Cache:
         if not os.path.exists(knockout_file):
             return {}
         return json.load(open(knockout_file, "r", encoding="utf-8"))
+
+
+    def save_knockout_stats(
+        self,
+        stats: dict,
+        n: int,
+        k: int,
+    ) -> None:
+        knockout_stats_dir = os.path.join(
+            self.competition_dir,
+            "knockout_stats",
+        )
+        os.makedirs(knockout_stats_dir, exist_ok=True)
+        with open(
+            os.path.join(
+                knockout_stats_dir,
+                f"{n}_{k}.json",
+            ),
+            "w",
+            encoding="utf-8",
+        ) as f:
+            json.dump(stats, f, ensure_ascii=False, indent=2)
+
+    def load_knockout_stats(
+        self,
+        n: int,
+        k: int,
+    ) -> dict:
+        knockout_stats_file = os.path.join(
+            self.competition_dir,
+            "knockout_stats",
+            f"{n}_{k}.json",
+        )
+        return {} if not os.path.exists(knockout_stats_file) else json.load(
+            open(knockout_stats_file, "r", encoding="utf-8")
+        )
+        

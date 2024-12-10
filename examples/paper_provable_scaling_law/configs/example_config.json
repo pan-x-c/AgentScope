@@ -1,4 +1,6 @@
 {
+    "project": "provable_scaling_law",
+    "job": "qwen_llama_cot",
     "servers": [
         {
             "host": "localhost",
@@ -37,8 +39,6 @@
             }
         }
     ],
-    "project": "provable_scaling_law",
-    "job": "qwen_llama_cot",
     "dataset": {
         "name": "mmlu_pro",
         "max_instance": 6,
@@ -47,7 +47,8 @@
             "physics"
         ]
     },
-    "generate": {
+    "generation": {
+        "candidate_num": 16,
         "workers": [
             {
                 "type": "mmlu_pro",
@@ -59,7 +60,7 @@
             }
         ]
     },
-    "judge": {
+    "judgement": {
         "workers": [
             {
                 "type": "mmlu_pro",
@@ -73,7 +74,7 @@
     },
     "competition": {
         "method": "knockout",
-        "candidate_num": 16,
+        "n": 16,
         "k": 4
     }
 }

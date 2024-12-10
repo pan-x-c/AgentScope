@@ -11,20 +11,18 @@ from loguru import logger
 import agentscope
 from agentscope.server import RpcAgentServerLauncher
 
+from utils import get_dataset, get_generator, get_judge, get_competition
 from utils.dataset import Dataset
 from utils.cache import Cache
-from utils.worker import MixedGenerator, MixedJudge, Generator, Judge
-from competition import Competition
+from utils.worker import MixedGenerator, MixedJudge
+from utils.competition import Competition
 
 
-def run(
+def run_generation(
     generator: MixedGenerator,
-    competition: Competition,
     dataset: Dataset,
-    competition_config: dict,
-    cache: Cache,
-) -> None:
-    """Run the benchmark."""
+) -> dict:
+    """Run the generation."""
     max_pending_num = 4
     step_num = 1
     futures = []
@@ -35,13 +33,21 @@ def run(
         futures.append(
             generator.generate(
                 question=question,
-                n=competition_config["candidate_num"],
             ),
         )
     for f in futures:
         f.result()
     logger.info("Generation finished")
 
+
+def run_competition(
+    competition: Competition,
+    dataset: Dataset,
+    cache: Cache,
+) -> dict:
+    """Run the competition."""
+    max_pending_num = 2
+    step_num = 1
     futures = []
     for question in dataset:
         if len(futures) > max_pending_num:
@@ -53,50 +59,56 @@ def run(
                 candidates=cache.load_generation(
                     question["id"],
                     question["category"],
-                )[: competition_config["candidate_num"]],
-                **competition_config,
+                ),
             ),
         )
     for f in futures:
         f.result()
+    competition.calculate_stats(dataset)
     logger.info("Knockout finished")
 
 
 def main(conf: dict) -> None:
     """Main entry point."""
-    dataset = Dataset.from_dict(conf["dataset"])
+    dataset = get_dataset(conf["dataset"])
     cache = Cache(
         project_name=conf["project"],
-        dataset_name=conf["dataset"]["name"],
         job_name=conf["job"],
+        config=conf.get("cache", None),
     )
     worker_launchers = [RpcAgentServerLauncher(**s) for s in conf["servers"]]
     for launcher in worker_launchers:
         launcher.launch()
     master_launcher = RpcAgentServerLauncher()
     master_launcher.launch()
-    generators = [
-        Generator.from_dict(w).to_dist(
-            worker_launchers[i % len(worker_launchers)].host,
-            worker_launchers[i % len(worker_launchers)].port,
-        )
-        for i, w in enumerate(conf["generate"]["workers"])
-    ]
-    gen = MixedGenerator(
-        generators=generators,
-        cache=cache,
-        to_dist={
-            "host": master_launcher.host,
-            "port": master_launcher.port,
-        },
-    )
-    judge = MixedJudge(
-        judges=[
-            Judge.from_dict(w).to_dist(
+    if config.get("generation", None):
+        generators = [
+            get_generator(w).to_dist(
                 worker_launchers[i % len(worker_launchers)].host,
                 worker_launchers[i % len(worker_launchers)].port,
             )
-            for i, w in enumerate(conf["judge"]["workers"])
+            for i, w in enumerate(conf["generation"]["workers"])
+        ]
+        gen = MixedGenerator(
+            generators=generators,
+            cache=cache,
+            candidate_num=conf["generation"]["candidate_num"],
+            to_dist={
+                "host": master_launcher.host,
+                "port": master_launcher.port,
+            },
+        )
+        run_generation(
+            gen,
+            dataset,
+        )
+    judge = MixedJudge(
+        judges=[
+            get_judge(w).to_dist(
+                host=worker_launchers[i % len(worker_launchers)].host,
+                port=worker_launchers[i % len(worker_launchers)].port,
+            )
+            for i, w in enumerate(conf["judgement"]["workers"])
         ],
         cache=cache,
         to_dist={
@@ -104,19 +116,18 @@ def main(conf: dict) -> None:
             "port": master_launcher.port,
         },
     )
-    competition = Competition(
-        judge,
-        cache,
+    competition = get_competition(
+        config=conf["competition"],
+        judge=judge,
+        cache=cache,
         to_dist={
             "host": master_launcher.host,
             "port": master_launcher.port,
         },
     )
-    run(
-        gen,
+    run_competition(
         competition,
         dataset,
-        conf["competition"],
         cache,
     )
     master_launcher.shutdown()
@@ -132,5 +143,7 @@ if __name__ == "__main__":
     agentscope.init(
         project=config["project"],
         model_configs=config["models"],
+        use_monitor=False,
+        save_code=False,
     )
     main(config)

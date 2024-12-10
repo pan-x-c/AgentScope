@@ -79,7 +79,9 @@ class RetryFixedTimes(RetryBase):
                 return func()
             except exception_type as e:
                 if attempt == self.max_retries:
-                    raise TimeoutError("Max timeout exceeded.") from e
+                    raise TimeoutError(
+                        f"Max timeout exceeded.",
+                    ) from e
                 random_delay = (random.random() + 0.5) * self.delay
                 frame_info = inspect.getframeinfo(
                     inspect.currentframe().f_back,  # type: ignore[arg-type]
@@ -92,7 +94,9 @@ class RetryFixedTimes(RetryBase):
                 )
                 time.sleep(random_delay)
         logger.error(f"Max timeout exceeded at [{file_name}:{line_number}].")
-        raise TimeoutError("Max retry exceeded.")
+        raise TimeoutError(
+            f"Max retry exceeded at [{file_name}:{line_number}]..",
+        )
 
 
 class RetryExpential(RetryBase):
@@ -165,7 +169,7 @@ class RetryExpential(RetryBase):
                 time.sleep(random_delay)
                 delay *= 2
         logger.error(f"Max timeout exceeded at [{file_name}:{line_number}].")
-        raise TimeoutError("Max retry exceeded.")
+        raise TimeoutError(f"Max retry exceeded at [{file_name}:{line_number}].")
 
 
-_DEAFULT_RETRY_STRATEGY = RetryFixedTimes(max_retries=10, delay=5)
+_DEAFULT_RETRY_STRATEGY = RetryFixedTimes(max_retries=100, delay=5)
