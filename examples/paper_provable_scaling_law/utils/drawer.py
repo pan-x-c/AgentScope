@@ -23,7 +23,9 @@ class KnockoutFigureDrawer:
             Cache(
                 project_name=config["project"],
                 job_name=config["job"],
-            ).load_knockout_stats(n=config["n"], k=config["k"])
+            ).load_knockout_stats(
+                n=config["n"], k=config["k"], categories=categories
+            )
             for config in configs
         ]
         for category in categories:
@@ -37,7 +39,9 @@ class KnockoutFigureDrawer:
                     color=configs[i]["color"],
                 )
             ax.set_title(f"{dataset_name}: {category}")
-            ax.grid(True, linestyle="dashed", linewidth=1, color="gray", alpha=0.5)
+            ax.grid(
+                True, linestyle="dashed", linewidth=1, color="gray", alpha=0.5
+            )
             ax.set_xlabel("N")
             ax.set_ylabel("Accuracy")
             ax.legend(
@@ -74,11 +78,15 @@ class KnockoutFigureDrawer:
             Cache(
                 project_name=config["project"],
                 job_name=config["job"],
-            ).load_knockout_stats(n=config["n"], k=config["k"])
+            ).load_knockout_stats(
+                n=config["n"], k=config["k"], categories=categories
+            )
             for config in configs
         ]
         for i, stats in enumerate(run_stats):
             for category in categories:
+                all_correct_cnt = 0
+                all_wrong_cnt = 0
                 fig, ax = plt.subplots(figsize=(3.5, 3))
                 p_gens = []
                 p_cmps = []
@@ -86,6 +94,10 @@ class KnockoutFigureDrawer:
                     if stat["cmp"]["valid"] > 0:
                         p_gens.append(stat["acc"]["1"])
                         p_cmps.append(stat["cmp"]["p_cmp"])
+                    if stat["acc"]["1"] == 0:
+                        all_wrong_cnt += 1
+                    if stat["acc"]["1"] == 1:
+                        all_correct_cnt += 1
                 ax.scatter(
                     p_gens,
                     p_cmps,
@@ -95,28 +107,52 @@ class KnockoutFigureDrawer:
                 )
                 above_count = sum(1 for p_cmp in p_cmps if p_cmp > 0.5)
                 below_count = sum(1 for p_cmp in p_cmps if p_cmp <= 0.5)
-                ax.set_title(f"{dataset_name}: {category}")
+                ax.set_title(
+                    f"({configs[i]['label']}) {dataset_name}: {category}"
+                )
                 ax.set_xlim(-0.05, 1.05)
                 ax.set_ylim(-0.10, 1.10)
                 ax.set_xlabel("$P_{gen}$")
                 ax.set_ylabel("$P_{comp}$")
-                ax.axhline(y=0.5, color="black", linestyle="dotted", linewidth=1.0)
-                ax.grid(True, linestyle="dashed", linewidth=1, color="gray", alpha=0.5)
+                ax.axhline(
+                    y=0.5, color="black", linestyle="dotted", linewidth=1.0
+                )
+                ax.grid(
+                    True,
+                    linestyle="dashed",
+                    linewidth=1,
+                    color="gray",
+                    alpha=0.5,
+                )
                 ax.text(
                     -0.05,
-                    1.05,
-                    "#Above = " + str(above_count),
+                    1.03,
+                    "#[$P_{comp}>0.5$] = " + str(above_count),
                     fontsize=9,
                     verticalalignment="center",
                 )
                 ax.text(
                     -0.05,
                     -0.05,
-                    "#Below = " + str(below_count),
+                    "#[$P_{comp}≤0.5$] = " + str(below_count),
                     fontsize=9,
                     verticalalignment="center",
                 )
-                ax.legend(loc="upper right")
+
+                ax.text(
+                    -0.05,
+                    -0.33,
+                    "#[$P_{gen}$=0] = " + str(all_wrong_cnt),
+                    fontsize=9,
+                    verticalalignment="center",
+                )
+                ax.text(
+                    0.65,
+                    -0.33,
+                    "#[$P_{gen}$=1] = " + str(all_correct_cnt),
+                    fontsize=9,
+                    verticalalignment="center",
+                )
                 plt.tight_layout()
                 plt.savefig(
                     os.path.join(

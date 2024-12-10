@@ -2,7 +2,6 @@
 """Competition module."""
 from __future__ import annotations
 from abc import abstractmethod
-from tqdm import tqdm
 from typing import List
 from loguru import logger
 from agentscope.rpc import async_func, RpcMeta
@@ -49,7 +48,14 @@ class Competition(metaclass=RpcMeta):
 
 
 class Knockout(Competition):
-    def __init__(self, judge: MixedJudge, cache: Cache, n: int, k: int):
+    def __init__(
+        self,
+        judge: MixedJudge,
+        cache: Cache,
+        n: int,
+        k: int,
+        skip_same: bool = True,
+    ):
         """
         Args:
             n (`int`): the number of candidates
@@ -58,6 +64,7 @@ class Knockout(Competition):
         super().__init__(judge, cache)
         self.n = n
         self.k = k
+        self.skip_same = skip_same
 
     def competition(
         self,
@@ -83,43 +90,60 @@ class Knockout(Competition):
             "final": None,
             "detail": {},
         }
+        all_same = False
         while len(candidates) > 1:
             round_num += 1
             winners = []
             if len(candidates) % 2 == 1:
                 winners.append(candidates[-1])
             pairs = []
+            if not all_same or self.skip_same:
+                seen_answers = set()
+                for i in range(len(candidates)):
+                    seen_answers.add(candidates[i]["answer"])
+                if len(seen_answers) == 1:
+                    all_same = True
             for i in range(1, len(candidates), 2):
                 # pair-wise compare
-                pairs.append(
-                    self.judge.pairwise_compare(
-                        question=question,
-                        candidate_a=candidates[i - 1],
-                        candidate_b=candidates[i],
-                        k=self.k,
-                    ),
-                )
+                if all_same:
+                    pairs.append(None)
+                else:
+                    pairs.append(
+                        self.judge.pairwise_compare(
+                            question=question,
+                            candidate_a=candidates[i - 1],
+                            candidate_b=candidates[i],
+                            k=self.k,
+                        ),
+                    )
             rounds_detail = []
-            for i, pair in tqdm(
-                enumerate(pairs),
-                desc=f"Round {round_num}",
-                total=len(pairs),
-                leave=False,
-            ):
-                pair = pair.result()
-                rounds_detail.append(
-                    {
-                        "winner": pair["winner"],
-                        "a": pair["a"],
-                        "b": pair["b"],
-                        "score_a": pair["score_a"],
-                        "score_b": pair["score_b"],
-                    },
-                )
-                if pair["winner"] == candidates[i * 2]["cid"]:
+            for i, pair in enumerate(pairs):
+                if all_same:
+                    rounds_detail.append(
+                        {
+                            "winner": candidates[i * 2]["cid"],
+                            "a": candidates[i * 2]["cid"],
+                            "b": candidates[i * 2 + 1]["cid"],
+                            "score_a": 0,
+                            "score_b": 0,
+                        },
+                    )
                     winners.append(candidates[i * 2])
                 else:
-                    winners.append(candidates[i * 2 + 1])
+                    pair = pair.result()
+                    rounds_detail.append(
+                        {
+                            "winner": pair["winner"],
+                            "a": pair["a"],
+                            "b": pair["b"],
+                            "score_a": pair["score_a"],
+                            "score_b": pair["score_b"],
+                        },
+                    )
+                    if pair["winner"] == candidates[i * 2]["cid"]:
+                        winners.append(candidates[i * 2])
+                    else:
+                        winners.append(candidates[i * 2 + 1])
             knockout_traj["detail"][f"round_{round_num}"] = rounds_detail
             candidates = winners
             logger.info(f"Round {round_num} done")
@@ -218,8 +242,110 @@ class Knockout(Competition):
                 category_stats[category]["acc"][
                     candidate_num
                 ] /= category_stats[category]["cnt"]
-        self.cache.save_knockout_stats(category_stats, n, k)
+            self.cache.save_knockout_stats(
+                category_stats[category], n, k, category
+            )
         logger.info("Finished calculating knockout stats")
+
+
+class UCB(Competition):
+    def __init__(
+        self,
+        judge: MixedJudge,
+        cache: Cache,
+        n: int,
+        k: int,
+        t: int,
+        n_opponent: int,
+        c_bonous: float,
+    ):
+        super().__init__(judge, cache)
+        self.n = n
+        self.k = k
+        self.t = t
+        self.n_opponent = n_opponent
+        self.c_bonous = c_bonous
+
+    def competition(
+        self,
+        question: dict,
+        candidates: List[dict],
+    ) -> dict:
+        """Run ucb competition."""
+        import numpy as np
+
+        candidates = candidates[: self.n]
+        ucb = np.ones(self.n, dtype=np.float64)
+        lcb = np.zeros(self.n, dtype=np.float64)
+        avg_win_rate = np.full(self.n, 0.5, dtype=np.float64)
+        win_cnt_matrix = np.zeros((self.n, self.n), dtype=np.float64)
+        lose_cnt_matrix = np.zeros((self.n, self.n), dtype=np.float64)
+        # whether the candidate is active or not
+        active_signal = np.ones(self.n, dtype=np.bool_)
+        for t in range(self.t):
+            # top_id = np.argmax(ucb + np.random.randn(self.n) * 1e-8 + (active_signal - 1) * 10)
+            # find activate candidate id where active_signal == 1
+            active_candidate_ids = np.where(active_signal)[0]
+            for idx in active_candidate_ids:
+                opponent_num = self.n_opponent
+                candidate_opponent_list = [
+                    x for x in active_candidate_ids if x != idx
+                ]
+                opponent_list = []
+                while opponent_num > len(candidate_opponent_list):
+                    opponent_list.extend(candidate_opponent_list)
+                    opponent_num -= len(candidate_opponent_list)
+                if opponent_num > 0:
+                    opponent_list.extend(
+                        np.random.choice(
+                            candidate_opponent_list,
+                            size=opponent_num,
+                            replace=False,
+                        )
+                    )
+                futures = []
+                for opponent_id in opponent_list:
+                    future = self.judge.pairwise_compare(
+                        question,
+                        candidates[idx]["raw"],
+                        candidates[opponent_id]["raw"],
+                        k=self.k,
+                    )
+                    futures.append(future)
+                for future in futures:
+                    result = future.result()
+                    win_cnt_matrix[idx][opponent_id] += result["score_a"]
+                    lose_cnt_matrix[idx][opponent_id] += result["score_b"]
+
+            while True:
+                for idx in np.where(active_signal)[0]:
+                    total_win_count = np.sum(
+                        win_cnt_matrix[idx] * active_signal
+                    )
+                    total_lose_count = np.sum(
+                        lose_cnt_matrix[idx] * active_signal
+                    )
+                    total_count = total_win_count + total_lose_count
+                    if total_count >= 1:
+                        avg_win_rate[idx] = total_win_count / total_count
+                        bonus = np.sqrt(self.c_bonous / total_count)
+                        ucb[idx] = min(avg_win_rate[idx] + bonus, 1.0)
+                        lcb[idx] = max(avg_win_rate[idx] - bonus, 0.0)
+                max_lcb = np.max(lcb * active_signal)
+                update_active_signal = False
+                for idx in np.where(active_signal)[0]:
+                    if ucb[idx] < max_lcb:
+                        active_signal[idx] = False
+                        update_active_signal = True
+                if not update_active_signal:
+                    break
+
+            seen_answers = set()
+            for idx in np.where(active_signal)[0]:
+                if candidates[idx]["answer"] not in seen_answers:
+                    seen_answers.add(candidates[idx]["answer"])
+            if len(seen_answers) <= 1:
+                break
 
 
 class League(Competition):

@@ -195,12 +195,12 @@ class Cache:
             return {}
         return json.load(open(knockout_file, "r", encoding="utf-8"))
 
-
     def save_knockout_stats(
         self,
         stats: dict,
         n: int,
         k: int,
+        category: str,
     ) -> None:
         knockout_stats_dir = os.path.join(
             self.competition_dir,
@@ -210,7 +210,7 @@ class Cache:
         with open(
             os.path.join(
                 knockout_stats_dir,
-                f"{n}_{k}.json",
+                f"{category}_{n}_{k}.json",
             ),
             "w",
             encoding="utf-8",
@@ -218,16 +218,16 @@ class Cache:
             json.dump(stats, f, ensure_ascii=False, indent=2)
 
     def load_knockout_stats(
-        self,
-        n: int,
-        k: int,
+        self, n: int, k: int, categories: List[str]
     ) -> dict:
-        knockout_stats_file = os.path.join(
-            self.competition_dir,
-            "knockout_stats",
-            f"{n}_{k}.json",
-        )
-        return {} if not os.path.exists(knockout_stats_file) else json.load(
-            open(knockout_stats_file, "r", encoding="utf-8")
-        )
-        
+        result = {}
+        for category in categories:
+            knockout_stats_file = os.path.join(
+                self.competition_dir,
+                "knockout_stats",
+                f"{category}_{n}_{k}.json",
+            )
+            result[category] = json.load(
+                open(knockout_stats_file, "r", encoding="utf-8")
+            )
+        return result
