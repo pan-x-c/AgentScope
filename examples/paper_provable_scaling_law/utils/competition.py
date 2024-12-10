@@ -103,8 +103,8 @@ class Knockout(Competition):
             for i, pair in tqdm(
                 enumerate(pairs),
                 desc=f"Round {round_num}",
-                position=1,
                 total=len(pairs),
+                leave=False,
             ):
                 pair = pair.result()
                 rounds_detail.append(
@@ -149,7 +149,7 @@ class Knockout(Competition):
                         "1": 0,
                     },
                     "cnt": 0,
-                    "details": {}
+                    "details": {},
                 }
             question_stats = {}
             knockout_result = self.cache.load_knockout(
@@ -164,10 +164,14 @@ class Knockout(Competition):
             target = question["answer"]
             candidate_num = 1
             question_stats["acc"] = {
-                f"{candidate_num}": sum(1 for x in candidates if x["answer"] == target)
+                f"{candidate_num}": sum(
+                    1 for x in candidates if x["answer"] == target
+                )
                 / len(candidates)
             }
-            category_stats[question["category"]]["acc"][f"{candidate_num}"] += question_stats["acc"][f"{candidate_num}"]
+            category_stats[question["category"]]["acc"][
+                f"{candidate_num}"
+            ] += question_stats["acc"][f"{candidate_num}"]
             valid_cmp = 0
             correct_cmp = 0
             for round_num in knockout_result["detail"]:
@@ -189,10 +193,17 @@ class Knockout(Competition):
                             correct_cmp += 1
                 question_stats["acc"][str(candidate_num)] = correct / total
 
-                if str(candidate_num) not in category_stats[question["category"]]["acc"]:
-                    category_stats[question["category"]]["acc"][str(candidate_num)] = 0
-                category_stats[question["category"]]["acc"][str(candidate_num)] += correct / total
-                
+                if (
+                    str(candidate_num)
+                    not in category_stats[question["category"]]["acc"]
+                ):
+                    category_stats[question["category"]]["acc"][
+                        str(candidate_num)
+                    ] = 0
+                category_stats[question["category"]]["acc"][
+                    str(candidate_num)
+                ] += (correct / total)
+
             category_stats[question["category"]]["cnt"] += 1
             question_stats["cmp"] = {
                 "valid": valid_cmp,

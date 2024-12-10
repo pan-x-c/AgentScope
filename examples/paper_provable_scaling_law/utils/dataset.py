@@ -43,9 +43,10 @@ Options:
 
     OPTION_TEMPLATE = """({option}) {context}"""
 
-    def __init__(self, categories: List[str], max_instance: int):
+    def __init__(self, categories: List[str], max_instance: int, split: str = "random"):
         self.categories = categories
         self.max_instance = max_instance
+        self.split = split
         self.cur_category_index = 0
         self.cur_instance_index = 0
         self.total_samples = 0
@@ -53,7 +54,7 @@ Options:
         self.pbar = None
 
     def __reduce__(self):
-        return (self.__class__, (self.categories, self.max_instance))
+        return (self.__class__, (self.categories, self.max_instance, self.split))
 
     @classmethod
     def preprocess(cls) -> None:
@@ -144,7 +145,7 @@ Options:
         file_path = os.path.join(
             DATASET_DIR,
             "mmlu_pro",
-            "test",
+            self.split,
             f"{category}.jsonl",
         )
 

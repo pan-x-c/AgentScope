@@ -141,15 +141,20 @@ class PairWiseParser(ChoiceParser):
 
     def __init__(
         self,
+        allow_tie: bool = True,
     ) -> None:
-        super().__init__(
-            "winner",
-            choices=[
-                "Solution 1",
-                "Solution 2",
-                "Tie",
-            ],
-        )
+        if allow_tie:
+            choices = ["Solution 1", "Solution 2", "Tie"]
+        else:
+            choices = ["Solution 1", "Solution 2"]
+        super().__init__("winner", choices=choices)
+
+    def parse_to_dict(self, raw: str) -> dict:
+        try:
+            text = self.extract(raw)
+        except ValueError:
+            text = raw
+        return {self.name: self.parse(text)}
 
     def parse(self, text: str) -> Any:
         if text == "Solution 1":

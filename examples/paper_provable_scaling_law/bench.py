@@ -21,13 +21,13 @@ from utils.competition import Competition
 def run_generation(
     generator: MixedGenerator,
     dataset: Dataset,
+    pending_task_num: int = 4,
+    step_num: int = 1,
 ) -> dict:
     """Run the generation."""
-    max_pending_num = 4
-    step_num = 1
     futures = []
     for question in dataset:
-        if len(futures) > max_pending_num:
+        if len(futures) > pending_task_num:
             for _ in range(step_num):
                 futures.pop(0).result()
         futures.append(
@@ -44,13 +44,13 @@ def run_competition(
     competition: Competition,
     dataset: Dataset,
     cache: Cache,
+    pending_task_num: int = 2,
+    step_num: int = 1,
 ) -> dict:
     """Run the competition."""
-    max_pending_num = 2
-    step_num = 1
     futures = []
     for question in dataset:
-        if len(futures) > max_pending_num:
+        if len(futures) > pending_task_num:
             for _ in range(step_num):
                 futures.pop(0).result()
         futures.append(

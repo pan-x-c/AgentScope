@@ -152,8 +152,8 @@ class Judge(metaclass=RpcMeta):
         """Compare two candidates."""
         prompt = self.prompter.generate_prompt(
             question=question,
-            candidate_a=candidate_b,
-            candidate_b=candidate_a,
+            candidate_a=candidate_a,
+            candidate_b=candidate_b,
         )
         return self.prompter.parse_text(self.model(prompt).text)
 
@@ -291,20 +291,16 @@ class MMLUProJudge(Judge):
 
 ---- OUTPUT FORMAT ----
 Return your answer directly in the following format.
-```
+
 {format}
-```
+
 Do not output anything else.
 """
 
     def __init__(self, model_config: str):
         comparison_prompter = ComparisonPrompter(
-            prompt=MMLUProCoTJudge.CMP_PROMPT,
-            parser=MultiTagsParser(
-                tags=[
-                    PairWiseParser(),
-                ],
-            ),
+            prompt=MMLUProJudge.CMP_PROMPT,
+            parser=PairWiseParser(),
             sys_prompt="You are an impartial Judge. Given a question and two candidate solutions, your task is to choose which solution answer the question better. Your judgment should be unbiased, without favoring either Solution 1 or 2.",
         )
         super().__init__(comparison_prompter, model_config)

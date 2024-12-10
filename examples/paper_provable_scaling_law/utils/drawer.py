@@ -93,14 +93,30 @@ class KnockoutFigureDrawer:
                     alpha=0.6,
                     color=configs[i]["color"],
                 )
+                above_count = sum(1 for p_cmp in p_cmps if p_cmp > 0.5)
+                below_count = sum(1 for p_cmp in p_cmps if p_cmp <= 0.5)
                 ax.set_title(f"{dataset_name}: {category}")
                 ax.set_xlim(-0.05, 1.05)
-                ax.set_ylim(-0.05, 1.05)
+                ax.set_ylim(-0.10, 1.10)
                 ax.set_xlabel("$P_{gen}$")
                 ax.set_ylabel("$P_{comp}$")
                 ax.axhline(y=0.5, color="black", linestyle="dotted", linewidth=1.0)
-                ax.grid(True, linestyle='dashed', linewidth=1, color='gray', alpha=0.5)
-                ax.legend()
+                ax.grid(True, linestyle="dashed", linewidth=1, color="gray", alpha=0.5)
+                ax.text(
+                    -0.05,
+                    1.05,
+                    "#Above = " + str(above_count),
+                    fontsize=9,
+                    verticalalignment="center",
+                )
+                ax.text(
+                    -0.05,
+                    -0.05,
+                    "#Below = " + str(below_count),
+                    fontsize=9,
+                    verticalalignment="center",
+                )
+                ax.legend(loc="upper right")
                 plt.tight_layout()
                 plt.savefig(
                     os.path.join(

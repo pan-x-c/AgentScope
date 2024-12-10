@@ -37,6 +37,7 @@ def get_dataset(config: dict) -> Dataset:
         return MMLUPro(
             max_instance=config["max_instance"],
             categories=config["categories"],
+            split=config["split"],
         )
     else:
         raise NotImplementedError
