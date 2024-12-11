@@ -231,3 +231,77 @@ class Cache:
                 open(knockout_stats_file, "r", encoding="utf-8")
             )
         return result
+
+    def save_ucb(
+        self,
+        detail: dict,
+        instance_id: str,
+        n: int,
+        k: int,
+        t: int,
+        category: str = DEFAULT_CATEGORY,
+    ) -> None:
+        ucb_dir = os.path.join(self.competition_dir, "ucb", category)
+        os.makedirs(ucb_dir, exist_ok=True)
+        with open(
+            os.path.join(ucb_dir, f"{instance_id}_{n}_{k}_{t}.json"),
+            "w",
+            encoding="utf-8",
+        ) as f:
+            json.dump(detail, f, ensure_ascii=False, indent=2)
+
+    def load_ucb(
+        self,
+        instance_id: str,
+        n: int,
+        k: int,
+        t: int,
+        category: str = DEFAULT_CATEGORY,
+    ) -> None:
+        ucb_file = os.path.join(
+            self.competition_dir,
+            "ucb",
+            category,
+            f"{instance_id}_{n}_{k}_{t}.json",
+        )
+        if not os.path.exists(ucb_file):
+            return {}
+        return json.load(open(ucb_file, "r", encoding="utf-8"))
+
+    def save_ucb_stats(
+        self,
+        stats: dict,
+        n: int,
+        k: int,
+        t: int,
+        category: str,
+    ) -> None:
+        ucb_stats_dir = os.path.join(
+            self.competition_dir,
+            "ucb_stats",
+        )
+        os.makedirs(ucb_stats_dir, exist_ok=True)
+        with open(
+            os.path.join(
+                ucb_stats_dir,
+                f"{category}_{n}_{k}_{t}.json",
+            ),
+            "w",
+            encoding="utf-8",
+        ) as f:
+            json.dump(stats, f, ensure_ascii=False, indent=2)
+
+    def load_ucb_stats(
+        self, n: int, k: int, t: int, categories: List[str]
+    ) -> dict:
+        result = {}
+        for category in categories:
+            ucb_stats_file = os.path.join(
+                self.competition_dir,
+                "ucb_stats",
+                f"{category}_{n}_{k}_{t}.json",
+            )
+            result[category] = json.load(
+                open(ucb_stats_file, "r", encoding="utf-8")
+            )
+        return result

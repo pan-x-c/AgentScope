@@ -10,7 +10,7 @@ from .worker import (
     MMLUProGenerator,
 )
 
-from .competition import Competition, Knockout
+from .competition import Competition, Knockout, UCB
 
 
 def get_generator(config: dict) -> Generator:
@@ -56,6 +56,15 @@ def get_competition(
             cache=cache,
             n=config["n"],
             k=config["k"],
+            to_dist=to_dist,
+        )
+    if config["method"] == "ucb":
+        return UCB(
+            judge=judge,
+            cache=cache,
+            n=config["n"],
+            k=config["k"],
+            t=config["t"],
             to_dist=to_dist,
         )
     else:

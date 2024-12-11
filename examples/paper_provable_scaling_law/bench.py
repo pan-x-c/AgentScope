@@ -65,7 +65,7 @@ def run_competition(
     for f in futures:
         f.result()
     competition.calculate_stats(dataset)
-    logger.info("Knockout finished")
+    logger.info("Competition finished")
 
 
 def main(conf: dict) -> None:

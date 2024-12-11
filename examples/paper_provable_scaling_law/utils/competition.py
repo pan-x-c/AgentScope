@@ -2,6 +2,7 @@
 """Competition module."""
 from __future__ import annotations
 from abc import abstractmethod
+from tqdm import tqdm
 from typing import List
 from loguru import logger
 from agentscope.rpc import async_func, RpcMeta
@@ -79,12 +80,14 @@ class Knockout(Competition):
             candidates (`List[dict]`): the input candidates
         """
         candidates = candidates[: self.n]
-        self.cache.load_knockout(
+        knockout_traj = self.cache.load_knockout(
             instance_id=question["id"],
             n=self.n,
             k=self.k,
             category=question["category"],
         )
+        if knockout_traj:
+            return knockout_traj["final"]
         round_num = 0
         knockout_traj = {
             "final": None,
@@ -256,8 +259,9 @@ class UCB(Competition):
         n: int,
         k: int,
         t: int,
-        n_opponent: int,
-        c_bonous: float,
+        n_opponent: int = 2,
+        c_bonous: float = 1.0,
+        win_indicater: str = "win_rate",
     ):
         super().__init__(judge, cache)
         self.n = n
@@ -265,6 +269,13 @@ class UCB(Competition):
         self.t = t
         self.n_opponent = n_opponent
         self.c_bonous = c_bonous
+        self.win_indicater = win_indicater
+
+    def get_final(self, stats: dict) -> dict:
+        if self.win_indicater == "ucb":
+            return stats["final_ucb"]
+        else:
+            return stats["final_win_rate"]
 
     def competition(
         self,
@@ -275,6 +286,18 @@ class UCB(Competition):
         import numpy as np
 
         candidates = candidates[: self.n]
+
+        ucb_stats = self.cache.load_ucb(
+            instance_id=question["id"],
+            n=self.n,
+            k=self.k,
+            t=self.t,
+            category=question["category"],
+        )
+        if ucb_stats:
+            return self.get_final(ucb_stats)
+        total_cmp_cnt = 0
+        ucb_stats = {"final": None, "detail": {}}
         ucb = np.ones(self.n, dtype=np.float64)
         lcb = np.zeros(self.n, dtype=np.float64)
         avg_win_rate = np.full(self.n, 0.5, dtype=np.float64)
@@ -282,7 +305,18 @@ class UCB(Competition):
         lose_cnt_matrix = np.zeros((self.n, self.n), dtype=np.float64)
         # whether the candidate is active or not
         active_signal = np.ones(self.n, dtype=np.bool_)
-        for t in range(self.t):
+        for t in tqdm(range(self.t)):
+            seen_answers = set()
+            for idx in np.where(active_signal)[0]:
+                if candidates[idx]["answer"] not in seen_answers:
+                    seen_answers.add(candidates[idx]["answer"])
+            if len(seen_answers) <= 1:
+                break
+            round_stats = {
+                "compare_cnt": 0,
+                "active_ids": [],
+                "comparisons": [],
+            }
             # top_id = np.argmax(ucb + np.random.randn(self.n) * 1e-8 + (active_signal - 1) * 10)
             # find activate candidate id where active_signal == 1
             active_candidate_ids = np.where(active_signal)[0]
@@ -307,13 +341,16 @@ class UCB(Competition):
                 for opponent_id in opponent_list:
                     future = self.judge.pairwise_compare(
                         question,
-                        candidates[idx]["raw"],
-                        candidates[opponent_id]["raw"],
+                        candidates[idx],
+                        candidates[opponent_id],
                         k=self.k,
                     )
                     futures.append(future)
                 for future in futures:
                     result = future.result()
+                    total_cmp_cnt += self.k
+                    round_stats["compare_cnt"] += self.k
+                    round_stats["comparisons"].append(result)
                     win_cnt_matrix[idx][opponent_id] += result["score_a"]
                     lose_cnt_matrix[idx][opponent_id] += result["score_b"]
 
@@ -339,13 +376,128 @@ class UCB(Competition):
                         update_active_signal = True
                 if not update_active_signal:
                     break
+            round_stats.update(
+                {
+                    "active_ids": np.where(active_signal)[0].tolist(),
+                    "ucb": ucb.tolist(),
+                    "lcb": lcb.tolist(),
+                    "avg_win_rate": avg_win_rate.tolist(),
+                    "win_cnt_matrix": win_cnt_matrix.tolist(),
+                    "lose_cnt_matrix": lose_cnt_matrix.tolist(),
+                }
+            )
+            ucb_stats["detail"][f"round_{t + 1}"] = round_stats
 
-            seen_answers = set()
-            for idx in np.where(active_signal)[0]:
-                if candidates[idx]["answer"] not in seen_answers:
-                    seen_answers.add(candidates[idx]["answer"])
-            if len(seen_answers) <= 1:
-                break
+        max_ucb_idx = np.argmax(ucb)
+        max_win_rate_idx = np.argmax(avg_win_rate)
+        ucb_stats["final_ucb"] = candidates[max_ucb_idx]
+        ucb_stats["final_win_rate"] = candidates[max_win_rate_idx]
+        ucb_stats["total_cmp_cnt"] = total_cmp_cnt
+        final = self.get_final(ucb_stats)
+        ucb_stats["final"] = final
+        self.cache.save_ucb(
+            detail=ucb_stats,
+            instance_id=question["id"],
+            n=self.n,
+            k=self.k,
+            t=self.t,
+            category=question["category"],
+        )
+        return final
+
+    def calculate_stats(self, dataset: Dataset):
+        import numpy as np
+
+        n = self.n
+        k = self.k
+        t = self.t
+        category_stats = {}
+        for question in dataset:
+            if question["category"] not in category_stats:
+                category_stats[question["category"]] = {
+                    "acc": {
+                        "0": 0,
+                    },
+                    "cnt": 0,
+                    "details": {},
+                }
+            question_stats = {}
+            ucb_result = self.cache.load_ucb(
+                instance_id=question["id"],
+                n=n,
+                k=k,
+                t=t,
+                category=question["category"],
+            )
+            candidates = self.cache.load_generation(
+                instance_id=question["id"],
+                category=question["category"],
+            )[:n]
+            target = question["answer"]
+            final_idx = 0
+            question_stats["acc"] = {
+                "0": int(candidates[final_idx]["answer"] == target)
+            }
+            category_stats[question["category"]]["acc"]["0"] += question_stats[
+                "acc"
+            ]["0"]
+            valid_cmp = 0
+            correct_cmp = 0
+            for round_num in range(1, t + 1):
+                if f"round_{round_num}" in ucb_result["detail"]:
+                    # this round has been calculated
+                    for pair in ucb_result["detail"][f"round_{round_num}"][
+                        "comparisons"
+                    ]:
+                        answer_a = candidates[pair["a"]]["answer"]
+                        answer_b = candidates[pair["b"]]["answer"]
+                        answer_winner = candidates[pair["winner"]]["answer"]
+                        if (answer_a == target and answer_b != target) or (
+                            answer_a != target and answer_b == target
+                        ):
+                            valid_cmp += 1
+                            if answer_winner == target:
+                                correct_cmp += 1
+                    if self.win_indicater == "ucb":
+                        scores = ucb_result["detail"][f"round_{round_num}"][
+                            "ucb"
+                        ]
+                    else:
+                        scores = ucb_result["detail"][f"round_{round_num}"][
+                            "avg_win_rate"
+                        ]
+                    final_idx = np.argmax(scores)
+                if (
+                    str(round_num)
+                    not in category_stats[question["category"]]["acc"]
+                ):
+                    category_stats[question["category"]]["acc"][
+                        str(round_num)
+                    ] = 0
+                category_stats[question["category"]]["acc"][
+                    str(round_num)
+                ] += int(candidates[final_idx]["answer"] == target)
+                question_stats["acc"][str(round_num)] = int(
+                    candidates[final_idx]["answer"] == target
+                )
+
+            category_stats[question["category"]]["cnt"] += 1
+            question_stats["cmp"] = {
+                "valid": valid_cmp,
+                "correct": correct_cmp,
+                "p_cmp": correct_cmp / valid_cmp if valid_cmp > 0 else 0,
+            }
+            category_stats[question["category"]]["details"][
+                str(question["id"])
+            ] = question_stats
+        for category in category_stats:
+            for t in category_stats[category]["acc"]:
+                category_stats[category]["acc"][t] /= category_stats[category][
+                    "cnt"
+                ]
+            self.cache.save_ucb_stats(
+                category_stats[category], n, k, t, category
+            )
 
 
 class League(Competition):
