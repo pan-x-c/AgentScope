@@ -482,13 +482,10 @@ class AgentServerServicer(RpcAgentServicer):
         if isinstance(args, AsyncResult):
             args = args.result()  # pylint: disable=W0212
         try:
-            if target_func == "reply":
-                result = getattr(agent, target_func)(args)
-            else:
-                result = getattr(agent, target_func)(
-                    *args.get("args", ()),
-                    **args.get("kwargs", {}),
-                )
+            result = getattr(agent, target_func)(
+                *args.get("args", ()),
+                **args.get("kwargs", {}),
+            )
             self.result_pool.set(task_id, pickle.dumps(result))
         except Exception:
             trace = traceback.format_exc()
