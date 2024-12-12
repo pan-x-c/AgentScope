@@ -179,6 +179,7 @@ class MixedJudge(metaclass=RpcMeta):
         candidate_a: dict,
         candidate_b: dict,
         k: int,
+        reuse: bool = True,
     ) -> dict:
         """
         Compare two candidates k times and return the winner.
@@ -190,6 +191,7 @@ class MixedJudge(metaclass=RpcMeta):
             candidate_a: The first candidate.
             candidate_b: The second candidate.
             k: The number of comparisons.
+            reuse: Whether to reuse the results from cache.
         """
         cache_result = self.cache.load_pairwise_comparison(
             instance_id=question["id"],
@@ -198,9 +200,12 @@ class MixedJudge(metaclass=RpcMeta):
             category=question.get("category", "all"),
         )
         cmp_num = cache_result.get("cmp_num", 0)
-        k = max(0, k - cmp_num)
-        if k == 0:
-            return cache_result
+        rest_k = max(0, k - cmp_num)
+        if reuse:
+            if rest_k == 0:
+                return cache_result
+            else:
+                k = rest_k
         a_b = [
             self.judges[i % self.judge_num].run(
                 question=question["question"],

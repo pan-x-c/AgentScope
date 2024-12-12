@@ -344,6 +344,7 @@ class UCB(Competition):
                             candidates[idx],
                             candidates[opponent_id],
                             k=self.k,
+                            reuse=False,
                         )
                     )
             for future in futures:
