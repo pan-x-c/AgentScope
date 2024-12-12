@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .cache import Cache
-from .dataset import Dataset, MMLUPro
+from .dataset import Dataset, MMLUPro, GPQA
 from .worker import (
     Judge,
     MixedJudge,
@@ -8,6 +8,7 @@ from .worker import (
     MMLUProCoTJudge,
     Generator,
     MMLUProGenerator,
+    GPQAGenerator,
 )
 
 from .competition import Competition, Knockout, UCB
@@ -17,6 +18,8 @@ def get_generator(config: dict) -> Generator:
     """Get a generator from a config dict."""
     if config["type"] == "mmlu_pro":
         return MMLUProGenerator(config["model"])
+    elif config["type"] == "gpqa":
+        return GPQAGenerator(config["model"])
     else:
         raise NotImplementedError
 
@@ -35,6 +38,12 @@ def get_dataset(config: dict) -> Dataset:
     """Get a dataset from a config dict."""
     if config["name"] == "mmlu_pro":
         return MMLUPro(
+            max_instance=config["max_instance"],
+            categories=config["categories"],
+            split=config["split"],
+        )
+    if config["name"] == "gpqa":
+        return GPQA(
             max_instance=config["max_instance"],
             categories=config["categories"],
             split=config["split"],
@@ -65,6 +74,7 @@ def get_competition(
             n=config["n"],
             k=config["k"],
             t=config["t"],
+            win_indicator=config["win_indicator"],
             to_dist=to_dist,
         )
     else:

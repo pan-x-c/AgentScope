@@ -277,6 +277,33 @@ class MMLUProGenerator(Generator):
         super().__init__(generation_prompter, model_config)
 
 
+class GPQAGenerator(Generator):
+    """A generator for GPQA with CoT prompt."""
+
+    GEN_PROMPT = """# Question
+
+{question}
+
+# Output Format
+```
+{format}
+```
+"""
+
+    def __init__(self, model_config: str):
+        generation_prompter = GenerationPrompter(
+            prompt=MMLUProGenerator.GEN_PROMPT,
+            parser=MultiTagsParser(
+                tags=[
+                    TagParser("reason", "your step-by-step reasoning process"),
+                    MMLUProParser("answer"),
+                ],
+            ),
+            sys_prompt="What is the correct answer to this question",
+        )
+        super().__init__(generation_prompter, model_config)
+
+
 class MMLUProJudge(Judge):
     """A judge for MMLUPro with CoT prompt."""
 

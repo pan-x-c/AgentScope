@@ -169,7 +169,9 @@ class RetryExpential(RetryBase):
                 time.sleep(random_delay)
                 delay *= 2
         logger.error(f"Max timeout exceeded at [{file_name}:{line_number}].")
-        raise TimeoutError(f"Max retry exceeded at [{file_name}:{line_number}].")
+        raise TimeoutError(
+            f"Max retry exceeded at [{file_name}:{line_number}]."
+        )
 
 
-_DEAFULT_RETRY_STRATEGY = RetryFixedTimes(max_retries=100, delay=5)
+_DEAFULT_RETRY_STRATEGY = RetryFixedTimes(max_retries=1000, delay=5)

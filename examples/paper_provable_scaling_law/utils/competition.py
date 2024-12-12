@@ -260,19 +260,19 @@ class UCB(Competition):
         k: int,
         t: int,
         n_opponent: int = 2,
-        c_bonous: float = 1.0,
-        win_indicater: str = "win_rate",
+        c_bonus: float = 1.0,
+        win_indicator: str = "win_rate",
     ):
         super().__init__(judge, cache)
         self.n = n
         self.k = k
         self.t = t
         self.n_opponent = n_opponent
-        self.c_bonous = c_bonous
-        self.win_indicater = win_indicater
+        self.c_bonus = c_bonus
+        self.win_indicator = win_indicator
 
     def get_final(self, stats: dict) -> dict:
-        if self.win_indicater == "ucb":
+        if self.win_indicator == "ucb":
             return stats["final_ucb"]
         else:
             return stats["final_win_rate"]
@@ -317,9 +317,9 @@ class UCB(Competition):
                 "active_ids": [],
                 "comparisons": [],
             }
-            # top_id = np.argmax(ucb + np.random.randn(self.n) * 1e-8 + (active_signal - 1) * 10)
             # find activate candidate id where active_signal == 1
             active_candidate_ids = np.where(active_signal)[0]
+            futures = []
             for idx in active_candidate_ids:
                 opponent_num = self.n_opponent
                 candidate_opponent_list = [
@@ -337,22 +337,24 @@ class UCB(Competition):
                             replace=False,
                         )
                     )
-                futures = []
                 for opponent_id in opponent_list:
-                    future = self.judge.pairwise_compare(
-                        question,
-                        candidates[idx],
-                        candidates[opponent_id],
-                        k=self.k,
+                    futures.append(
+                        self.judge.pairwise_compare(
+                            question,
+                            candidates[idx],
+                            candidates[opponent_id],
+                            k=self.k,
+                        )
                     )
-                    futures.append(future)
-                for future in futures:
-                    result = future.result()
-                    total_cmp_cnt += self.k
-                    round_stats["compare_cnt"] += self.k
-                    round_stats["comparisons"].append(result)
-                    win_cnt_matrix[idx][opponent_id] += result["score_a"]
-                    lose_cnt_matrix[idx][opponent_id] += result["score_b"]
+            for future in futures:
+                result = future.result()
+                total_cmp_cnt += self.k
+                round_stats["compare_cnt"] += self.k
+                round_stats["comparisons"].append(result)
+                win_cnt_matrix[result["a"]][result["b"]] += result["score_a"]
+                lose_cnt_matrix[result["a"]][result["b"]] += result["score_b"]
+                win_cnt_matrix[result["b"]][result["a"]] += result["score_b"]
+                lose_cnt_matrix[result["b"]][result["a"]] += result["score_a"]
 
             while True:
                 for idx in np.where(active_signal)[0]:
@@ -365,7 +367,7 @@ class UCB(Competition):
                     total_count = total_win_count + total_lose_count
                     if total_count >= 1:
                         avg_win_rate[idx] = total_win_count / total_count
-                        bonus = np.sqrt(self.c_bonous / total_count)
+                        bonus = np.sqrt(self.c_bonus / total_count)
                         ucb[idx] = min(avg_win_rate[idx] + bonus, 1.0)
                         lcb[idx] = max(avg_win_rate[idx] - bonus, 0.0)
                 max_lcb = np.max(lcb * active_signal)
@@ -436,7 +438,9 @@ class UCB(Competition):
             target = question["answer"]
             final_idx = 0
             question_stats["acc"] = {
-                "0": int(candidates[final_idx]["answer"] == target)
+                "avg": sum(1 for x in candidates if x["answer"] == target)
+                / len(candidates),
+                "0": int(candidates[final_idx]["answer"] == target),
             }
             category_stats[question["category"]]["acc"]["0"] += question_stats[
                 "acc"
@@ -458,14 +462,29 @@ class UCB(Competition):
                             valid_cmp += 1
                             if answer_winner == target:
                                 correct_cmp += 1
-                    if self.win_indicater == "ucb":
-                        scores = ucb_result["detail"][f"round_{round_num}"][
-                            "ucb"
-                        ]
+                    active_signal = np.zeros(n, dtype=np.bool_)
+                    for idx in ucb_result["detail"][f"round_{round_num}"][
+                        "active_ids"
+                    ]:
+                        active_signal[idx] = True
+                    if self.win_indicator == "ucb":
+                        scores = (
+                            np.array(
+                                ucb_result["detail"][f"round_{round_num}"][
+                                    "ucb"
+                                ]
+                            )
+                            * active_signal
+                        )
                     else:
-                        scores = ucb_result["detail"][f"round_{round_num}"][
-                            "avg_win_rate"
-                        ]
+                        scores = (
+                            np.array(
+                                ucb_result["detail"][f"round_{round_num}"][
+                                    "avg_win_rate"
+                                ]
+                            )
+                            * active_signal
+                        )
                     final_idx = np.argmax(scores)
                 if (
                     str(round_num)
