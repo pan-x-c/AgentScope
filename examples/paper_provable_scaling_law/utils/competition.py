@@ -365,11 +365,15 @@ class UCB(Competition):
                         lose_cnt_matrix[idx] * active_signal
                     )
                     total_count = total_win_count + total_lose_count
-                    if total_count >= 1:
+                    if total_count >= 0.5:
                         avg_win_rate[idx] = total_win_count / total_count
                         bonus = np.sqrt(self.c_bonus / total_count)
                         ucb[idx] = min(avg_win_rate[idx] + bonus, 1.0)
                         lcb[idx] = max(avg_win_rate[idx] - bonus, 0.0)
+                    else:
+                        avg_win_rate[idx] = 0.5
+                        ucb[idx] = 1.0
+                        lcb[idx] = 0.0
                 max_lcb = np.max(lcb * active_signal)
                 update_active_signal = False
                 for idx in np.where(active_signal)[0]:
@@ -390,8 +394,8 @@ class UCB(Competition):
             )
             ucb_stats["detail"][f"round_{t + 1}"] = round_stats
 
-        max_ucb_idx = np.argmax(ucb)
-        max_win_rate_idx = np.argmax(avg_win_rate)
+        max_ucb_idx = np.argmax(ucb * active_signal)
+        max_win_rate_idx = np.argmax(avg_win_rate * active_signal)
         ucb_stats["final_ucb"] = candidates[max_ucb_idx]
         ucb_stats["final_win_rate"] = candidates[max_win_rate_idx]
         ucb_stats["total_cmp_cnt"] = total_cmp_cnt

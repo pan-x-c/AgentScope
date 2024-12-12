@@ -9,6 +9,7 @@ from typing import List, Optional
 from abc import ABC, abstractmethod
 from datasets import load_dataset
 from tqdm import tqdm
+from loguru import logger
 import jsonlines
 
 
@@ -200,11 +201,33 @@ class MATH(Dataset):
     """MATH dataset."""
 
     PROMPT_TEMPLATE = """
-    """
+Problem:
+{question}
+
+"""
 
     @classmethod
     def preprocess(cls) -> None:
-        ds = cls.process_docs(load_dataset("lighteval/MATH-Hard"))
+
+        def _process_doc(doc: dict, idx: int) -> dict:
+            out_doc = {
+                "id": idx,
+                "question": doc["problem"],
+                "solution": doc["solution"],
+                "answer": cls.normalize_final_answer(
+                    cls.remove_boxed(
+                        cls.last_boxed_only_string(doc["solution"]),
+                    ),
+                ),
+                "category": doc["type"].replace(" ", "_"),
+            }
+            if getattr(doc, "few_shot", None) is not None:
+                out_doc["few_shot"] = True
+            return out_doc
+
+        ds = load_dataset("lighteval/MATH-Hard").map(
+            _process_doc, with_indices=True
+        )
         categories = set(ds["test"].unique("category"))
         os.makedirs(
             os.path.join(DATASET_DIR, "MATH_lv5", "test"),
@@ -243,26 +266,6 @@ class MATH(Dataset):
                 force_ascii=False,
             )
             print(f"Saved test and train data for category: {category}")
-
-    @classmethod
-    def process_docs(cls, dataset: Dataset) -> Dataset:
-        def _process_doc(doc: dict, idx: int) -> dict:
-            out_doc = {
-                "id": idx,
-                "question": doc["problem"],
-                "solution": doc["solution"],
-                "answer": cls.normalize_final_answer(
-                    cls.remove_boxed(
-                        cls.last_boxed_only_string(doc["solution"]),
-                    ),
-                ),
-                "category": doc["type"].replace(" ", "_"),
-            }
-            if getattr(doc, "few_shot", None) is not None:
-                out_doc["few_shot"] = True
-            return out_doc
-
-        return dataset.map(_process_doc, with_indices=True)
 
     INVALID_ANSWER = "[invalidanswer]"
 
@@ -410,6 +413,51 @@ class MATH(Dataset):
             return s[len(left) : -1]
         except AssertionError:
             return MATH.INVALID_ANSWER
+
+    @classmethod
+    def is_equiv(cls, x1: str, x2: str) -> bool:
+        """
+        x1 and x2 are normalized latex string
+        """
+        import sympy
+        from sympy.parsing.latex import parse_latex
+
+        try:
+            try:
+                parsed_x1 = parse_latex(x1)
+                parsed_x2 = parse_latex(x2)
+            except (
+                sympy.parsing.latex.errors.LaTeXParsingError,
+                sympy.SympifyError,
+                TypeError,
+            ):
+                logger.debug(f"couldn't parse one of {x1} or {x2}")
+                return False
+
+            try:
+                diff = parsed_x1 - parsed_x2
+            except logger:
+                logger.debug(f"couldn't subtract {x1} and {x2}")
+                return False
+
+            try:
+                if sympy.simplify(diff) == 0:
+                    return True
+                else:
+                    return False
+            except ValueError:
+                logger.debug(
+                    f"Had some trouble simplifying when comparing {x1} and {x2}"
+                )
+        except TimeoutError:
+            logger.debug(f"Timed out comparing {x1} and {x2}")
+            return False
+        except ImportError as e:
+            logger.error(e)
+            raise
+        except Exception as e:
+            logger.debug(f"Failed comparing {x1} and {x2} with {e}")
+            return False
 
 
 class GPQA(Dataset):
