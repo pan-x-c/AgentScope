@@ -46,7 +46,10 @@ Options:
     OPTION_TEMPLATE = """({option}) {context}"""
 
     def __init__(
-        self, categories: List[str], max_instance: int, split: str = "random"
+        self,
+        categories: List[str],
+        max_instance: int,
+        split: str = "random",
     ):
         self.categories = categories
         self.max_instance = max_instance
@@ -208,7 +211,6 @@ Problem:
 
     @classmethod
     def preprocess(cls) -> None:
-
         def _process_doc(doc: dict, idx: int) -> dict:
             out_doc = {
                 "id": idx,
@@ -226,7 +228,8 @@ Problem:
             return out_doc
 
         ds = load_dataset("lighteval/MATH-Hard").map(
-            _process_doc, with_indices=True
+            _process_doc,
+            with_indices=True,
         )
         categories = set(ds["test"].unique("category"))
         os.makedirs(
@@ -447,7 +450,7 @@ Problem:
                     return False
             except ValueError:
                 logger.debug(
-                    f"Had some trouble simplifying when comparing {x1} and {x2}"
+                    f"Had some trouble simplifying when comparing {x1} and {x2}",
                 )
         except TimeoutError:
             logger.debug(f"Timed out comparing {x1} and {x2}")
@@ -467,7 +470,10 @@ class GPQA(Dataset):
     """
 
     def __init__(
-        self, categories: List[str], max_instance: int, split: str = "random"
+        self,
+        categories: List[str],
+        max_instance: int,
+        split: str = "random",
     ):
         self.categories = categories
         self.max_instance = max_instance
@@ -509,7 +515,7 @@ class GPQA(Dataset):
 
             random.shuffle(choices)
             correct_answer_index = choices.index(
-                _preprocess_text(doc["Correct Answer"])
+                _preprocess_text(doc["Correct Answer"]),
             )
 
             out_doc = {
@@ -530,20 +536,21 @@ class GPQA(Dataset):
             "train"
         ].map(partial(_process_doc, category="diamond"), with_indices=True)
         gpqa_main = load_dataset("Idavidrein/gpqa", "gpqa_main")["train"].map(
-            partial(_process_doc, category="main"), with_indices=True
+            partial(_process_doc, category="main"),
+            with_indices=True,
         )
         gpqa_extended = load_dataset("Idavidrein/gpqa", "gpqa_extended")[
             "train"
         ].map(partial(_process_doc, category="train"), with_indices=True)
         os.makedirs(os.path.join(DATASET_DIR, "gpqa", "train"), exist_ok=True)
         gpqa_diamond.to_json(
-            os.path.join(DATASET_DIR, "gpqa", "train", "diamond.json")
+            os.path.join(DATASET_DIR, "gpqa", "train", "diamond.json"),
         )
         gpqa_main.to_json(
-            os.path.join(DATASET_DIR, "gpqa", "train", "main.json")
+            os.path.join(DATASET_DIR, "gpqa", "train", "main.json"),
         )
         gpqa_extended.to_json(
-            os.path.join(DATASET_DIR, "gpqa", "train", "extended.json")
+            os.path.join(DATASET_DIR, "gpqa", "train", "extended.json"),
         )
 
     PROMPT_TEMPLATE = """

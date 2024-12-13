@@ -218,7 +218,10 @@ class Cache:
             json.dump(stats, f, ensure_ascii=False, indent=2)
 
     def load_knockout_stats(
-        self, n: int, k: int, categories: List[str]
+        self,
+        n: int,
+        k: int,
+        categories: List[str],
     ) -> dict:
         result = {}
         for category in categories:
@@ -228,7 +231,7 @@ class Cache:
                 f"{category}_{n}_{k}.json",
             )
             result[category] = json.load(
-                open(knockout_stats_file, "r", encoding="utf-8")
+                open(knockout_stats_file, "r", encoding="utf-8"),
             )
         return result
 
@@ -292,7 +295,11 @@ class Cache:
             json.dump(stats, f, ensure_ascii=False, indent=2)
 
     def load_ucb_stats(
-        self, n: int, k: int, t: int, categories: List[str]
+        self,
+        n: int,
+        k: int,
+        t: int,
+        categories: List[str],
     ) -> dict:
         result = {}
         for category in categories:
@@ -302,6 +309,6 @@ class Cache:
                 f"{category}_{n}_{k}_{t}.json",
             )
             result[category] = json.load(
-                open(ucb_stats_file, "r", encoding="utf-8")
+                open(ucb_stats_file, "r", encoding="utf-8"),
             )
         return result

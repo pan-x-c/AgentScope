@@ -186,7 +186,8 @@ class Knockout(Competition):
                 category=question["category"],
             )
             candidates = self.cache.load_generation(
-                instance_id=question["id"], category=question["category"]
+                instance_id=question["id"],
+                category=question["category"],
             )[:n]
             target = question["answer"]
             candidate_num = 1
@@ -194,7 +195,7 @@ class Knockout(Competition):
                 f"{candidate_num}": sum(
                     1 for x in candidates if x["answer"] == target
                 )
-                / len(candidates)
+                / len(candidates),
             }
             category_stats[question["category"]]["acc"][
                 f"{candidate_num}"
@@ -246,7 +247,10 @@ class Knockout(Competition):
                     candidate_num
                 ] /= category_stats[category]["cnt"]
             self.cache.save_knockout_stats(
-                category_stats[category], n, k, category
+                category_stats[category],
+                n,
+                k,
+                category,
             )
         logger.info("Finished calculating knockout stats")
 
@@ -335,7 +339,7 @@ class UCB(Competition):
                             candidate_opponent_list,
                             size=opponent_num,
                             replace=False,
-                        )
+                        ),
                     )
                 for opponent_id in opponent_list:
                     futures.append(
@@ -345,7 +349,7 @@ class UCB(Competition):
                             candidates[opponent_id],
                             k=self.k,
                             reuse=False,
-                        )
+                        ),
                     )
             for future in futures:
                 result = future.result()
@@ -360,10 +364,10 @@ class UCB(Competition):
             while True:
                 for idx in np.where(active_signal)[0]:
                     total_win_count = np.sum(
-                        win_cnt_matrix[idx] * active_signal
+                        win_cnt_matrix[idx] * active_signal,
                     )
                     total_lose_count = np.sum(
-                        lose_cnt_matrix[idx] * active_signal
+                        lose_cnt_matrix[idx] * active_signal,
                     )
                     total_count = total_win_count + total_lose_count
                     if total_count >= 0.5:
@@ -391,7 +395,7 @@ class UCB(Competition):
                     "avg_win_rate": avg_win_rate.tolist(),
                     "win_cnt_matrix": win_cnt_matrix.tolist(),
                     "lose_cnt_matrix": lose_cnt_matrix.tolist(),
-                }
+                },
             )
             ucb_stats["detail"][f"round_{t + 1}"] = round_stats
 
@@ -477,7 +481,7 @@ class UCB(Competition):
                             np.array(
                                 ucb_result["detail"][f"round_{round_num}"][
                                     "ucb"
-                                ]
+                                ],
                             )
                             * active_signal
                         )
@@ -486,7 +490,7 @@ class UCB(Competition):
                             np.array(
                                 ucb_result["detail"][f"round_{round_num}"][
                                     "avg_win_rate"
-                                ]
+                                ],
                             )
                             * active_signal
                         )
@@ -502,7 +506,7 @@ class UCB(Competition):
                     str(round_num)
                 ] += int(candidates[final_idx]["answer"] == target)
                 question_stats["acc"][str(round_num)] = int(
-                    candidates[final_idx]["answer"] == target
+                    candidates[final_idx]["answer"] == target,
                 )
 
             category_stats[question["category"]]["cnt"] += 1
@@ -520,7 +524,11 @@ class UCB(Competition):
                     "cnt"
                 ]
             self.cache.save_ucb_stats(
-                category_stats[category], n, k, t, category
+                category_stats[category],
+                n,
+                k,
+                t,
+                category,
             )
 
 

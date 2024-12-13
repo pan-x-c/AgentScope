@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 from typing import List
 from matplotlib import pyplot as plt
@@ -8,7 +9,6 @@ FIGURE_DIR = os.path.join(os.path.dirname(__file__), "imgs")
 
 
 class KnockoutFigureDrawer:
-
     @classmethod
     def draw_acc(
         cls,
@@ -24,7 +24,9 @@ class KnockoutFigureDrawer:
                 project_name=config["project"],
                 job_name=config["job"],
             ).load_knockout_stats(
-                n=config["n"], k=config["k"], categories=categories
+                n=config["n"],
+                k=config["k"],
+                categories=categories,
             )
             for config in configs
         ]
@@ -40,7 +42,11 @@ class KnockoutFigureDrawer:
                 )
             ax.set_title(f"{dataset_name}: {category}")
             ax.grid(
-                True, linestyle="dashed", linewidth=1, color="gray", alpha=0.5
+                True,
+                linestyle="dashed",
+                linewidth=1,
+                color="gray",
+                alpha=0.5,
             )
             ax.set_xlabel("N")
             ax.set_ylabel("Accuracy")
@@ -79,7 +85,9 @@ class KnockoutFigureDrawer:
                 project_name=config["project"],
                 job_name=config["job"],
             ).load_knockout_stats(
-                n=config["n"], k=config["k"], categories=categories
+                n=config["n"],
+                k=config["k"],
+                categories=categories,
             )
             for config in configs
         ]
@@ -126,14 +134,17 @@ class KnockoutFigureDrawer:
                     1 for p_cmp in right_p_cmps + wrong_p_cmps if p_cmp <= 0.5
                 )
                 ax.set_title(
-                    f"({configs[i]['label']}) {dataset_name}: {category}"
+                    f"({configs[i]['label']}) {dataset_name}: {category}",
                 )
                 ax.set_xlim(-0.05, 1.05)
                 ax.set_ylim(-0.10, 1.10)
                 ax.set_xlabel("$P_{gen}$")
                 ax.set_ylabel("$P_{comp}$")
                 ax.axhline(
-                    y=0.5, color="black", linestyle="dotted", linewidth=1.0
+                    y=0.5,
+                    color="black",
+                    linestyle="dotted",
+                    linewidth=1.0,
                 )
                 ax.grid(
                     True,
@@ -174,14 +185,16 @@ class KnockoutFigureDrawer:
                 plt.tight_layout()
                 plt.savefig(
                     os.path.join(
-                        figure_dir, f"cmp_{configs[i]['label']}_{category}.pdf"
+                        figure_dir,
+                        f"cmp_{configs[i]['label']}_{category}.pdf",
                     ),
                     bbox_inches="tight",
                     pad_inches=0.02,
                 )
                 plt.savefig(
                     os.path.join(
-                        figure_dir, f"cmp_{configs[i]['label']}_{category}.png"
+                        figure_dir,
+                        f"cmp_{configs[i]['label']}_{category}.png",
                     ),
                     bbox_inches="tight",
                     pad_inches=0.02,
@@ -224,7 +237,11 @@ class UCBFigureDrawer:
                 )
             ax.set_title(f"{dataset_name}: {category}")
             ax.grid(
-                True, linestyle="dashed", linewidth=1, color="gray", alpha=0.5
+                True,
+                linestyle="dashed",
+                linewidth=1,
+                color="gray",
+                alpha=0.5,
             )
             ax.set_xlabel("T")
             ax.set_ylabel("Accuracy")
@@ -239,14 +256,16 @@ class UCBFigureDrawer:
             plt.tight_layout()
             plt.savefig(
                 os.path.join(
-                    figure_dir, f"acc_ucb_{dataset_name}_{category}.pdf"
+                    figure_dir,
+                    f"acc_ucb_{dataset_name}_{category}.pdf",
                 ),
                 bbox_inches="tight",
                 pad_inches=0.02,
             )
             plt.savefig(
                 os.path.join(
-                    figure_dir, f"acc_ucb_{dataset_name}_{category}.png"
+                    figure_dir,
+                    f"acc_ucb_{dataset_name}_{category}.png",
                 ),
                 bbox_inches="tight",
                 pad_inches=0.02,
@@ -317,14 +336,17 @@ class UCBFigureDrawer:
                     1 for p_cmp in right_p_cmps + wrong_p_cmps if p_cmp <= 0.5
                 )
                 ax.set_title(
-                    f"({configs[i]['label']}) {dataset_name}: {category}"
+                    f"({configs[i]['label']}) {dataset_name}: {category}",
                 )
                 ax.set_xlim(-0.05, 1.05)
                 ax.set_ylim(-0.10, 1.10)
                 ax.set_xlabel("$P_{gen}$")
                 ax.set_ylabel("$P_{comp}$")
                 ax.axhline(
-                    y=0.5, color="black", linestyle="dotted", linewidth=1.0
+                    y=0.5,
+                    color="black",
+                    linestyle="dotted",
+                    linewidth=1.0,
                 )
                 ax.grid(
                     True,
