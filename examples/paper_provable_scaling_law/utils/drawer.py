@@ -88,25 +88,43 @@ class KnockoutFigureDrawer:
                 all_correct_cnt = 0
                 all_wrong_cnt = 0
                 fig, ax = plt.subplots(figsize=(3.5, 3))
-                p_gens = []
-                p_cmps = []
+                right_p_gens = []
+                right_p_cmps = []
+                wrong_p_gens = []
+                wrong_p_cmps = []
                 for qid, stat in stats[category]["details"].items():
                     if stat["cmp"]["valid"] > 0:
-                        p_gens.append(stat["acc"]["1"])
-                        p_cmps.append(stat["cmp"]["p_cmp"])
+                        if stat["acc"][str(configs[i]["n"])] == 1:
+                            right_p_gens.append(stat["acc"]["1"])
+                            right_p_cmps.append(stat["cmp"]["p_cmp"])
+                        else:
+                            wrong_p_gens.append(stat["acc"]["1"])
+                            wrong_p_cmps.append(stat["cmp"]["p_cmp"])
                     if stat["acc"]["1"] == 0:
                         all_wrong_cnt += 1
                     if stat["acc"]["1"] == 1:
                         all_correct_cnt += 1
                 ax.scatter(
-                    p_gens,
-                    p_cmps,
+                    right_p_gens,
+                    right_p_cmps,
                     label=configs[i]["label"],
                     alpha=0.6,
                     color=configs[i]["color"],
                 )
-                above_count = sum(1 for p_cmp in p_cmps if p_cmp > 0.5)
-                below_count = sum(1 for p_cmp in p_cmps if p_cmp <= 0.5)
+                ax.scatter(
+                    wrong_p_gens,
+                    wrong_p_cmps,
+                    label=configs[i]["label"],
+                    alpha=0.6,
+                    color=configs[i]["color"],
+                    marker="x",
+                )
+                above_count = sum(
+                    1 for p_cmp in right_p_cmps + wrong_p_cmps if p_cmp > 0.5
+                )
+                below_count = sum(
+                    1 for p_cmp in right_p_cmps + wrong_p_cmps if p_cmp <= 0.5
+                )
                 ax.set_title(
                     f"({configs[i]['label']}) {dataset_name}: {category}"
                 )
@@ -261,25 +279,43 @@ class UCBFigureDrawer:
                 all_correct_cnt = 0
                 all_wrong_cnt = 0
                 fig, ax = plt.subplots(figsize=(3.5, 3))
-                p_gens = []
-                p_cmps = []
+                right_p_gens = []
+                right_p_cmps = []
+                wrong_p_gens = []
+                wrong_p_cmps = []
                 for qid, stat in stats[category]["details"].items():
                     if stat["cmp"]["valid"] > 0:
-                        p_gens.append(stat["acc"]["1"])
-                        p_cmps.append(stat["cmp"]["p_cmp"])
+                        if stat["acc"][str(configs[i]["t"])] == 1:
+                            right_p_gens.append(stat["acc"]["avg"])
+                            right_p_cmps.append(stat["cmp"]["p_cmp"])
+                        else:
+                            wrong_p_gens.append(stat["acc"]["avg"])
+                            wrong_p_cmps.append(stat["cmp"]["p_cmp"])
                     if stat["acc"]["avg"] == 0:
                         all_wrong_cnt += 1
                     if stat["acc"]["avg"] == 1:
                         all_correct_cnt += 1
                 ax.scatter(
-                    p_gens,
-                    p_cmps,
+                    right_p_gens,
+                    right_p_cmps,
                     label=configs[i]["label"],
                     alpha=0.6,
                     color=configs[i]["color"],
                 )
-                above_count = sum(1 for p_cmp in p_cmps if p_cmp > 0.5)
-                below_count = sum(1 for p_cmp in p_cmps if p_cmp <= 0.5)
+                ax.scatter(
+                    wrong_p_gens,
+                    wrong_p_cmps,
+                    label=configs[i]["label"],
+                    alpha=0.6,
+                    color=configs[i]["color"],
+                    marker="x",
+                )
+                above_count = sum(
+                    1 for p_cmp in right_p_cmps + wrong_p_cmps if p_cmp > 0.5
+                )
+                below_count = sum(
+                    1 for p_cmp in right_p_cmps + wrong_p_cmps if p_cmp <= 0.5
+                )
                 ax.set_title(
                     f"({configs[i]['label']}) {dataset_name}: {category}"
                 )

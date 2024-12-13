@@ -478,6 +478,12 @@ class GPQA(Dataset):
         self.samples = []
         self.pbar = None
 
+    def __reduce__(self):
+        return (
+            self.__class__,
+            (self.categories, self.max_instance, self.split),
+        )
+
     @classmethod
     def preprocess(cls):
         def _preprocess_text(text):
