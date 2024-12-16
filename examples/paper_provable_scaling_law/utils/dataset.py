@@ -541,7 +541,7 @@ class GPQA(Dataset):
         )
         gpqa_extended = load_dataset("Idavidrein/gpqa", "gpqa_extended")[
             "train"
-        ].map(partial(_process_doc, category="train"), with_indices=True)
+        ].map(partial(_process_doc, category="extended"), with_indices=True)
         os.makedirs(os.path.join(DATASET_DIR, "gpqa", "train"), exist_ok=True)
         gpqa_diamond.to_json(
             os.path.join(DATASET_DIR, "gpqa", "train", "diamond.json"),

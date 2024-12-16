@@ -11,11 +11,11 @@ from loguru import logger
 import agentscope
 from agentscope.server import RpcAgentServerLauncher
 
-from .utils import get_dataset, get_generator, get_judge
-from .utils.dataset import Dataset
-from .utils.cache import Cache
-from .utils.worker import MixedGenerator, MixedJudge
-from .competitions import Competition
+from utils import get_dataset, get_generator, get_judge
+from utils.dataset import Dataset
+from utils.cache import Cache
+from utils.worker import MixedGenerator, MixedJudge
+from competitions import Competition
 
 
 def run_generation(
@@ -27,7 +27,7 @@ def run_generation(
     """Run the generation."""
     futures = []
     for question in dataset:
-        if len(futures) > pending_task_num:
+        if len(futures) >= pending_task_num:
             for _ in range(step_num):
                 futures.pop(0).result()
         futures.append(
@@ -50,7 +50,7 @@ def run_competition(
     """Run the competition."""
     futures = []
     for question in dataset:
-        if len(futures) > pending_task_num:
+        if len(futures) >= pending_task_num:
             for _ in range(step_num):
                 futures.pop(0).result()
         futures.append(

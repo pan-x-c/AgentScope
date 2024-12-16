@@ -5,9 +5,9 @@ from abc import abstractmethod
 from typing import List, Any
 from agentscope.rpc import async_func, RpcMeta
 
-from ..utils.worker import MixedJudge
-from ..utils.cache import Cache
-from ..utils.dataset import Dataset
+from utils.worker import MixedJudge
+from utils.cache import Cache
+from utils.dataset import Dataset
 
 
 class Competition(metaclass=RpcMeta):

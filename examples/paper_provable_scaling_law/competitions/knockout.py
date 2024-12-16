@@ -6,9 +6,9 @@ from typing import List
 from loguru import logger
 
 from .competition import Competition
-from ..utils.worker import MixedJudge
-from ..utils.cache import Cache
-from ..utils.dataset import Dataset
+from utils.worker import MixedJudge
+from utils.cache import Cache
+from utils.dataset import Dataset
 
 
 @Competition.register("knockout")

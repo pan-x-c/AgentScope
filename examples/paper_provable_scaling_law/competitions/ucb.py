@@ -7,9 +7,9 @@ import numpy as np
 
 from .competition import Competition
 
-from ..utils.worker import MixedJudge
-from ..utils.cache import Cache
-from ..utils.dataset import Dataset
+from utils.worker import MixedJudge
+from utils.cache import Cache
+from utils.dataset import Dataset
 
 
 @Competition.register("lucb")
@@ -59,7 +59,7 @@ class LUCB(Competition):
         active_candidate_ids = np.where(active_signal)[0]
         if not self.has_budget:
             # use all active candidates if no budget
-            return active_candidate_ids.to_list()
+            return active_candidate_ids.tolist()
         m_top_ucb = self.m // 2
         m_bottom_lcb = self.m - m_top_ucb
         if len(active_candidate_ids) > m_top_ucb:
@@ -155,8 +155,13 @@ class LUCB(Competition):
                 round_stats["comparisons"].append(result)
                 win_cnt_matrix[result["a"]][result["b"]] += result["score_a"]
                 lose_cnt_matrix[result["a"]][result["b"]] += result["score_b"]
-                win_cnt_matrix[result["b"]][result["a"]] += result["score_b"]
-                lose_cnt_matrix[result["b"]][result["a"]] += result["score_a"]
+                if not self.has_budget:
+                    win_cnt_matrix[result["b"]][result["a"]] += result[
+                        "score_b"
+                    ]
+                    lose_cnt_matrix[result["b"]][result["a"]] += result[
+                        "score_a"
+                    ]
 
             while True:
                 for idx in np.where(active_signal)[0]:
@@ -316,7 +321,7 @@ class LUCB(Competition):
                     max_score = np.max(scores)
                     final_ids = np.where(
                         np.isclose(scores, max_score, atol=1e-8),
-                    )[0].to_list()
+                    )[0].tolist()
                 if (
                     str(round_num)
                     not in category_stats[question["category"]]["acc"]
