@@ -11,8 +11,6 @@ from .worker import (
     GPQAGenerator,
 )
 
-from .competition import Competition, Knockout, UCB
-
 
 def get_generator(config: dict) -> Generator:
     """Get a generator from a config dict."""
@@ -50,32 +48,3 @@ def get_dataset(config: dict) -> Dataset:
         )
     else:
         raise NotImplementedError
-
-
-def get_competition(
-    config: dict,
-    judge: MixedJudge,
-    cache: Cache,
-    to_dist: dict,
-) -> Competition:
-    """Create a competition from a config dict."""
-    if config["method"] == "knockout":
-        return Knockout(
-            judge=judge,
-            cache=cache,
-            n=config["n"],
-            k=config["k"],
-            to_dist=to_dist,
-        )
-    if config["method"] == "ucb":
-        return UCB(
-            judge=judge,
-            cache=cache,
-            n=config["n"],
-            k=config["k"],
-            t=config["t"],
-            win_indicator=config["win_indicator"],
-            to_dist=to_dist,
-        )
-    else:
-        raise ValueError(f"Unknown competition method: {config['method']}")

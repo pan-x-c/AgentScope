@@ -11,11 +11,11 @@ from loguru import logger
 import agentscope
 from agentscope.server import RpcAgentServerLauncher
 
-from utils import get_dataset, get_generator, get_judge, get_competition
+from utils import get_dataset, get_generator, get_judge
 from utils.dataset import Dataset
 from utils.cache import Cache
 from utils.worker import MixedGenerator, MixedJudge
-from utils.competition import Competition
+from competitions import Competition
 
 
 def run_generation(
@@ -116,19 +116,21 @@ def main(conf: dict) -> None:
             "port": master_launcher.port,
         },
     )
-    competition = get_competition(
-        config=conf["competition"],
+    config["competition"]["to_dist"] = {
+        "host": master_launcher.host,
+        "port": master_launcher.port,
+    }
+    competition = Competition.create(
         judge=judge,
         cache=cache,
-        to_dist={
-            "host": master_launcher.host,
-            "port": master_launcher.port,
-        },
+        config=conf["competition"],
     )
     run_competition(
         competition,
         dataset,
         cache,
+        pending_task_num=conf.get("pending_task_num", 2),
+        step_num=conf.get("step_num", 1),
     )
     master_launcher.shutdown()
     for launcher in worker_launchers:

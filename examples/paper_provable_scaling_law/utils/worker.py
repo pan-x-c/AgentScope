@@ -207,36 +207,39 @@ class MixedJudge(metaclass=RpcMeta):
             else:
                 k = rest_k
         a_b = [
-            self.judges[i % self.judge_num].run(
+            self.judges[random.randint(0, self.judge_num - 1)].run(
                 question=question["question"],
                 candidate_a=candidate_a["raw"],
                 candidate_b=candidate_b["raw"],
             )
-            for i in range(k // 2)
+            for _ in range(k // 2)
         ]
         b_a = [
-            self.judges[i % self.judge_num].run(
+            self.judges[random.randint(0, self.judge_num - 1)].run(
                 question=question["question"],
                 candidate_a=candidate_b["raw"],
                 candidate_b=candidate_a["raw"],
             )
-            for i in range(k // 2)
+            for _ in range(k - (k // 2))
         ]
         a_b = [_.result() for _ in a_b]
         b_a = [_.result() for _ in b_a]
         result = {
-            "cmp_num": cmp_num + k,
-            "score_a": cache_result.get("score_a", 0)
-            + sum(_["winner"].get("a") for _ in a_b)
+            "cmp_num": k,
+            "score_a": sum(_["winner"].get("a") for _ in a_b)
             + sum(_["winner"].get("b") for _ in b_a),
-            "score_b": cache_result.get("score_b", 0)
-            + sum(_["winner"].get("b") for _ in a_b)
+            "score_b": sum(_["winner"].get("b") for _ in a_b)
             + sum(_["winner"].get("a") for _ in b_a),
             "a": candidate_a["cid"],
             "b": candidate_b["cid"],
             "cmp_a_b": cache_result.get("cmp_a_b", []) + a_b,
             "cmp_b_a": cache_result.get("cmp_b_a", []) + b_a,
         }
+        if reuse:
+            result["cmp_num"] += cmp_num
+            result["score_a"] += cache_result.get("score_a", 0)
+            result["score_b"] += cache_result.get("score_b", 0)
+
         if result["score_a"] > result["score_b"]:
             result["winner"] = candidate_a["cid"]
         elif result["score_a"] < result["score_b"]:

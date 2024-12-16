@@ -304,7 +304,7 @@ class UCBFigureDrawer:
                 wrong_p_cmps = []
                 for qid, stat in stats[category]["details"].items():
                     if stat["cmp"]["valid"] > 0:
-                        if stat["acc"][str(configs[i]["t"])] == 1:
+                        if stat["acc"][str(configs[i]["t"])] >= 0.5:
                             right_p_gens.append(stat["acc"]["avg"])
                             right_p_cmps.append(stat["cmp"]["p_cmp"])
                         else:
