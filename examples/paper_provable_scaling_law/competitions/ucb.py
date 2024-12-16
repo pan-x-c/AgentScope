@@ -2,16 +2,20 @@
 """UCB competition module."""
 
 from __future__ import annotations
-from typing import List
+from typing import List, Tuple
+import numpy as np
 
 from .competition import Competition
-from utils.worker import MixedJudge
-from utils.cache import Cache
-from utils.dataset import Dataset
+
+from ..utils.worker import MixedJudge
+from ..utils.cache import Cache
+from ..utils.dataset import Dataset
 
 
-@Competition.register("ucb")
-class UCB(Competition):
+@Competition.register("lucb")
+class LUCB(Competition):
+    """An implementation of LUCB algorithm."""
+
     def __init__(
         self,
         judge: MixedJudge,
@@ -22,6 +26,7 @@ class UCB(Competition):
         n_opponent: int = 2,
         c_bonus: float = 1.0,
         win_indicator: str = "win_rate",
+        budget: int = 0,
     ):
         super().__init__(judge, cache)
         self.n = n
@@ -30,32 +35,61 @@ class UCB(Competition):
         self.n_opponent = n_opponent
         self.c_bonus = c_bonus
         self.win_indicator = win_indicator
+        self.has_budget = budget != 0
+        if self.has_budget:
+            # 0 means no budget
+            self.m = budget // (self.k * self.n_opponent)
+            assert self.m >= 2 and self.m % 2 == 0
+        else:
+            self.m = 0
 
     def get_final(self, stats: dict) -> dict:
+        """Get the final winner with specific win indicator."""
         if self.win_indicator == "ucb":
             return stats["final_ucb"]
         else:
             return stats["final_win_rate"]
 
-    def competition(
+    def _select_candidates_for_comparison(
         self,
-        question: dict,
-        candidates: List[dict],
-    ) -> dict:
-        """Run lucb competition."""
-        import numpy as np
+        active_signal: np.ndarray,
+        ucb: np.ndarray,
+        lcb: np.ndarray,
+    ) -> List:
+        active_candidate_ids = np.where(active_signal)[0]
+        if not self.has_budget:
+            # use all active candidates if no budget
+            return active_candidate_ids.to_list()
+        m_top_ucb = self.m // 2
+        m_bottom_lcb = self.m - m_top_ucb
+        if len(active_candidate_ids) > m_top_ucb:
+            scores_for_top_ucb = (
+                ucb + np.random.randn(self.n) * 1e-8 + active_signal * 10
+            )
+            sorted_idx = np.argsort(scores_for_top_ucb)
+            idx_top_ucb = sorted_idx[-m_top_ucb:].tolist()
+        else:
+            idx_top_ucb = np.random.choice(
+                active_candidate_ids,
+                m_top_ucb,
+                replace=True,
+            ).tolist()
+        if len(active_candidate_ids) > m_bottom_lcb:
+            scores_for_bottom_lcb = (
+                lcb + np.random.randn(self.n) * 1e-8 - active_signal * 10
+            )
+            sorted_idx = np.argsort(scores_for_bottom_lcb)
+            idx_bottom_lcb = sorted_idx[:m_bottom_lcb].tolist()
+        else:
+            idx_bottom_lcb = np.random.choice(
+                active_candidate_ids,
+                m_bottom_lcb,
+                replace=True,
+            ).tolist()
+        return idx_top_ucb + idx_bottom_lcb
 
-        candidates = candidates[: self.n]
-
-        ucb_stats = self.cache.load_ucb(
-            instance_id=question["id"],
-            n=self.n,
-            k=self.k,
-            t=self.t,
-            category=question["category"],
-        )
-        if ucb_stats:
-            return self.get_final(ucb_stats)
+    def run_lucb(self, question: dict, candidates: List) -> Tuple:
+        """The main procedure of LUCB"""
         total_cmp_cnt = 0
         ucb_stats = {"final": None, "detail": {}}
         ucb = np.ones(self.n, dtype=np.float64)
@@ -77,10 +111,15 @@ class UCB(Competition):
                 "active_ids": [],
                 "comparisons": [],
             }
-            # find activate candidate id where active_signal == 1
+            # find active candidate id where active_signal == 1
+            candidates_for_comparision = (
+                self._select_candidates_for_comparison(
+                    active_signal=active_signal, ucb=ucb, lcb=lcb
+                )
+            )
             active_candidate_ids = np.where(active_signal)[0]
             futures = []
-            for idx in active_candidate_ids:
+            for idx in candidates_for_comparision:
                 opponent_num = self.n_opponent
                 candidate_opponent_list = [
                     x for x in active_candidate_ids if x != idx
@@ -162,6 +201,29 @@ class UCB(Competition):
         ucb_stats["total_cmp_cnt"] = total_cmp_cnt
         final = self.get_final(ucb_stats)
         ucb_stats["final"] = final
+        return final, ucb_stats
+
+    def competition(
+        self,
+        question: dict,
+        candidates: List[dict],
+        **kwargs: dict,
+    ) -> dict:
+        """Run lucb competition."""
+        candidates = candidates[: self.n]
+
+        ucb_stats = self.cache.load_ucb(
+            instance_id=question["id"],
+            n=self.n,
+            k=self.k,
+            t=self.t,
+            category=question["category"],
+        )
+        if ucb_stats:
+            return self.get_final(ucb_stats)
+        final, ucb_stats = self.run_lucb(
+            question=question, candidates=candidates
+        )
         self.cache.save_ucb(
             detail=ucb_stats,
             instance_id=question["id"],
@@ -173,7 +235,6 @@ class UCB(Competition):
         return final
 
     def calculate_stats(self, dataset: Dataset):
-        import numpy as np
 
         n = self.n
         k = self.k
@@ -277,15 +338,7 @@ class UCB(Competition):
             category_stats[question["category"]]["details"][
                 str(question["id"])
             ] = question_stats
-        for category in category_stats:
-            for t in category_stats[category]["acc"]:
-                category_stats[category]["acc"][t] /= category_stats[category][
-                    "cnt"
-                ]
-            self.cache.save_ucb_stats(
-                category_stats[category],
-                n,
-                k,
-                t,
-                category,
-            )
+        for category, stats in category_stats.items():
+            for t in stats["acc"]:
+                stats["acc"][t] /= stats["cnt"]
+            self.cache.save_ucb_stats(stats, n, k, t, category)
