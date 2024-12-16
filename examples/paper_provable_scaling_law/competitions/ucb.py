@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 from typing import List
-from loguru import logger
 
 from .competition import Competition
 from utils.worker import MixedJudge
@@ -43,7 +42,7 @@ class UCB(Competition):
         question: dict,
         candidates: List[dict],
     ) -> dict:
-        """Run ucb competition."""
+        """Run lucb competition."""
         import numpy as np
 
         candidates = candidates[: self.n]
@@ -290,7 +289,3 @@ class UCB(Competition):
                 t,
                 category,
             )
-
-
-# @Competition.register("ucb_adv")
-# class UCBAdv(UCB):
