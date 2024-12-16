@@ -631,7 +631,7 @@ Choices:
         return self.format_sample(sample)
 
     @classmethod
-    def calculate_stats(self, sample: dict, candidates: List[dict]) -> dict:
+    def calculate_stats(cls, sample: dict, candidates: List[dict]) -> dict:
         def _get_majority(candidates: list[dict]) -> str:
             votes = {}
             for c in candidates:

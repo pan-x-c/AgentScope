@@ -260,7 +260,7 @@ class Cache:
         k: int,
         t: int,
         category: str = DEFAULT_CATEGORY,
-    ) -> None:
+    ) -> dict:
         ucb_file = os.path.join(
             self.competition_dir,
             "ucb",

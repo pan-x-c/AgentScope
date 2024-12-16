@@ -114,7 +114,9 @@ class LUCB(Competition):
             # find active candidate id where active_signal == 1
             candidates_for_comparision = (
                 self._select_candidates_for_comparison(
-                    active_signal=active_signal, ucb=ucb, lcb=lcb
+                    active_signal=active_signal,
+                    ucb=ucb,
+                    lcb=lcb,
                 )
             )
             active_candidate_ids = np.where(active_signal)[0]
@@ -222,7 +224,8 @@ class LUCB(Competition):
         if ucb_stats:
             return self.get_final(ucb_stats)
         final, ucb_stats = self.run_lucb(
-            question=question, candidates=candidates
+            question=question,
+            candidates=candidates,
         )
         self.cache.save_ucb(
             detail=ucb_stats,
@@ -235,7 +238,6 @@ class LUCB(Competition):
         return final
 
     def calculate_stats(self, dataset: Dataset):
-
         n = self.n
         k = self.k
         t = self.t
@@ -262,7 +264,7 @@ class LUCB(Competition):
                 category=question["category"],
             )[:n]
             target = question["answer"]
-            final_ids = np.array(range(n))
+            final_ids = range(n)
             question_stats["acc"] = {
                 "avg": sum(1 for x in candidates if x["answer"] == target)
                 / len(candidates),
@@ -314,7 +316,7 @@ class LUCB(Competition):
                     max_score = np.max(scores)
                     final_ids = np.where(
                         np.isclose(scores, max_score, atol=1e-8),
-                    )[0]
+                    )[0].to_list()
                 if (
                     str(round_num)
                     not in category_stats[question["category"]]["acc"]

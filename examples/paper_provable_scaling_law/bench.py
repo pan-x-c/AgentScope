@@ -11,11 +11,11 @@ from loguru import logger
 import agentscope
 from agentscope.server import RpcAgentServerLauncher
 
-from utils import get_dataset, get_generator, get_judge
-from utils.dataset import Dataset
-from utils.cache import Cache
-from utils.worker import MixedGenerator, MixedJudge
-from competitions import Competition
+from .utils import get_dataset, get_generator, get_judge
+from .utils.dataset import Dataset
+from .utils.cache import Cache
+from .utils.worker import MixedGenerator, MixedJudge
+from .competitions import Competition
 
 
 def run_generation(
@@ -23,7 +23,7 @@ def run_generation(
     dataset: Dataset,
     pending_task_num: int = 4,
     step_num: int = 1,
-) -> dict:
+) -> None:
     """Run the generation."""
     futures = []
     for question in dataset:
@@ -46,7 +46,7 @@ def run_competition(
     cache: Cache,
     pending_task_num: int = 2,
     step_num: int = 1,
-) -> dict:
+) -> None:
     """Run the competition."""
     futures = []
     for question in dataset:
@@ -81,7 +81,7 @@ def main(conf: dict) -> None:
         launcher.launch()
     master_launcher = RpcAgentServerLauncher()
     master_launcher.launch()
-    if config.get("generation", None):
+    if conf.get("generation", None):
         generators = [
             get_generator(w).to_dist(
                 worker_launchers[i % len(worker_launchers)].host,
@@ -116,7 +116,7 @@ def main(conf: dict) -> None:
             "port": master_launcher.port,
         },
     )
-    config["competition"]["to_dist"] = {
+    conf["competition"]["to_dist"] = {
         "host": master_launcher.host,
         "port": master_launcher.port,
     }

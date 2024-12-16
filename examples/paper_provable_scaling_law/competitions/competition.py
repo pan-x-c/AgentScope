@@ -5,9 +5,9 @@ from abc import abstractmethod
 from typing import List, Any
 from agentscope.rpc import async_func, RpcMeta
 
-from utils.worker import MixedJudge
-from utils.cache import Cache
-from utils.dataset import Dataset
+from ..utils.worker import MixedJudge
+from ..utils.cache import Cache
+from ..utils.dataset import Dataset
 
 
 class Competition(metaclass=RpcMeta):
@@ -17,6 +17,8 @@ class Competition(metaclass=RpcMeta):
 
     @classmethod
     def register(cls, name: str) -> Any:
+        """Register a competition."""
+
         def decorator(subcls: type) -> type:
             cls._COMPETITIONS[name] = subcls
             return subcls
@@ -30,6 +32,7 @@ class Competition(metaclass=RpcMeta):
         cache: Cache,
         config: dict,
     ) -> Competition:
+        """Create a competition instance."""
         name = config.pop("method", "")
         subcls = cls._COMPETITIONS.get(name)
         if not subcls:

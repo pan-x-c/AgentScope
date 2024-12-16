@@ -16,7 +16,7 @@ class KnockoutFigureDrawer:
         categories: List[str],
         configs: List[dict],
         sub_dir: str = "default",
-    ):
+    ) -> None:
         figure_dir = os.path.join(FIGURE_DIR, sub_dir)
         os.makedirs(figure_dir, exist_ok=True)
         stats = [
@@ -77,7 +77,7 @@ class KnockoutFigureDrawer:
         categories: List[str],
         configs: List[dict],
         sub_dir: str = "default",
-    ):
+    ) -> None:
         figure_dir = os.path.join(FIGURE_DIR, sub_dir)
         os.makedirs(figure_dir, exist_ok=True)
         run_stats = [
@@ -210,7 +210,7 @@ class UCBFigureDrawer:
         categories: List[str],
         configs: List[dict],
         sub_dir: str = "default",
-    ):
+    ) -> None:
         figure_dir = os.path.join(FIGURE_DIR, sub_dir)
         os.makedirs(figure_dir, exist_ok=True)
         stats = [
@@ -278,7 +278,7 @@ class UCBFigureDrawer:
         categories: List[str],
         configs: List[dict],
         sub_dir: str = "default",
-    ):
+    ) -> None:
         figure_dir = os.path.join(FIGURE_DIR, sub_dir)
         os.makedirs(figure_dir, exist_ok=True)
         run_stats = [
