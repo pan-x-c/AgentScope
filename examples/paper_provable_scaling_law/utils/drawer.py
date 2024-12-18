@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+from collections import defaultdict
 from typing import List
 from matplotlib import pyplot as plt
 from .cache import Cache
@@ -17,28 +18,15 @@ class KnockoutFigureDrawer:
         configs: List[dict],
         sub_dir: str = "default",
     ) -> None:
-        figure_dir = os.path.join(FIGURE_DIR, sub_dir)
-        os.makedirs(figure_dir, exist_ok=True)
-        stats = [
-            Cache(
-                project_name=config["project"],
-                job_name=config["job"],
-            ).load_knockout_stats(
-                n=config["n"],
-                k=config["k"],
-                categories=categories,
-            )
-            for config in configs
-        ]
-        for category in categories:
+        def draw_line(category: str, lines: List[dict]):
             fig, ax = plt.subplots(figsize=(4, 3))
-            for i, stat in enumerate(stats):
+            for line in lines:
                 ax.plot(
-                    stat[category]["acc"].keys(),
-                    stat[category]["acc"].values(),
-                    label=configs[i]["label"],
-                    marker=configs[i]["marker"],
-                    color=configs[i]["color"],
+                    line["acc"].keys(),
+                    line["acc"].values(),
+                    label=line["label"],
+                    marker=line["marker"],
+                    color=line["color"],
                 )
             ax.set_title(f"{dataset_name}: {category}")
             ax.grid(
@@ -69,6 +57,43 @@ class KnockoutFigureDrawer:
                 bbox_inches="tight",
                 pad_inches=0.02,
             )
+
+        figure_dir = os.path.join(FIGURE_DIR, sub_dir)
+        os.makedirs(figure_dir, exist_ok=True)
+        stats = [
+            Cache(
+                project_name=config["project"],
+                job_name=config["job"],
+            ).load_knockout_stats(
+                n=config["n"],
+                k=config["k"],
+                categories=categories,
+            )
+            for config in configs
+        ]
+        # draw categories
+        for category in categories:
+            lines = []
+            for i, stat in enumerate(stats):
+                line = {"acc": stat[category]["acc"]}
+                line.update(configs[i])
+                lines.append(line)
+            draw_line(category=category, lines=lines)
+        # draw all
+        all_lines = []
+        for i, stat in enumerate(stats):
+            all_cnt = 0
+            all_acc = defaultdict(float)
+            for category in categories:
+                for k, v in stat[category]["acc"].items():
+                    all_acc[k] += v * stat[category]["cnt"]
+                all_cnt += stat[category]["cnt"]
+            for k in all_acc:
+                all_acc[k] /= all_cnt
+            line = {"acc": all_acc}
+            line.update(configs[i])
+            all_lines.append(line)
+        draw_line(category="all", lines=all_lines)
 
     @classmethod
     def draw_p_cmp(
@@ -115,6 +140,7 @@ class KnockoutFigureDrawer:
                 ax.scatter(
                     right_p_gens,
                     right_p_cmps,
+                    15,
                     label=configs[i]["label"],
                     alpha=0.6,
                     color=configs[i]["color"],
@@ -122,6 +148,7 @@ class KnockoutFigureDrawer:
                 ax.scatter(
                     wrong_p_gens,
                     wrong_p_cmps,
+                    15,
                     label=configs[i]["label"],
                     alpha=0.6,
                     color=configs[i]["color"],
@@ -211,29 +238,15 @@ class UCBFigureDrawer:
         configs: List[dict],
         sub_dir: str = "default",
     ) -> None:
-        figure_dir = os.path.join(FIGURE_DIR, sub_dir)
-        os.makedirs(figure_dir, exist_ok=True)
-        stats = [
-            Cache(
-                project_name=config["project"],
-                job_name=config["job"],
-            ).load_ucb_stats(
-                n=config["n"],
-                k=config["k"],
-                t=config["t"],
-                categories=categories,
-            )
-            for config in configs
-        ]
-        for category in categories:
+        def draw_line(category: str, lines: List[dict]):
             fig, ax = plt.subplots(figsize=(4, 3))
-            for i, stat in enumerate(stats):
+            for line in lines:
                 ax.plot(
-                    stat[category]["acc"].keys(),
-                    stat[category]["acc"].values(),
-                    label=configs[i]["label"],
-                    marker=configs[i]["marker"],
-                    color=configs[i]["color"],
+                    line["acc"].keys(),
+                    line["acc"].values(),
+                    label=line["label"],
+                    marker=line["marker"],
+                    color=line["color"],
                 )
             ax.set_title(f"{dataset_name}: {category}")
             ax.grid(
@@ -271,6 +284,42 @@ class UCBFigureDrawer:
                 pad_inches=0.02,
             )
 
+        figure_dir = os.path.join(FIGURE_DIR, sub_dir)
+        os.makedirs(figure_dir, exist_ok=True)
+        stats = [
+            Cache(
+                project_name=config["project"],
+                job_name=config["job"],
+            ).load_ucb_stats(
+                n=config["n"],
+                k=config["k"],
+                t=config["t"],
+                categories=categories,
+            )
+            for config in configs
+        ]
+        for category in categories:
+            lines = []
+            for i, stat in enumerate(stats):
+                line = {"acc": stat[category]["acc"]}
+                line.update(configs[i])
+                lines.append(line)
+            draw_line(category=category, lines=lines)
+        all_lines = []
+        for i, stat in enumerate(stats):
+            all_cnt = 0
+            all_acc = defaultdict(float)
+            for category in categories:
+                for k, v in stat[category]["acc"].items():
+                    all_acc[k] += v * stat[category]["cnt"]
+                all_cnt += stat[category]["cnt"]
+            for k in all_acc:
+                all_acc[k] /= all_cnt
+            line = {"acc": all_acc}
+            line.update(configs[i])
+            all_lines.append(line)
+        draw_line(category="all", lines=all_lines)
+
     @classmethod
     def draw_p_cmp(
         cls,
@@ -303,8 +352,8 @@ class UCBFigureDrawer:
                 wrong_p_gens = []
                 wrong_p_cmps = []
                 for qid, stat in stats[category]["details"].items():
-                    if stat["cmp"]["valid"] > 0:
-                        if stat["acc"][str(configs[i]["t"])] >= 0.5:
+                    if stat["cmp"]["valid"] > 0.5:
+                        if stat["acc"][str(configs[i]["t"])] == 1:
                             right_p_gens.append(stat["acc"]["avg"])
                             right_p_cmps.append(stat["cmp"]["p_cmp"])
                         else:

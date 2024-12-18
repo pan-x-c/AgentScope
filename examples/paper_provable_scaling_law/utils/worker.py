@@ -35,6 +35,38 @@ def get_judge(config: dict) -> Judge:
         raise NotImplementedError
 
 
+def calculate_stats(question: dict, candidates: List[dict]) -> dict:
+    """Calculate the accuracy and other statistic information
+    of the candidates.
+    """
+
+    def _get_majority(candidates: list[dict]) -> str:
+        votes = {}
+        for c in candidates:
+            if c["answer"] not in votes:
+                votes[c["answer"]] = 0
+            else:
+                votes[c["answer"]] += 1
+        return max(votes, key=votes.get)
+
+    stats = {
+        "target": question["answer"],
+        "question": question["question"],
+        "category": question["category"],
+    }
+    total = 0
+    correct = 0
+    for candidate in candidates:
+        total += 1
+        if candidate["answer"] == question["answer"]:
+            correct += 1
+    stats["acc"] = correct / total
+    stats["total_cnt"] = total
+    stats["correct_cnt"] = correct
+    stats["majority"] = _get_majority(candidates)
+    return stats
+
+
 class Generator(metaclass=RpcMeta):
     """A basic generator"""
 
@@ -96,42 +128,11 @@ class MixedGenerator(metaclass=RpcMeta):
             category=question.get("category", "all"),
         )
         self.cache.save_generation_stats(
-            stats=self.calculate_stats(question, candidates),
+            stats=calculate_stats(question, candidates),
             instance_id=question["id"],
             category=question.get("category", "all"),
         )
         return candidates
-
-    def calculate_stats(self, question: dict, candidates: List[dict]) -> dict:
-        """Calculate the accuracy and other statistic information
-        of the candidates.
-        """
-
-        def _get_majority(candidates: list[dict]) -> str:
-            votes = {}
-            for c in candidates:
-                if c["answer"] not in votes:
-                    votes[c["answer"]] = 0
-                else:
-                    votes[c["answer"]] += 1
-            return max(votes, key=votes.get)
-
-        stats = {
-            "target": question["answer"],
-            "question": question["question"],
-            "category": question["category"],
-        }
-        total = 0
-        correct = 0
-        for candidate in candidates:
-            total += 1
-            if candidate["answer"] == question["answer"]:
-                correct += 1
-        stats["acc"] = correct / total
-        stats["total_cnt"] = total
-        stats["correct_cnt"] = correct
-        stats["majority"] = _get_majority(candidates)
-        return stats
 
 
 class Judge(metaclass=RpcMeta):
@@ -167,10 +168,12 @@ class MixedJudge(metaclass=RpcMeta):
         self,
         judges: List[Judge],
         cache: Cache,
+        random: bool = True,
     ):
         self.judges = judges
         self.judge_num = len(self.judges)
         self.cache = cache
+        self.random = random
 
     @async_func
     def pairwise_compare(
@@ -206,21 +209,27 @@ class MixedJudge(metaclass=RpcMeta):
                 return cache_result
             else:
                 k = rest_k
+        if self.random:
+            judge_seq = [
+                random.randint(0, self.judge_num - 1) for _ in range(k)
+            ]
+        else:
+            judge_seq = [i % self.judge_num for i in range(k)]
         a_b = [
-            self.judges[random.randint(0, self.judge_num - 1)].run(
+            self.judges[judge_seq[i]].run(
                 question=question["question"],
                 candidate_a=candidate_a["raw"],
                 candidate_b=candidate_b["raw"],
             )
-            for _ in range(k // 2)
+            for i in range(k // 2)
         ]
         b_a = [
-            self.judges[random.randint(0, self.judge_num - 1)].run(
+            self.judges[judge_seq[i + k // 2]].run(
                 question=question["question"],
                 candidate_a=candidate_b["raw"],
                 candidate_b=candidate_a["raw"],
             )
-            for _ in range(k - (k // 2))
+            for i in range(k - (k // 2))
         ]
         a_b = [_.result() for _ in a_b]
         b_a = [_.result() for _ in b_a]

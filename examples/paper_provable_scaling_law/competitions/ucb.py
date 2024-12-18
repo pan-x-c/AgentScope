@@ -253,6 +253,9 @@ class LUCB(Competition):
                     "acc": {
                         "0": 0,
                     },
+                    "pool_size": {
+                        "0": 0,
+                    },
                     "cnt": 0,
                     "details": {},
                 }
@@ -274,6 +277,8 @@ class LUCB(Competition):
                 "avg": sum(1 for x in candidates if x["answer"] == target)
                 / len(candidates),
             }
+            question_stats["pool_size"] = {"0": self.n}
+            category_stats[question["category"]]["pool_size"]["0"] += self.n
             question_stats["acc"]["0"] = question_stats["acc"]["avg"]
             category_stats[question["category"]]["acc"]["0"] += question_stats[
                 "acc"
@@ -309,6 +314,15 @@ class LUCB(Competition):
                             )
                             * active_signal
                         )
+                    elif self.win_indicator == "lcb":
+                        scores = (
+                            np.array(
+                                ucb_result["detail"][f"round_{round_num}"][
+                                    "lcb"
+                                ],
+                            )
+                            * active_signal
+                        )
                     else:
                         scores = (
                             np.array(
@@ -322,6 +336,9 @@ class LUCB(Competition):
                     final_ids = np.where(
                         np.isclose(scores, max_score, atol=1e-8),
                     )[0].tolist()
+                    # final_ids = ucb_result["detail"][f"round_{round_num}"][
+                    #     "active_ids"
+                    # ]
                 if (
                     str(round_num)
                     not in category_stats[question["category"]]["acc"]
@@ -329,13 +346,28 @@ class LUCB(Competition):
                     category_stats[question["category"]]["acc"][
                         str(round_num)
                     ] = 0
+                    category_stats[question["category"]]["pool_size"][
+                        str(round_num)
+                    ] = 0
                 question_stats["acc"][str(round_num)] = sum(
                     int(candidates[final_idx]["answer"] == target)
                     for final_idx in final_ids
                 ) / len(final_ids)
+                if (
+                    question_stats["acc"][str(round_num)] == 0
+                    or question_stats["acc"][str(round_num)] == 1
+                ):
+                    question_stats["pool_size"][str(round_num)] = 1
+                else:
+                    question_stats["pool_size"][str(round_num)] = len(
+                        final_ids,
+                    )
                 category_stats[question["category"]]["acc"][
                     str(round_num)
                 ] += question_stats["acc"][str(round_num)]
+                category_stats[question["category"]]["pool_size"][
+                    str(round_num)
+                ] += question_stats["pool_size"][str(round_num)]
             category_stats[question["category"]]["cnt"] += 1
             question_stats["cmp"] = {
                 "valid": valid_cmp,
@@ -348,4 +380,5 @@ class LUCB(Competition):
         for category, stats in category_stats.items():
             for t in stats["acc"]:
                 stats["acc"][t] /= stats["cnt"]
+                stats["pool_size"][t] /= stats["cnt"]
             self.cache.save_ucb_stats(stats, n, k, t, category)

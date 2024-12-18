@@ -111,6 +111,7 @@ def main(conf: dict) -> None:
             for i, w in enumerate(conf["judgement"]["workers"])
         ],
         cache=cache,
+        random=config["judgement"].get("random", True),
         to_dist={
             "host": master_launcher.host,
             "port": master_launcher.port,
