@@ -13,7 +13,15 @@ from utils.dataset import Dataset
 
 @Competition.register("knockout")
 class Knockout(Competition):
-    """An implementation of Knockout competition."""
+    """
+    Knockout competition class.
+
+    Args:
+        n (`int`): the number of candidates
+        k (`int`): the number of comparisons between each pair
+
+    Total number of comparisons: (n - 1) * k
+    """
 
     def __init__(
         self,
@@ -66,12 +74,12 @@ class Knockout(Competition):
             if len(candidates) % 2 == 1:
                 winners.append(candidates[-1])
             pairs = []
-            if not all_same or self.skip_same:
-                seen_answers = set()
-                for i in range(len(candidates)):
-                    seen_answers.add(candidates[i]["answer"])
-                if len(seen_answers) == 1:
-                    all_same = True
+            if not all_same and self.skip_same:
+                all_same = True
+                for i in range(1, len(candidates)):
+                    if candidates[i] != candidates[0]:
+                        all_same = False
+                        break
             for i in range(1, len(candidates), 2):
                 # pair-wise compare
                 if all_same:

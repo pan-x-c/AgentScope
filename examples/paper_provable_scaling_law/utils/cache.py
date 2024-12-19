@@ -161,6 +161,84 @@ class Cache:
             return {}
         return json.load(open(pairwise_file, "r", encoding="utf-8"))
 
+    def save_competition(
+        self,
+        detail: dict,
+        competition_type: str,
+        instance_id: str,
+        category: str,
+        suffix: str,
+    ) -> None:
+        competition_dir = os.path.join(
+            self.competition_dir,
+            competition_type,
+            category,
+        )
+        os.makedirs(competition_dir, exist_ok=True)
+        with open(
+            os.path.join(competition_dir, f"{instance_id}_{suffix}.json"),
+            "w",
+            encoding="utf-8",
+        ) as f:
+            json.dump(detail, f, ensure_ascii=False, indent=2)
+
+    def save_competition_stats(
+        self,
+        stats: dict,
+        competition_type: str,
+        category: str,
+        suffix: str,
+    ) -> None:
+        competition_stats_dir = os.path.join(
+            self.competition_dir,
+            f"{competition_type}_stats",
+        )
+        os.makedirs(competition_stats_dir, exist_ok=True)
+        with open(
+            os.path.join(
+                competition_stats_dir,
+                f"{category}_{suffix}.json",
+            ),
+            "w",
+            encoding="utf-8",
+        ) as f:
+            json.dump(stats, f, ensure_ascii=False, indent=2)
+
+    def load_competition(
+        self,
+        instance_id: str,
+        competition_type: str,
+        category: str,
+        suffix: str,
+    ) -> dict:
+        competition_file = os.path.join(
+            self.competition_dir,
+            competition_type,
+            category,
+            f"{instance_id}_{suffix}.json",
+        )
+        if not os.path.exists(competition_file):
+            return {}
+        return json.load(open(competition_file, "r", encoding="utf-8"))
+
+    def load_competition_stats(
+        self,
+        competition_type: str,
+        categories: List[str],
+        suffix: str,
+    ) -> dict:
+        result = {}
+        for category in categories:
+            competition_stats_file = os.path.join(
+                self.competition_dir,
+                f"{competition_type}_stats",
+                f"{category}_{suffix}.json",
+            )
+            result[category] = json.load(
+                open(competition_stats_file, "r", encoding="utf-8"),
+            )
+        return result
+
     def save_knockout(
         self,
         detail: dict,
