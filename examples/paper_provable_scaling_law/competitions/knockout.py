@@ -2,6 +2,7 @@
 """Knockout competition module."""
 
 from __future__ import annotations
+from collections import defaultdict
 from typing import List
 from loguru import logger
 
@@ -139,6 +140,16 @@ class Knockout(Competition):
         dataset: Dataset,
     ) -> None:
         """Calculate the stats of the knockout competition."""
+
+        def _get_majority(candidates: list[dict]) -> str:
+            votes = {}
+            for c in candidates:
+                if c["answer"] not in votes:
+                    votes[c["answer"]] = 0
+                else:
+                    votes[c["answer"]] += 1
+            return max(votes, key=votes.get)
+
         logger.info("Calculating knockout stats...")
         n = self.n
         k = self.k
@@ -146,9 +157,8 @@ class Knockout(Competition):
         for question in dataset:
             if question["category"] not in category_stats:
                 category_stats[question["category"]] = {
-                    "acc": {
-                        "1": 0,
-                    },
+                    "acc": defaultdict(float),
+                    "majority_acc": defaultdict(float),
                     "cnt": 0,
                     "details": {},
                 }
@@ -171,9 +181,15 @@ class Knockout(Competition):
                 )
                 / len(candidates),
             }
+            question_stats["majority_acc"] = {
+                f"{candidate_num}": question_stats["acc"][f"{candidate_num}"],
+            }
             category_stats[question["category"]]["acc"][
                 f"{candidate_num}"
             ] += question_stats["acc"][f"{candidate_num}"]
+            category_stats[question["category"]]["majority_acc"][
+                f"{candidate_num}"
+            ] += question_stats["majority_acc"][f"{candidate_num}"]
             valid_cmp = 0
             correct_cmp = 0
             for round_num in knockout_result["detail"]:
@@ -194,17 +210,22 @@ class Knockout(Competition):
                         if answer_winner == target:
                             correct_cmp += 1
                 question_stats["acc"][str(candidate_num)] = correct / total
-
-                if (
-                    str(candidate_num)
-                    not in category_stats[question["category"]]["acc"]
-                ):
-                    category_stats[question["category"]]["acc"][
-                        str(candidate_num)
-                    ] = 0
+                majority_correct = 0
+                majority_cnt = 0
+                for i in range(0, n, candidate_num):
+                    majority = _get_majority(candidates[i : i + candidate_num])
+                    majority_cnt += 1
+                    if majority == target:
+                        majority_correct += 1
+                question_stats["majority_acc"][str(candidate_num)] = (
+                    majority_correct / majority_cnt
+                )
                 category_stats[question["category"]]["acc"][
                     str(candidate_num)
                 ] += (correct / total)
+                category_stats[question["category"]]["majority_acc"][
+                    str(candidate_num)
+                ] += (majority_correct / majority_cnt)
 
             category_stats[question["category"]]["cnt"] += 1
             question_stats["cmp"] = {
@@ -218,6 +239,9 @@ class Knockout(Competition):
         for category in category_stats:
             for candidate_num in category_stats[category]["acc"]:
                 category_stats[category]["acc"][
+                    candidate_num
+                ] /= category_stats[category]["cnt"]
+                category_stats[category]["majority_acc"][
                     candidate_num
                 ] /= category_stats[category]["cnt"]
             self.cache.save_knockout_stats(

@@ -11,6 +11,54 @@ FIGURE_DIR = os.path.join(os.path.dirname(__file__), "imgs")
 
 class KnockoutFigureDrawer:
     @classmethod
+    def draw_line(
+        cls,
+        dataset_name: str,
+        category: str,
+        lines: List[dict],
+        figure_dir: str,
+    ):
+        fig, ax = plt.subplots(figsize=(4, 3))
+        for line in lines:
+            ax.plot(
+                line["acc"].keys(),
+                line["acc"].values(),
+                label=line["label"],
+                marker=line["marker"],
+                color=line["color"],
+                linestyle=line.get("linestyle", "solid"),
+            )
+        ax.set_title(f"{dataset_name}: {category}")
+        ax.grid(
+            True,
+            linestyle="dashed",
+            linewidth=1,
+            color="gray",
+            alpha=0.5,
+        )
+        ax.set_xlabel("N")
+        ax.set_ylabel("Accuracy")
+        ax.legend(
+            ncol=2,
+            handlelength=1.8,
+            handletextpad=0.2,
+            labelspacing=0.2,
+            columnspacing=0.3,
+            loc="lower center",
+        )
+        plt.tight_layout()
+        plt.savefig(
+            os.path.join(figure_dir, f"acc_{dataset_name}_{category}.pdf"),
+            bbox_inches="tight",
+            pad_inches=0.02,
+        )
+        plt.savefig(
+            os.path.join(figure_dir, f"acc_{dataset_name}_{category}.png"),
+            bbox_inches="tight",
+            pad_inches=0.02,
+        )
+
+    @classmethod
     def draw_acc(
         cls,
         dataset_name: str,
@@ -18,46 +66,6 @@ class KnockoutFigureDrawer:
         configs: List[dict],
         sub_dir: str = "default",
     ) -> None:
-        def draw_line(category: str, lines: List[dict]):
-            fig, ax = plt.subplots(figsize=(4, 3))
-            for line in lines:
-                ax.plot(
-                    line["acc"].keys(),
-                    line["acc"].values(),
-                    label=line["label"],
-                    marker=line["marker"],
-                    color=line["color"],
-                )
-            ax.set_title(f"{dataset_name}: {category}")
-            ax.grid(
-                True,
-                linestyle="dashed",
-                linewidth=1,
-                color="gray",
-                alpha=0.5,
-            )
-            ax.set_xlabel("N")
-            ax.set_ylabel("Accuracy")
-            ax.legend(
-                ncol=2,
-                handlelength=1.8,
-                handletextpad=0.2,
-                labelspacing=0.2,
-                columnspacing=0.3,
-                loc="lower center",
-            )
-            plt.tight_layout()
-            plt.savefig(
-                os.path.join(figure_dir, f"acc_{dataset_name}_{category}.pdf"),
-                bbox_inches="tight",
-                pad_inches=0.02,
-            )
-            plt.savefig(
-                os.path.join(figure_dir, f"acc_{dataset_name}_{category}.png"),
-                bbox_inches="tight",
-                pad_inches=0.02,
-            )
-
         figure_dir = os.path.join(FIGURE_DIR, sub_dir)
         os.makedirs(figure_dir, exist_ok=True)
         stats = [
@@ -78,7 +86,7 @@ class KnockoutFigureDrawer:
                 line = {"acc": stat[category]["acc"]}
                 line.update(configs[i])
                 lines.append(line)
-            draw_line(category=category, lines=lines)
+            cls.draw_line(category=category, lines=lines)
         # draw all
         all_lines = []
         for i, stat in enumerate(stats):
@@ -93,7 +101,54 @@ class KnockoutFigureDrawer:
             line = {"acc": all_acc}
             line.update(configs[i])
             all_lines.append(line)
-        draw_line(category="all", lines=all_lines)
+        print(f"[ALL]: {all_lines}")
+        cls.draw_line(
+            dataset_name=dataset_name,
+            category="all",
+            lines=all_lines,
+            figure_dir=figure_dir,
+        )
+
+    @classmethod
+    def draw_majority_vote(
+        cls,
+        dataset_name: str,
+        categories: List[str],
+        configs: List[dict],
+        sub_dir: str = "default",
+    ) -> None:
+        figure_dir = os.path.join(FIGURE_DIR, sub_dir)
+        os.makedirs(figure_dir, exist_ok=True)
+        stats = [
+            Cache(
+                project_name=config["project"],
+                job_name=config["job"],
+            ).load_knockout_stats(
+                n=config["n"],
+                k=config["k"],
+                categories=categories,
+            )
+            for config in configs
+        ]
+        # draw categories
+        for category in categories:
+            lines = []
+            for i, stat in enumerate(stats):
+                line = {"acc": stat[category]["acc"]}
+                majority_line = {"acc": stat[category]["majority_acc"]}
+                line.update(configs[i])
+                majority_line.update(configs[i])
+                majority_line["linestyle"] = "dotted"
+                majority_line["marker"] = "s"
+                majority_line["label"] += "(MV)"
+                lines.append(line)
+                lines.append(majority_line)
+            cls.draw_line(
+                dataset_name=dataset_name,
+                category=category,
+                lines=lines,
+                figure_dir=figure_dir,
+            )
 
     @classmethod
     def draw_p_cmp(
@@ -227,6 +282,51 @@ class KnockoutFigureDrawer:
                     pad_inches=0.02,
                 )
 
+    @classmethod
+    def draw_subset_acc(
+        cls,
+        threshold: float,
+        dataset_name: str,
+        categories: List[str],
+        configs: List[dict],
+        sub_dir: str = "default",
+    ) -> None:
+        figure_dir = os.path.join(FIGURE_DIR, sub_dir)
+        os.makedirs(figure_dir, exist_ok=True)
+        run_stats = [
+            Cache(
+                project_name=config["project"],
+                job_name=config["job"],
+            ).load_knockout_stats(
+                n=config["n"],
+                k=config["k"],
+                categories=categories,
+            )
+            for config in configs
+        ]
+        # draw categories
+        lines = []
+        for i, run in enumerate(run_stats):
+            line = {"acc": defaultdict(float), "cnt": 0}
+            for category in categories:
+                question_stats = run[category]["details"]
+                for qid, stat in question_stats.items():
+                    if stat["cmp"]["p_cmp"] < threshold:
+                        continue
+                    line["cnt"] += 1
+                    for k, v in stat["acc"].items():
+                        line["acc"][k] += v
+            for k in line["acc"]:
+                line["acc"][k] /= line["cnt"]
+            line.update(configs[i])
+            lines.append(line)
+        cls.draw_line(
+            dataset_name=dataset_name,
+            category="all",
+            lines=lines,
+            figure_dir=figure_dir,
+        )
+
 
 class UCBFigureDrawer:
     # TODO: merge into KnockoutFigureDrawer
@@ -318,6 +418,7 @@ class UCBFigureDrawer:
             line = {"acc": all_acc}
             line.update(configs[i])
             all_lines.append(line)
+            print(f"[ALL]: {all_lines}")
         draw_line(category="all", lines=all_lines)
 
     @classmethod
