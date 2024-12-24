@@ -177,23 +177,19 @@ class League(Competition):
             )
             # calculate acc
             while candidate_num < self.n:
-                candidate_num *= 2
+                candidate_num += 1
                 question_stats["acc"][f"{candidate_num}"] = 0
-                for i in range(0, self.n, candidate_num):
-                    sub_matrix = score_matrix[
-                        i : i + candidate_num,
-                        i : i + candidate_num,
-                    ]
+                for i in range(0, self.n):
+                    indices = [(i + j) % self.n for j in range(candidate_num)]
+                    sub_matrix = score_matrix[np.ix_(indices, indices)]
                     sub_board = [
                         sum(sub_matrix[j]) for j in range(candidate_num)
                     ]
-                    sub_final = candidates[i + np.argmax(sub_board)]
+                    sub_final = candidates[indices[np.argmax(sub_board)]]
                     question_stats["acc"][f"{candidate_num}"] += int(
                         sub_final["answer"] == target,
                     )
-                question_stats["acc"][f"{candidate_num}"] /= (
-                    self.n // candidate_num
-                )
+                question_stats["acc"][f"{candidate_num}"] /= self.n
                 if (
                     str(candidate_num)
                     not in category_stats[question["category"]]["acc"]
