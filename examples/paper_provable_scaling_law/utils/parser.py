@@ -37,7 +37,8 @@ class TagParser(Parser):
         self.description = description
         self._instruction = f"{self.begin}\n{description}\n{self.end}"
 
-    def extract(self, raw: str) -> str:
+    def extract_tag_content(self, raw: str) -> str:
+        """Extract the content inside <{tag_name}></{tag_name}>"""
         left = raw.find(self.begin)
         if left == -1:
             logger.error(f"Tag {self.begin} not found in the content:\n{raw}")
@@ -54,14 +55,12 @@ class TagParser(Parser):
             )
         return raw[left + len(self.begin) : right].strip()
 
-    def parse(self, text: str) -> Any:
+    def parse_content(self, text: str) -> Any:
+        """Parse the tag content into value of the tag"""
         return text
 
     def parse_to_dict(self, raw: str) -> dict:
-        return {self.name: self.parse(self.extract(raw))}
-
-    def construct(self, res: dict) -> str:
-        return f"{self.begin}\n{res[self.name]}\n{self.end}"
+        return {self.name: self.parse_content(self.extract_tag_content(raw))}
 
     @property
     def format_instruction(self) -> str:
@@ -88,6 +87,7 @@ class MMLUProParser(TagParser):
         )
 
     def extract_again(self, text: str) -> str:
+        """Try to extract the answer from the text again."""
         match = re.search(r".*[aA]nswer:\s*([A-J])", text)
         if match:
             return match.group(1)
@@ -95,6 +95,7 @@ class MMLUProParser(TagParser):
             return self.extract_final(text)
 
     def extract_final(self, text: str) -> str:
+        """Final try to extract the answer from the text."""
         pattern = r"\b[A-J]\b(?!.*\b[A-J]\b)"
         match = re.search(pattern, text, re.DOTALL)
         if match:
@@ -102,7 +103,7 @@ class MMLUProParser(TagParser):
         else:
             return "Uncertain"
 
-    def parse(self, text: str) -> Any:
+    def parse_content(self, text: str) -> Any:
         pattern = r"answer is \(?([A-J])\)?"
         match = re.search(pattern, text)
         if match:
@@ -118,13 +119,13 @@ class MATHParser(TagParser):
     https://github.com/EleutherAI/lm-evaluation-harness/blob/main/lm_eval/tasks/leaderboard/math/utils.py
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         super().__init__(
             name,
             "The final answer is $$your answer$$",
         )
 
-    def parse(self, text: str) -> Any:
+    def parse_content(self, text: str) -> Any:
         from .dataset import MATH
 
         pattern = r"\$\$(.*?)\$\$"
@@ -151,7 +152,7 @@ class ChoiceParser(TagParser):
         )
         self.choices = choices
 
-    def parse(self, text: str) -> Any:
+    def parse_content(self, text: str) -> Any:
         if text in self.choices:
             return text
         else:
@@ -175,16 +176,16 @@ class PairWiseParser(ChoiceParser):
 
     def parse_to_dict(self, raw: str) -> dict:
         try:
-            text = self.extract(raw)
+            text = self.extract_tag_content(raw)
         except ValueError:
             text = raw
-        return {self.name: self.parse(text)}
+        return {self.name: self.parse_content(text)}
 
-    def parse(self, text: str) -> Any:
+    def parse_content(self, text: str) -> Any:
         if text == "Solution 1":
-            score = [1, 0]
+            score = [1.0, 0.0]
         elif text == "Solution 2":
-            score = [0, 1]
+            score = [0.0, 1.0]
         else:
             score = [0.5, 0.5]
         return {
@@ -200,12 +201,11 @@ class MultiTagsParser(Parser):
         self.tags = tags
         self._instruction = "\n".join(tag.format_instruction for tag in tags)
 
-    def construct(self, res: dict) -> str:
-        return "\n".join([tag.construct(res) for tag in self.tags])
-
     def parse_to_dict(self, raw: str) -> dict:
         result = {}
-        for i in range(len(self.tags)):
+        for i in range(  # pylint: disable=consider-using-enumerate
+            len(self.tags),
+        ):
             begin = self.tags[i].begin
             end = self.tags[i].end
             left = raw.find(begin)
@@ -236,7 +236,7 @@ class MultiTagsParser(Parser):
                     text = ""
             else:
                 text = raw[left + len(begin) : right].strip()
-            result[self.tags[i].name] = self.tags[i].parse(text)
+            result[self.tags[i].name] = self.tags[i].parse_content(text)
         return result
 
     @property

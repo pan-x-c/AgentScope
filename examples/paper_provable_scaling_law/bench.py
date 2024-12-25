@@ -76,7 +76,14 @@ def main(conf: dict) -> None:
         job_name=conf["job"],
         config=conf.get("cache", None),
     )
-    worker_launchers = [RpcAgentServerLauncher(**s) for s in conf["servers"]]
+    if "servers" in conf:
+        worker_launchers = [
+            RpcAgentServerLauncher(**s) for s in conf["servers"]
+        ]
+    elif "process_num" in conf:
+        worker_launchers = [
+            RpcAgentServerLauncher() for _ in range(conf["process_num"])
+        ]
     for launcher in worker_launchers:
         launcher.launch()
     master_launcher = RpcAgentServerLauncher()
@@ -111,7 +118,7 @@ def main(conf: dict) -> None:
             for i, w in enumerate(conf["judgement"]["workers"])
         ],
         cache=cache,
-        random=config["judgement"].get("random", True),
+        random_select=config["judgement"].get("random", True),
         to_dist={
             "host": master_launcher.host,
             "port": master_launcher.port,

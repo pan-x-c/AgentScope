@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import re
 import random
-from typing import List, Optional
+from typing import List, Tuple, Optional
 from abc import ABC, abstractmethod
 from datasets import load_dataset
 from tqdm import tqdm
@@ -60,7 +60,7 @@ Options:
         self.samples = []
         self.pbar = None
 
-    def __reduce__(self):
+    def __reduce__(self) -> Tuple:
         return (
             self.__class__,
             (self.categories, self.max_instance, self.split),
@@ -460,7 +460,7 @@ Problem:
             raise
         except Exception as e:
             logger.debug(f"Failed comparing {x1} and {x2} with {e}")
-            return False
+        return False
 
 
 class GPQA(Dataset):
@@ -484,15 +484,15 @@ class GPQA(Dataset):
         self.samples = []
         self.pbar = None
 
-    def __reduce__(self):
+    def __reduce__(self) -> Tuple:
         return (
             self.__class__,
             (self.categories, self.max_instance, self.split),
         )
 
     @classmethod
-    def preprocess(cls):
-        def _preprocess_text(text):
+    def preprocess(cls) -> None:
+        def _preprocess_text(text: str) -> str:
             if text is None:
                 return " "
             text = text.strip()
@@ -505,7 +505,7 @@ class GPQA(Dataset):
             doc: dict,
             idx: int,
             category: str,
-        ):
+        ) -> dict:
             choices = [
                 _preprocess_text(doc["Incorrect Answer 1"]),
                 _preprocess_text(doc["Incorrect Answer 2"]),
@@ -639,7 +639,7 @@ Choices:
                     votes[c["answer"]] = 0
                 else:
                     votes[c["answer"]] += 1
-            return max(votes, key=votes.get)
+            return max(votes, key=votes.get)  # type: ignore[arg-type]
 
         stats = {
             "target": sample["answer"],

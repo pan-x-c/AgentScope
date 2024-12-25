@@ -336,9 +336,6 @@ class LUCB(Competition):
                     final_ids = np.where(
                         np.isclose(scores, max_score, atol=1e-8),
                     )[0].tolist()
-                    # final_ids = ucb_result["detail"][f"round_{round_num}"][
-                    #     "active_ids"
-                    # ]
                 if (
                     str(round_num)
                     not in category_stats[question["category"]]["acc"]

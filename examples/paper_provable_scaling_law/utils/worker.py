@@ -47,7 +47,7 @@ def calculate_stats(question: dict, candidates: List[dict]) -> dict:
                 votes[c["answer"]] = 0
             else:
                 votes[c["answer"]] += 1
-        return max(votes, key=votes.get)
+        return max(votes, key=votes.get)  # type: ignore[arg-type]
 
     stats = {
         "target": question["answer"],
@@ -168,12 +168,12 @@ class MixedJudge(metaclass=RpcMeta):
         self,
         judges: List[Judge],
         cache: Cache,
-        random: bool = True,
+        random_select: bool = True,
     ):
         self.judges = judges
         self.judge_num = len(self.judges)
         self.cache = cache
-        self.random = random
+        self.random_select = random_select
 
     @async_func
     def pairwise_compare(
@@ -209,7 +209,7 @@ class MixedJudge(metaclass=RpcMeta):
                 return cache_result
             else:
                 k = rest_k
-        if self.random:
+        if self.random_select:
             judge_seq = [
                 random.randint(0, self.judge_num - 1) for _ in range(k)
             ]

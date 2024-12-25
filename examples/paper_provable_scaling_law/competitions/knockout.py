@@ -236,18 +236,9 @@ class Knockout(Competition):
             category_stats[question["category"]]["details"][
                 str(question["id"])
             ] = question_stats
-        for category in category_stats:
-            for candidate_num in category_stats[category]["acc"]:
-                category_stats[category]["acc"][
-                    candidate_num
-                ] /= category_stats[category]["cnt"]
-                category_stats[category]["majority_acc"][
-                    candidate_num
-                ] /= category_stats[category]["cnt"]
-            self.cache.save_knockout_stats(
-                category_stats[category],
-                n,
-                k,
-                category,
-            )
+        for category, stats in category_stats.items():
+            for candidate_num in stats["acc"]:
+                stats["acc"][candidate_num] /= stats["cnt"]
+                stats["majority_acc"][candidate_num] /= stats["cnt"]
+            self.cache.save_knockout_stats(stats, n, k, category)
         logger.info("Finished calculating knockout stats")
