@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""UCB competition module."""
+"""LUCB competition module."""
 
 from __future__ import annotations
 from typing import List, Tuple
@@ -219,26 +219,24 @@ class LUCB(Competition):
         """Run lucb competition."""
         candidates = candidates[: self.n]
 
-        ucb_stats = self.cache.load_ucb(
+        lucb_stats = self.cache.load_competition(
             instance_id=question["id"],
-            n=self.n,
-            k=self.k,
-            t=self.t,
+            competition_type="lucb",
             category=question["category"],
+            suffix=f"{self.n}_{self.k}_{self.t}",
         )
-        if ucb_stats:
-            return self.get_final(ucb_stats)
-        final, ucb_stats = self.run_lucb(
+        if lucb_stats:
+            return self.get_final(lucb_stats)
+        final, lucb_stats = self.run_lucb(
             question=question,
             candidates=candidates,
         )
-        self.cache.save_ucb(
-            detail=ucb_stats,
+        self.cache.save_competition(
+            stats=lucb_stats,
+            competition_type="lucb",
             instance_id=question["id"],
-            n=self.n,
-            k=self.k,
-            t=self.t,
             category=question["category"],
+            suffix=f"{self.n}_{self.k}_{self.t}",
         )
         return final
 
@@ -260,12 +258,11 @@ class LUCB(Competition):
                     "details": {},
                 }
             question_stats = {}
-            ucb_result = self.cache.load_ucb(
+            ucb_result = self.cache.load_competition(
                 instance_id=question["id"],
-                n=n,
-                k=k,
-                t=t,
+                competition_type="lucb",
                 category=question["category"],
+                suffix=f"{n}_{k}_{t}",
             )
             candidates = self.cache.load_generation(
                 instance_id=question["id"],
@@ -378,4 +375,9 @@ class LUCB(Competition):
             for t in stats["acc"]:
                 stats["acc"][t] /= stats["cnt"]
                 stats["pool_size"][t] /= stats["cnt"]
-            self.cache.save_ucb_stats(stats, n, k, t, category)
+            self.cache.save_competition_stats(
+                stats=stats,
+                competition_type="lucb",
+                category=category,
+                suffix=f"{n}_{k}_{t}",
+            )
