@@ -8,7 +8,7 @@ import numpy as np
 from .cache import Cache
 
 
-FIGURE_DIR = os.path.join(os.path.dirname(__file__), "imgs")
+FIGURE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "imgs")
 
 
 class CompetitionFigureDrawer:
@@ -205,6 +205,39 @@ class CompetitionFigureDrawer:
                 lines=lines,
                 figure_dir=figure_dir,
             )
+        # draw all
+        all_lines = []
+        for i, stat in enumerate(stats):
+            all_cnt = 0
+            all_acc = defaultdict(float)
+            all_majority_acc = defaultdict(float)
+            for category in categories:
+                for k, v in stat[category]["acc"].items():
+                    all_acc[k] += v * stat[category]["cnt"]
+                for k, v in stat[category]["majority_acc"].items():
+                    all_majority_acc[k] += v * stat[category]["cnt"]
+                all_cnt += stat[category]["cnt"]
+            for k in all_acc:
+                all_acc[k] /= all_cnt
+            for k in all_majority_acc:
+                all_majority_acc[k] /= all_cnt
+            line = {"acc": all_acc}
+            majority_line = {"acc": all_majority_acc}
+            line.update(configs[i])
+            majority_line.update(configs[i])
+            majority_line["linestyle"] = "dotted"
+            majority_line["marker"] = "s"
+            majority_line["label"] += "(MV)"
+            all_lines.append(line)
+            all_lines.append(majority_line)
+        print(f"[ALL]: {all_lines}")
+        cls._draw_acc_line(
+            dataset_name=dataset_name,
+            category="all",
+            competition_type=competition_type,
+            lines=all_lines,
+            figure_dir=figure_dir,
+        )
 
     @classmethod
     def draw_scatter(

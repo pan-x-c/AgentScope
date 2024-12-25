@@ -4,6 +4,7 @@ Benchmark used in
 "Simple and Provable Scaling Law for the
 Test-Time Compute of Large Language Models"
 """
+# pylint: disable=E0611,C0411
 from __future__ import annotations
 import json
 import argparse
@@ -35,8 +36,8 @@ def run_generation(
                 question=question,
             ),
         )
-    for f in futures:
-        f.result()
+    for future in futures:
+        future.result()
     logger.info("Generation finished")
 
 
@@ -62,8 +63,8 @@ def run_competition(
                 ),
             ),
         )
-    for f in futures:
-        f.result()
+    for future in futures:
+        future.result()
     competition.calculate_stats(dataset)
     logger.info("Competition finished")
 
@@ -149,7 +150,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", "-c", type=str)
     args = parser.parse_args()
-    config = json.load(open(args.config, "r", encoding="utf-8"))
+    with open(args.config, "r", encoding="utf-8") as f:
+        config = json.load(f)
     agentscope.init(
         project=config["project"],
         model_configs=config["models"],

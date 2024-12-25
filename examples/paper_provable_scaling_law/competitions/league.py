@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """League competition module."""
-
+# pylint: disable=E0611,C0411
 from __future__ import annotations
 from typing import List
 from loguru import logger
@@ -40,7 +40,8 @@ class League(Competition):
             cache (`Cache`): the cache instance
             n (`int`): the number of candidates
             k (`int`): the number of comparisons between each pair
-            m (`int`): the number of competitors for each candidate, default to n-1
+            m (`int`): the number of competitors for each candidate,
+                default to n-1
         """
         super().__init__(judge, cache)
         self.n = n

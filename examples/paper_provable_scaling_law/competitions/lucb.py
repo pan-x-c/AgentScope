@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """LUCB competition module."""
+# pylint: disable=E0611,C0411
 
 from __future__ import annotations
 from typing import List, Tuple
@@ -232,7 +233,7 @@ class LUCB(Competition):
             candidates=candidates,
         )
         self.cache.save_competition(
-            stats=lucb_stats,
+            detail=lucb_stats,
             competition_type="lucb",
             instance_id=question["id"],
             category=question["category"],

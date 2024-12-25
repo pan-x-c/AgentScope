@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Knockout competition module."""
+# pylint: disable=E0611,C0411
 
 from __future__ import annotations
 from collections import defaultdict
@@ -55,11 +56,11 @@ class Knockout(Competition):
             candidates (`List[dict]`): the input candidates
         """
         candidates = candidates[: self.n]
-        knockout_traj = self.cache.load_knockout(
+        knockout_traj = self.cache.load_competition(
+            competition_type="knockout",
             instance_id=question["id"],
-            n=self.n,
-            k=self.k,
             category=question["category"],
+            suffix=f"{self.n}_{self.k}",
         )
         if knockout_traj:
             return knockout_traj["final"]
@@ -126,12 +127,12 @@ class Knockout(Competition):
             candidates = winners
             logger.info(f"Round {round_num} done")
         knockout_traj["final"] = candidates[0]
-        self.cache.save_knockout(
+        self.cache.save_competition(
             detail=knockout_traj,
+            competition_type="knockout",
             instance_id=question["id"],
-            n=self.n,
-            k=self.k,
             category=question["category"],
+            suffix=f"{self.n}_{self.k}",
         )
         return candidates[0]
 
@@ -151,8 +152,6 @@ class Knockout(Competition):
             return max(votes, key=votes.get)
 
         logger.info("Calculating knockout stats...")
-        n = self.n
-        k = self.k
         category_stats = {}
         for question in dataset:
             if question["category"] not in category_stats:
@@ -163,16 +162,16 @@ class Knockout(Competition):
                     "details": {},
                 }
             question_stats = {}
-            knockout_result = self.cache.load_knockout(
+            knockout_result = self.cache.load_competition(
+                competition_type="knockout",
                 instance_id=question["id"],
-                n=n,
-                k=k,
                 category=question["category"],
+                suffix=f"{self.n}_{self.k}",
             )
             candidates = self.cache.load_generation(
                 instance_id=question["id"],
                 category=question["category"],
-            )[:n]
+            )[: self.n]
             target = question["answer"]
             candidate_num = 1
             question_stats["acc"] = {
@@ -212,7 +211,7 @@ class Knockout(Competition):
                 question_stats["acc"][str(candidate_num)] = correct / total
                 majority_correct = 0
                 majority_cnt = 0
-                for i in range(0, n, candidate_num):
+                for i in range(0, self.n, candidate_num):
                     majority = _get_majority(candidates[i : i + candidate_num])
                     majority_cnt += 1
                     if majority == target:
@@ -240,5 +239,10 @@ class Knockout(Competition):
             for candidate_num in stats["acc"]:
                 stats["acc"][candidate_num] /= stats["cnt"]
                 stats["majority_acc"][candidate_num] /= stats["cnt"]
-            self.cache.save_knockout_stats(stats, n, k, category)
+            self.cache.save_competition_stats(
+                stats=stats,
+                category=category,
+                competition_type="knockout",
+                suffix=f"{self.n}_{self.k}",
+            )
         logger.info("Finished calculating knockout stats")

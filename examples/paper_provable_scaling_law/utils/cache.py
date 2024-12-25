@@ -9,7 +9,10 @@ DEFAULT_CATEGORY = "all"
 
 
 class Cache:
-    """A cache for storing and loading data"""
+    """A cache for storing and loading data.
+    The cache directory is
+    `output/<project_name>/<job_name>/`.
+    """
 
     def __init__(
         self,
@@ -19,37 +22,38 @@ class Cache:
     ) -> None:
         self.project_name = project_name
         self.job_name = job_name
-        self.data_dir = os.path.join(
-            os.path.dirname(__file__),
+        self.cache_root_dir = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
             "output",
+        )
+        self.run_dir = os.path.join(
+            self.cache_root_dir,
             self.project_name,
             self.job_name,
         )
         self.generation_dir = os.path.join(
-            self.data_dir,
+            self.run_dir,
             "generation",
         )
         self.comparsion_dir = os.path.join(
-            self.data_dir,
+            self.run_dir,
             "comparison",
         )
         self.competition_dir = os.path.join(
-            self.data_dir,
+            self.run_dir,
             "competition",
         )
         if config:
             if "generation" in config:
                 self.generation_dir = os.path.join(
-                    os.path.dirname(__file__),
-                    "output",
+                    self.cache_root_dir,
                     config["generation"]["project"],
                     config["generation"]["job"],
                     "generation",
                 )
             if "comparison" in config:
                 self.comparsion_dir = os.path.join(
-                    os.path.dirname(__file__),
-                    "output",
+                    self.cache_root_dir,
                     config["comparison"]["project"],
                     config["comparison"]["job"],
                     "comparison",
@@ -64,6 +68,9 @@ class Cache:
         instance_id: str,
         category: str = DEFAULT_CATEGORY,
     ) -> None:
+        """Save generation statistics to
+        `<run_dir>/generation/stats/<category>/<instance_id>.json`
+        """
         stats_dir = os.path.join(self.generation_dir, "stats", category)
         os.makedirs(stats_dir, exist_ok=True)
         json.dump(
@@ -86,6 +93,9 @@ class Cache:
         instance_id: str,
         category: str = DEFAULT_CATEGORY,
     ) -> None:
+        """Save generated candidates to
+        `<run_dir>/generation/candidates/<category>/<instance_id>.jsonl`
+        """
         candidates_dir = os.path.join(
             self.generation_dir,
             "candidates",
@@ -109,6 +119,9 @@ class Cache:
         instance_id: str,
         category: str = DEFAULT_CATEGORY,
     ) -> List[dict]:
+        """Load generated candidates from
+        `<run_dir>/generation/candidates/<category>/<instance_id>.jsonl`
+        """
         candidates_file = os.path.join(
             self.generation_dir,
             "candidates",
@@ -129,6 +142,9 @@ class Cache:
         cid_b: str,
         category: str = DEFAULT_CATEGORY,
     ) -> None:
+        """Save pairwise comparison details to
+        `<run_dir>/comparison/pairwise/<category>/<instance_id>/<cid_a>-<cid_b>.json`
+        """
         pairwise_dir = os.path.join(
             self.comparsion_dir,
             "pairwise",
@@ -150,6 +166,9 @@ class Cache:
         cid_b: str,
         category: str = DEFAULT_CATEGORY,
     ) -> dict:
+        """Load pairwise comparison details from
+        `<run_dir>/comparison/pairwise/<category>/<instance_id>/<cid_a>-<cid_b>.json`
+        """
         pairwise_file = os.path.join(
             self.comparsion_dir,
             "pairwise",
@@ -169,6 +188,9 @@ class Cache:
         category: str,
         suffix: str,
     ) -> None:
+        """Save competition details to
+        `<run_dir>/competition/<competition_type>/<category>/<instance_id>_<suffix>.json`
+        """
         competition_dir = os.path.join(
             self.competition_dir,
             competition_type,
@@ -189,6 +211,9 @@ class Cache:
         category: str,
         suffix: str,
     ) -> None:
+        """Save competition statistics to
+        `<run_dir>/competition/<competition_type>_stats/<category>_<suffix>.json`
+        """
         competition_stats_dir = os.path.join(
             self.competition_dir,
             f"{competition_type}_stats",
@@ -211,6 +236,10 @@ class Cache:
         category: str,
         suffix: str,
     ) -> dict:
+        """
+        Load competition details from
+        `<run_dir>/competition/<competition_type>/<category>/<instance_id>_<suffix>.json`
+        """
         competition_file = os.path.join(
             self.competition_dir,
             competition_type,
@@ -227,6 +256,10 @@ class Cache:
         categories: List[str],
         suffix: str,
     ) -> dict:
+        """
+        Load competition statistics from
+        `<run_dir>/competition/<competition_type>_stats/<category>_<suffix>.json`
+        """
         result = {}
         for category in categories:
             competition_stats_file = os.path.join(
@@ -236,79 +269,5 @@ class Cache:
             )
             result[category] = json.load(
                 open(competition_stats_file, "r", encoding="utf-8"),
-            )
-        return result
-
-    def save_knockout(
-        self,
-        detail: dict,
-        instance_id: str,
-        n: int,
-        k: int,
-        category: str = DEFAULT_CATEGORY,
-    ) -> None:
-        knockout_dir = os.path.join(self.competition_dir, "knockout", category)
-        os.makedirs(knockout_dir, exist_ok=True)
-        with open(
-            os.path.join(knockout_dir, f"{instance_id}_{n}_{k}.json"),
-            "w",
-            encoding="utf-8",
-        ) as f:
-            json.dump(detail, f, ensure_ascii=False, indent=2)
-
-    def load_knockout(
-        self,
-        instance_id: str,
-        n: int,
-        k: int,
-        category: str = DEFAULT_CATEGORY,
-    ) -> dict:
-        knockout_file = os.path.join(
-            self.competition_dir,
-            "knockout",
-            category,
-            f"{instance_id}_{n}_{k}.json",
-        )
-        if not os.path.exists(knockout_file):
-            return {}
-        return json.load(open(knockout_file, "r", encoding="utf-8"))
-
-    def save_knockout_stats(
-        self,
-        stats: dict,
-        n: int,
-        k: int,
-        category: str,
-    ) -> None:
-        knockout_stats_dir = os.path.join(
-            self.competition_dir,
-            "knockout_stats",
-        )
-        os.makedirs(knockout_stats_dir, exist_ok=True)
-        with open(
-            os.path.join(
-                knockout_stats_dir,
-                f"{category}_{n}_{k}.json",
-            ),
-            "w",
-            encoding="utf-8",
-        ) as f:
-            json.dump(stats, f, ensure_ascii=False, indent=2)
-
-    def load_knockout_stats(
-        self,
-        n: int,
-        k: int,
-        categories: List[str],
-    ) -> dict:
-        result = {}
-        for category in categories:
-            knockout_stats_file = os.path.join(
-                self.competition_dir,
-                "knockout_stats",
-                f"{category}_{n}_{k}.json",
-            )
-            result[category] = json.load(
-                open(knockout_stats_file, "r", encoding="utf-8"),
             )
         return result

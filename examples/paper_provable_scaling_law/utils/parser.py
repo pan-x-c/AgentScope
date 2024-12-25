@@ -222,7 +222,8 @@ class MultiTagsParser(Parser):
                     right = raw.find(self.tags[i + 1].begin)
                     if right == -1:
                         logger.error(
-                            f"Tag {self.tags[i + 1].begin} not found in the content:\n{raw}",
+                            f"Tag {self.tags[i + 1].begin} not"
+                            f" found in the content:\n{raw}",
                         )
                         text = ""
                     else:

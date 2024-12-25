@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Workers used in the paper."""
+# flake8: noqa: E501
+# pylint: disable=C0301
 from __future__ import annotations
 import random
 from typing import List

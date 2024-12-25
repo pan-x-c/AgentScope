@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Competition module."""
+# pylint: disable=E0611,C0411
+
 from __future__ import annotations
 from abc import abstractmethod
 from typing import List, Any

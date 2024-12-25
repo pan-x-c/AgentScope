@@ -334,7 +334,8 @@ Problem:
         """
         Normalize a final answer to a quantitative reasoning question.
 
-        Copied character for character from appendix D of Lewkowycz et al. (2022)
+        Copied character for character from
+        appendix D of Lewkowycz et al. (2022)
         """
         final_answer = final_answer.split("=")[-1]
 
@@ -450,7 +451,7 @@ Problem:
                     return False
             except ValueError:
                 logger.debug(
-                    f"Had some trouble simplifying when comparing {x1} and {x2}",
+                    f"Had trouble simplifying when comparing {x1} and {x2}",
                 )
         except TimeoutError:
             logger.debug(f"Timed out comparing {x1} and {x2}")
