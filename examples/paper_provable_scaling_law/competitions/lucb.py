@@ -128,7 +128,7 @@ class LUCB(Competition):
                     x for x in active_candidate_ids if x != idx
                 ]
                 opponent_list = []
-                while opponent_num > len(candidate_opponent_list):
+                while opponent_num >= len(candidate_opponent_list):
                     opponent_list.extend(candidate_opponent_list)
                     opponent_num -= len(candidate_opponent_list)
                 if opponent_num > 0:
@@ -185,7 +185,7 @@ class LUCB(Competition):
                 max_lcb = np.max(lcb * active_signal)
                 update_active_signal = False
                 for idx in np.where(active_signal)[0]:
-                    if ucb[idx] < max_lcb:
+                    if ucb[idx] < max(max_lcb, 0.5):
                         active_signal[idx] = False
                         update_active_signal = True
                 if not update_active_signal:
@@ -271,6 +271,7 @@ class LUCB(Competition):
             )[:n]
             target = question["answer"]
             final_ids = range(n)
+            pool_size = n
             question_stats["acc"] = {
                 "avg": sum(1 for x in candidates if x["answer"] == target)
                 / len(candidates),
@@ -303,6 +304,11 @@ class LUCB(Competition):
                         "active_ids"
                     ]:
                         active_signal[idx] = True
+                    pool_size = len(
+                        ucb_result["detail"][f"round_{round_num}"][
+                            "active_ids"
+                        ]
+                    )
                     if self.win_indicator == "ucb":
                         scores = (
                             np.array(
@@ -348,15 +354,7 @@ class LUCB(Competition):
                     int(candidates[final_idx]["answer"] == target)
                     for final_idx in final_ids
                 ) / len(final_ids)
-                if (
-                    question_stats["acc"][str(round_num)] == 0
-                    or question_stats["acc"][str(round_num)] == 1
-                ):
-                    question_stats["pool_size"][str(round_num)] = 1
-                else:
-                    question_stats["pool_size"][str(round_num)] = len(
-                        final_ids,
-                    )
+                question_stats["pool_size"][str(round_num)] = pool_size
                 category_stats[question["category"]]["acc"][
                     str(round_num)
                 ] += question_stats["acc"][str(round_num)]
