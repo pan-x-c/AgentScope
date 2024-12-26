@@ -29,14 +29,6 @@ class CompetitionFigureDrawer:
             raise ValueError(f"Unknown competition type: {competition_type}")
 
     @classmethod
-    def _line_plot_x_label(cls, competition_type: str) -> str:
-        """Get the x label of the line plot"""
-        if competition_type == "lucb":
-            return "T"
-        else:
-            return "N"
-
-    @classmethod
     def _load_runs(
         cls,
         run_configs: List[dict],
@@ -64,6 +56,7 @@ class CompetitionFigureDrawer:
         competition_type: str,
         lines: List[dict],
         figure_dir: str,
+        x_label: str = "N",
     ) -> None:
         """Draw accuracy line plot."""
         _, ax = plt.subplots(figsize=(4, 3))
@@ -84,7 +77,7 @@ class CompetitionFigureDrawer:
             color="gray",
             alpha=0.5,
         )
-        ax.set_xlabel(cls._line_plot_x_label(competition_type))
+        ax.set_xlabel(x_label)
         ax.set_ylabel("Accuracy")
         ax.legend(
             ncol=2,
@@ -138,6 +131,7 @@ class CompetitionFigureDrawer:
                 competition_type=competition_type,
                 lines=lines,
                 figure_dir=figure_dir,
+                x_label="T" if competition_type == "lucb" else "N",
             )
         # draw all
         all_lines = []
@@ -160,6 +154,7 @@ class CompetitionFigureDrawer:
             competition_type=competition_type,
             lines=all_lines,
             figure_dir=figure_dir,
+            x_label="T" if competition_type == "lucb" else "N",
         )
 
     @classmethod
@@ -463,4 +458,47 @@ class CompetitionFigureDrawer:
             lines=lines,
             competition_type=competition_type,
             figure_dir=figure_dir,
+        )
+
+    @classmethod
+    def draw_acc_vs_m(
+        cls,
+        dataset_name: str,
+        categories: List[str],
+        configs: List[dict],
+        sub_dir: str = "default",
+    ) -> None:
+        competition_type = "league"
+        figure_dir = os.path.join(FIGURE_DIR, sub_dir)
+        os.makedirs(figure_dir, exist_ok=True)
+        run_stats = [
+            Cache(
+                project_name=config["project"],
+                job_name=config["job"],
+            ).load_competition_stats(
+                competition_type=competition_type,
+                categories=categories,
+                suffix=cls._construct_suffix(competition_type, config),
+            )
+            for config in configs
+        ]
+        # draw categories
+        lines = []
+        for i, run in enumerate(run_stats):
+            line = {"acc": defaultdict(float), "cnt": 0}
+            for category in categories:
+                for k, v in run[category]["acc_vs_m"].items():
+                    line["acc"][k] += v * run[category]["cnt"]
+                line["cnt"] += run[category]["cnt"]
+            for k in line["acc"]:
+                line["acc"][k] /= line["cnt"]
+            line.update(configs[i])
+            lines.append(line)
+        cls._draw_acc_line(
+            dataset_name=dataset_name,
+            category="all",
+            lines=lines,
+            competition_type=competition_type,
+            figure_dir=figure_dir,
+            x_label="M",
         )

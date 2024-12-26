@@ -142,24 +142,27 @@ class League(Competition):
         logger.info("Calculating league stats ...")
         category_stats = {}
         for question in dataset:
-            if question["category"] not in category_stats:
-                category_stats[question["category"]] = {
+            qid = question["id"]
+            category = question["category"]
+            if category not in category_stats:
+                category_stats[category] = {
                     "acc": {
                         "1": 0,
                     },
                     "cnt": 0,
                     "details": {},
+                    "acc_vs_m": {},
                 }
             question_stats = {}
             competition_result = self.cache.load_competition(
-                instance_id=question["id"],
+                instance_id=qid,
                 competition_type="league",
-                category=question["category"],
+                category=category,
                 suffix=f"{self.n}_{self.k}_{self.m}",
             )
             candidates = self.cache.load_generation(
-                instance_id=question["id"],
-                category=question["category"],
+                instance_id=qid,
+                category=category,
             )[: self.n]
             target = question["answer"]
             candidate_num = 1
@@ -169,14 +172,14 @@ class League(Competition):
                 )
                 / len(candidates),
             }
-            category_stats[question["category"]]["acc"][
+            category_stats[category]["acc"][
                 f"{candidate_num}"
             ] += question_stats["acc"][f"{candidate_num}"]
             score_matrix = np.array(
                 competition_result["score_matrix"],
                 dtype=np.float64,
             )
-            # calculate acc
+            # calculate acc vs n
             while candidate_num < self.n:
                 candidate_num += 1
                 question_stats["acc"][f"{candidate_num}"] = 0
@@ -191,14 +194,9 @@ class League(Competition):
                         sub_final["answer"] == target,
                     )
                 question_stats["acc"][f"{candidate_num}"] /= self.n
-                if (
-                    str(candidate_num)
-                    not in category_stats[question["category"]]["acc"]
-                ):
-                    category_stats[question["category"]]["acc"][
-                        str(candidate_num)
-                    ] = 0
-                category_stats[question["category"]]["acc"][
+                if str(candidate_num) not in category_stats[category]["acc"]:
+                    category_stats[category]["acc"][str(candidate_num)] = 0
+                category_stats[category]["acc"][
                     str(candidate_num)
                 ] += question_stats["acc"][f"{candidate_num}"]
             valid_cmp = 0
@@ -217,13 +215,42 @@ class League(Competition):
                 "correct": correct_cmp,
                 "p_cmp": correct_cmp / valid_cmp if valid_cmp > 0 else 0,
             }
-            category_stats[question["category"]]["cnt"] += 1
-            category_stats[question["category"]]["details"][
+            category_stats[category]["cnt"] += 1
+            category_stats[category]["details"][
                 str(question["id"])
             ] = question_stats
+            # calculate acc vs m
+            question_stats["acc_vs_m"] = {}
+            for m in range(1, self.m + 1):
+                if str(m) not in category_stats[category]["acc_vs_m"]:
+                    category_stats[category]["acc_vs_m"][str(m)] = 0
+                score_board = []
+                for i in range(self.n):
+                    score_board.append(
+                        sum(
+                            score_matrix[i][(i + j) % self.n]
+                            for j in range(1, m + 1)
+                        ),
+                    )
+                max_score = np.max(score_board)
+                finals = [
+                    candidates[i]
+                    for i, score in enumerate(score_board)
+                    if score == max_score
+                ]
+                question_stats["acc_vs_m"][str(m)] = sum(
+                    1 for final in finals if final["answer"] == target
+                ) / len(finals)
+                category_stats[category]["acc_vs_m"][str(m)] += question_stats[
+                    "acc_vs_m"
+                ][str(m)]
         for category in category_stats:
             for candidate_num in category_stats[category]["acc"]:
                 category_stats[category]["acc"][
+                    candidate_num
+                ] /= category_stats[category]["cnt"]
+            for candidate_num in category_stats[category]["acc_vs_m"]:
+                category_stats[category]["acc_vs_m"][
                     candidate_num
                 ] /= category_stats[category]["cnt"]
             self.cache.save_competition_stats(

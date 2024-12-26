@@ -21,13 +21,13 @@ class LUCB(Competition):
         self,
         judge: MixedJudge,
         cache: Cache,
-        n: int,
-        k: int,
-        t: int,
+        n: int,  # 32
+        k: int,  # 4
+        t: int,  # 20
         n_opponent: int = 2,
-        c_bonus: float = 1.0,
+        c_bonus: float = 0.99,
         win_indicator: str = "win_rate",
-        budget: int = 0,
+        budget: int = 0,  # 32
     ):
         super().__init__(judge, cache)
         self.n = n
