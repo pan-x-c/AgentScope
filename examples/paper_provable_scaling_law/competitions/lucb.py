@@ -4,13 +4,13 @@
 
 from __future__ import annotations
 from typing import List, Tuple
+from collections import defaultdict
 import numpy as np
 
 from .competition import Competition
 
 from utils.worker import MixedJudge
 from utils.cache import Cache
-from utils.dataset import Dataset
 
 
 @Competition.register("lucb")
@@ -241,137 +241,65 @@ class LUCB(Competition):
         )
         return final
 
-    def calculate_stats(self, dataset: Dataset):
-        n = self.n
-        k = self.k
-        t = self.t
-        category_stats = {}
-        for question in dataset:
-            if question["category"] not in category_stats:
-                category_stats[question["category"]] = {
-                    "acc": {
-                        "0": 0,
-                    },
-                    "pool_size": {
-                        "0": 0,
-                    },
-                    "cnt": 0,
-                    "details": {},
-                }
-            question_stats = {}
-            ucb_result = self.cache.load_competition(
-                instance_id=question["id"],
-                competition_type="lucb",
-                category=question["category"],
-                suffix=f"{n}_{k}_{t}",
-            )
-            candidates = self.cache.load_generation(
-                instance_id=question["id"],
-                category=question["category"],
-            )[:n]
-            target = question["answer"]
-            final_ids = range(n)
-            pool_size = n
-            question_stats["acc"] = {
-                "avg": sum(1 for x in candidates if x["answer"] == target)
-                / len(candidates),
-            }
-            question_stats["pool_size"] = {"0": self.n}
-            category_stats[question["category"]]["pool_size"]["0"] += self.n
-            question_stats["acc"]["0"] = question_stats["acc"]["avg"]
-            category_stats[question["category"]]["acc"]["0"] += question_stats[
-                "acc"
-            ]["0"]
-            valid_cmp = 0
-            correct_cmp = 0
-            for round_num in range(1, t + 1):
-                if f"round_{round_num}" in ucb_result["detail"]:
-                    # this round has been calculated
-                    for pair in ucb_result["detail"][f"round_{round_num}"][
-                        "comparisons"
-                    ]:
-                        answer_a = candidates[pair["a"]]["answer"]
-                        answer_b = candidates[pair["b"]]["answer"]
-                        if (answer_a == target and answer_b != target) or (
-                            answer_a != target and answer_b == target
-                        ):
-                            valid_cmp += pair["cmp_num"]
-                            if answer_a == target:
-                                correct_cmp += pair["score_a"]
-                            if answer_b == target:
-                                correct_cmp += pair["score_b"]
-                    active_signal = np.zeros(n, dtype=np.bool_)
-                    for idx in ucb_result["detail"][f"round_{round_num}"][
-                        "active_ids"
-                    ]:
-                        active_signal[idx] = True
-                    pool_size = len(
-                        ucb_result["detail"][f"round_{round_num}"][
-                            "active_ids"
-                        ],
-                    )
-                    if self.win_indicator == "ucb":
-                        scores = (
-                            np.array(
-                                ucb_result["detail"][f"round_{round_num}"][
-                                    "ucb"
-                                ],
-                            )
-                            * active_signal
-                        )
-                    elif self.win_indicator == "lcb":
-                        scores = (
-                            np.array(
-                                ucb_result["detail"][f"round_{round_num}"][
-                                    "lcb"
-                                ],
-                            )
-                            * active_signal
-                        )
-                    else:
-                        scores = (
-                            np.array(
-                                ucb_result["detail"][f"round_{round_num}"][
-                                    "avg_win_rate"
-                                ],
-                            )
-                            * active_signal
-                        )
-                    max_score = np.max(scores)
-                    final_ids = np.where(
-                        np.isclose(scores, max_score, atol=1e-8),
-                    )[0].tolist()
-                if (
-                    str(round_num)
-                    not in category_stats[question["category"]]["acc"]
-                ):
-                    category_stats[question["category"]]["acc"][
-                        str(round_num)
-                    ] = 0
-                    category_stats[question["category"]]["pool_size"][
-                        str(round_num)
-                    ] = 0
-                question_stats["acc"][str(round_num)] = sum(
-                    int(candidates[final_idx]["answer"] == target)
-                    for final_idx in final_ids
-                ) / len(final_ids)
-                question_stats["pool_size"][str(round_num)] = pool_size
-                category_stats[question["category"]]["acc"][
-                    str(round_num)
-                ] += question_stats["acc"][str(round_num)]
-                category_stats[question["category"]]["pool_size"][
-                    str(round_num)
-                ] += question_stats["pool_size"][str(round_num)]
-            category_stats[question["category"]]["cnt"] += 1
-            question_stats["cmp"] = {
-                "valid": valid_cmp,
-                "correct": correct_cmp,
-                "p_cmp": correct_cmp / valid_cmp if valid_cmp > 0 else 0,
-            }
-            category_stats[question["category"]]["details"][
-                str(question["id"])
-            ] = question_stats
-        for category, stats in category_stats.items():
+    def default_competition_stats(self) -> dict:
+        return defaultdict(
+            lambda: {
+                "acc": defaultdict(float),
+                "pool_size": defaultdict(float),
+                "cnt": 0,
+                "details": {},
+            },
+        )
+
+    def get_question_stats(self, question: dict) -> dict:
+        ucb_result = self.cache.load_competition(
+            instance_id=question["id"],
+            competition_type="lucb",
+            category=question["category"],
+            suffix=f"{self.n}_{self.k}_{self.t}",
+        )
+        candidates = self.cache.load_generation(
+            instance_id=question["id"],
+            category=question["category"],
+        )[: self.n]
+        target = question["answer"]
+        question_stats = {"id": question["id"]}
+        question_stats["acc"] = {
+            "0": sum(1 for x in candidates if x["answer"] == target)
+            / len(candidates),
+        }
+        question_stats["pool_size"] = {"0": self.n}
+        valid_cmp, correct_cmp = self._process_lucb_rounds(
+            ucb_result=ucb_result,
+            candidates=candidates,
+            target=target,
+            question_stats=question_stats,
+        )
+        question_stats["cmp"] = {
+            "valid": valid_cmp,
+            "correct": correct_cmp,
+            "p_cmp": correct_cmp / valid_cmp if valid_cmp > 0 else 0,
+        }
+        return question_stats
+
+    def update_competition_stats(
+        self,
+        competition_stats: dict,
+        category: str,
+        question_stats: dict,
+    ) -> None:
+        for t in question_stats["acc"]:
+            competition_stats[category]["acc"][t] += question_stats["acc"][t]
+            competition_stats[category]["pool_size"][t] += question_stats[
+                "pool_size"
+            ][t]
+        competition_stats[category]["cnt"] += 1
+        competition_stats[category]["details"][
+            question_stats["id"]
+        ] = question_stats
+
+    def save_competition_stats(self, competition_stats: dict) -> None:
+        for category, stats in competition_stats.items():
             for t in stats["acc"]:
                 stats["acc"][t] /= stats["cnt"]
                 stats["pool_size"][t] /= stats["cnt"]
@@ -379,5 +307,71 @@ class LUCB(Competition):
                 stats=stats,
                 competition_type="lucb",
                 category=category,
-                suffix=f"{n}_{k}_{t}",
+                suffix=f"{self.n}_{self.k}_{self.t}",
             )
+
+    def _process_lucb_rounds(
+        self,
+        ucb_result: dict,
+        candidates: list,
+        target: str,
+        question_stats: dict,
+    ) -> tuple:
+        valid_cmp = 0
+        correct_cmp = 0
+        final_ids = range(self.n)
+        pool_size = self.n
+        for round_num in range(1, self.t + 1):
+            round_name = f"round_{round_num}"
+            if round_name in ucb_result["detail"]:
+                # this round has been calculated
+                for pair in ucb_result["detail"][round_name]["comparisons"]:
+                    answer_a = candidates[pair["a"]]["answer"]
+                    answer_b = candidates[pair["b"]]["answer"]
+                    if (answer_a == target and answer_b != target) or (
+                        answer_a != target and answer_b == target
+                    ):
+                        valid_cmp += pair["cmp_num"]
+                        if answer_a == target:
+                            correct_cmp += pair["score_a"]
+                        if answer_b == target:
+                            correct_cmp += pair["score_b"]
+                active_signal = np.zeros(self.n, dtype=np.bool_)
+                for idx in ucb_result["detail"][round_name]["active_ids"]:
+                    active_signal[idx] = True
+                pool_size = len(
+                    ucb_result["detail"][round_name]["active_ids"],
+                )
+                if self.win_indicator == "ucb":
+                    scores = (
+                        np.array(
+                            ucb_result["detail"][round_name]["ucb"],
+                        )
+                        * active_signal
+                    )
+                elif self.win_indicator == "lcb":
+                    scores = (
+                        np.array(
+                            ucb_result["detail"][round_name]["lcb"],
+                        )
+                        * active_signal
+                    )
+                else:
+                    scores = (
+                        np.array(
+                            ucb_result["detail"][round_name]["avg_win_rate"],
+                        )
+                        * active_signal
+                    )
+                max_score = np.max(scores)
+                final_ids = np.where(
+                    np.isclose(scores, max_score, atol=1e-8),
+                )[0].tolist()
+            else:
+                pool_size = 1
+            question_stats["acc"][str(round_num)] = sum(
+                int(candidates[final_idx]["answer"] == target)
+                for final_idx in final_ids
+            ) / len(final_ids)
+            question_stats["pool_size"][str(round_num)] = pool_size
+        return valid_cmp, correct_cmp

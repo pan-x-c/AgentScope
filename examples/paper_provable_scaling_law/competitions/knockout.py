@@ -172,10 +172,10 @@ class Knockout(Competition):
             f"{candidate_num}": question_stats["acc"][f"{candidate_num}"],
         }
         valid_cmp, correct_cmp = self._process_knockout_rounds(
-            knockout_result,
-            candidates,
-            target,
-            question_stats,
+            knockout_result=knockout_result,
+            candidates=candidates,
+            target=target,
+            question_stats=question_stats,
         )
         question_stats["cmp"] = {
             "valid": valid_cmp,
@@ -190,13 +190,11 @@ class Knockout(Competition):
         category: str,
         question_stats: dict,
     ) -> None:
-        for candidate_num in question_stats["acc"]:
-            competition_stats[category]["acc"][
-                str(candidate_num)
-            ] += question_stats["acc"][str(candidate_num)]
-            competition_stats[category]["majority_acc"][
-                str(candidate_num)
-            ] += question_stats["majority_acc"][str(candidate_num)]
+        for n in question_stats["acc"]:
+            competition_stats[category]["acc"][n] += question_stats["acc"][n]
+            competition_stats[category]["majority_acc"][n] += question_stats[
+                "majority_acc"
+            ][n]
         competition_stats[category]["cnt"] += 1
         competition_stats[category]["details"][
             question_stats["id"]
