@@ -10,7 +10,6 @@ from loguru import logger
 from .competition import Competition
 from utils.worker import MixedJudge
 from utils.cache import Cache
-from utils.dataset import Dataset
 
 
 @Competition.register("knockout")
@@ -136,108 +135,75 @@ class Knockout(Competition):
         )
         return candidates[0]
 
-    def calculate_stats(
-        self,
-        dataset: Dataset,
-    ) -> None:
-        """Calculate the stats of the knockout competition."""
+    def default_competition_stats(self):
+        return defaultdict(
+            lambda: {
+                "acc": defaultdict(float),
+                "majority_acc": defaultdict(float),
+                "cnt": 0,
+                "details": {},
+            },
+        )
 
-        def _get_majority(candidates: list[dict]) -> str:
-            votes = {}
-            for c in candidates:
-                if c["answer"] not in votes:
-                    votes[c["answer"]] = 0
-                else:
-                    votes[c["answer"]] += 1
-            return max(votes, key=votes.get)
+    def get_question_stats(self, question: dict) -> dict:
+        question_stats = {
+            "id": question["id"],
+        }
+        knockout_result = self.cache.load_competition(
+            competition_type="knockout",
+            instance_id=question["id"],
+            category=question["category"],
+            suffix=f"{self.n}_{self.k}",
+        )
+        candidates = self.cache.load_generation(
+            instance_id=question["id"],
+            category=question["category"],
+        )[: self.n]
+        target = question["answer"]
+        candidate_num = 1
 
-        logger.info("Calculating knockout stats...")
-        category_stats = {}
-        for question in dataset:
-            if question["category"] not in category_stats:
-                category_stats[question["category"]] = {
-                    "acc": defaultdict(float),
-                    "majority_acc": defaultdict(float),
-                    "cnt": 0,
-                    "details": {},
-                }
-            question_stats = {}
-            knockout_result = self.cache.load_competition(
-                competition_type="knockout",
-                instance_id=question["id"],
-                category=question["category"],
-                suffix=f"{self.n}_{self.k}",
+        question_stats["acc"] = {
+            f"{candidate_num}": sum(
+                1 for x in candidates if x["answer"] == target
             )
-            candidates = self.cache.load_generation(
-                instance_id=question["id"],
-                category=question["category"],
-            )[: self.n]
-            target = question["answer"]
-            candidate_num = 1
-            question_stats["acc"] = {
-                f"{candidate_num}": sum(
-                    1 for x in candidates if x["answer"] == target
-                )
-                / len(candidates),
-            }
-            question_stats["majority_acc"] = {
-                f"{candidate_num}": question_stats["acc"][f"{candidate_num}"],
-            }
-            category_stats[question["category"]]["acc"][
-                f"{candidate_num}"
-            ] += question_stats["acc"][f"{candidate_num}"]
-            category_stats[question["category"]]["majority_acc"][
-                f"{candidate_num}"
-            ] += question_stats["majority_acc"][f"{candidate_num}"]
-            valid_cmp = 0
-            correct_cmp = 0
-            for round_num in knockout_result["detail"]:
-                # calculate acc for round x
-                candidate_num *= 2
-                total = len(knockout_result["detail"][round_num])
-                correct = 0
-                for pair in knockout_result["detail"][round_num]:
-                    answer_a = candidates[pair["a"]]["answer"]
-                    answer_b = candidates[pair["b"]]["answer"]
-                    answer_winner = candidates[pair["winner"]]["answer"]
-                    if answer_winner == target:
-                        correct += 1
-                    if (answer_a == target and answer_b != target) or (
-                        answer_a != target and answer_b == target
-                    ):
-                        valid_cmp += pair["score_a"] + pair["score_b"]
-                        if answer_a == target:
-                            correct_cmp += pair["score_a"]
-                        if answer_b == target:
-                            correct_cmp += pair["score_b"]
-                question_stats["acc"][str(candidate_num)] = correct / total
-                majority_correct = 0
-                majority_cnt = 0
-                for i in range(0, self.n, candidate_num):
-                    majority = _get_majority(candidates[i : i + candidate_num])
-                    majority_cnt += 1
-                    if majority == target:
-                        majority_correct += 1
-                question_stats["majority_acc"][str(candidate_num)] = (
-                    majority_correct / majority_cnt
-                )
-                category_stats[question["category"]]["acc"][
-                    str(candidate_num)
-                ] += (correct / total)
-                category_stats[question["category"]]["majority_acc"][
-                    str(candidate_num)
-                ] += (majority_correct / majority_cnt)
+            / len(candidates),
+        }
+        question_stats["majority_acc"] = {
+            f"{candidate_num}": question_stats["acc"][f"{candidate_num}"],
+        }
+        valid_cmp, correct_cmp = self._process_knockout_rounds(
+            knockout_result,
+            candidates,
+            target,
+            question_stats,
+        )
+        question_stats["cmp"] = {
+            "valid": valid_cmp,
+            "correct": correct_cmp,
+            "p_cmp": correct_cmp / valid_cmp if valid_cmp > 0 else 0,
+        }
+        return question_stats
 
-            category_stats[question["category"]]["cnt"] += 1
-            question_stats["cmp"] = {
-                "valid": valid_cmp,
-                "correct": correct_cmp,
-                "p_cmp": correct_cmp / valid_cmp if valid_cmp > 0 else 0,
-            }
-            category_stats[question["category"]]["details"][
-                str(question["id"])
-            ] = question_stats
-        for category, stats in category_stats.items():
+    def update_competition_stats(
+        self,
+        competition_stats: dict,
+        category: str,
+        question_stats: dict,
+    ) -> None:
+        for candidate_num in question_stats["acc"]:
+            competition_stats[category]["acc"][
+                str(candidate_num)
+            ] += question_stats["acc"][str(candidate_num)]
+            competition_stats[category]["majority_acc"][
+                str(candidate_num)
+            ] += question_stats["majority_acc"][str(candidate_num)]
+        competition_stats[category]["cnt"] += 1
+        competition_stats[category]["details"][
+            question_stats["id"]
+        ] = question_stats
+
+    def save_competition_stats(self, competition_stats: dict) -> None:
+        for category, stats in competition_stats.items():
             for candidate_num in stats["acc"]:
                 stats["acc"][candidate_num] /= stats["cnt"]
                 stats["majority_acc"][candidate_num] /= stats["cnt"]
@@ -247,4 +213,71 @@ class Knockout(Competition):
                 competition_type="knockout",
                 suffix=f"{self.n}_{self.k}",
             )
-        logger.info("Finished calculating knockout stats")
+
+    def _process_knockout_rounds(
+        self,
+        knockout_result: dict,
+        candidates: list,
+        target: str,
+        question_stats: dict,
+    ) -> tuple:
+        valid_cmp = 0
+        correct_cmp = 0
+        candidate_num = 1
+
+        for round_num in knockout_result["detail"]:
+            candidate_num *= 2
+            total = len(knockout_result["detail"][round_num])
+            correct = 0
+
+            for pair in knockout_result["detail"][round_num]:
+                answer_a = candidates[pair["a"]]["answer"]
+                answer_b = candidates[pair["b"]]["answer"]
+                answer_winner = candidates[pair["winner"]]["answer"]
+
+                if answer_winner == target:
+                    correct += 1
+
+                if (answer_a == target and answer_b != target) or (
+                    answer_a != target and answer_b == target
+                ):
+                    valid_cmp += pair["score_a"] + pair["score_b"]
+                    if answer_a == target:
+                        correct_cmp += pair["score_a"]
+                    if answer_b == target:
+                        correct_cmp += pair["score_b"]
+
+            question_stats["acc"][str(candidate_num)] = correct / total
+            majority_correct, majority_cnt = self._calculate_majority_accuracy(
+                candidates,
+                target,
+                candidate_num,
+            )
+            question_stats["majority_acc"][str(candidate_num)] = (
+                majority_correct / majority_cnt
+            )
+
+        return valid_cmp, correct_cmp
+
+    def _calculate_majority_accuracy(
+        self,
+        candidates: list,
+        target: str,
+        candidate_num: int,
+    ) -> tuple:
+        majority_correct = 0
+        majority_cnt = 0
+
+        for i in range(0, self.n, candidate_num):
+            majority = self._get_majority(candidates[i : i + candidate_num])
+            majority_cnt += 1
+            if majority == target:
+                majority_correct += 1
+
+        return majority_correct, majority_cnt
+
+    def _get_majority(self, candidates: list) -> str:
+        votes = defaultdict(int)
+        for c in candidates:
+            votes[c["answer"]] += 1
+        return max(votes, key=votes.get)

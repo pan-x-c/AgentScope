@@ -319,7 +319,7 @@ class CompetitionFigureDrawer:
         ax.set_xlim(-0.05, 1.05)
         ax.set_ylim(-0.10, 1.10)
         ax.set_xlabel("$P_{gen}$")
-        ax.set_ylabel("$\hat{P}_{comp}$")  # noqa: W605
+        ax.set_ylabel(r"$\hat{P}_{comp}$")  # noqa: W605
         ax.axhline(
             y=0.5,
             color="black",
@@ -330,14 +330,14 @@ class CompetitionFigureDrawer:
         ax.text(
             -0.05,
             1.03,
-            "#[$\hat{P}_{comp}>0.5$] = " + str(above_count),  # noqa: W605
+            r"#[$\hat{P}_{comp}>0.5$] = " + str(above_count),  # noqa: W605
             fontsize=9,
             verticalalignment="center",
         )
         ax.text(
             -0.05,
             -0.05,
-            "#[$\hat{P}_{comp}≤0.5$] = " + str(below_count),  # noqa: W605
+            r"#[$\hat{P}_{comp}≤0.5$] = " + str(below_count),  # noqa: W605
             fontsize=9,
             verticalalignment="center",
         )
