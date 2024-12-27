@@ -178,7 +178,14 @@ class Cache:
         )
         if not os.path.exists(pairwise_file):
             return {}
-        return json.load(open(pairwise_file, "r", encoding="utf-8"))
+        try:
+            return json.load(open(pairwise_file, "r", encoding="utf-8"))
+        except Exception as e:
+            logger.error(
+                f"Failed to load pairwise comparison for {instance_id}",
+            )
+            logger.error(e)
+            return {}
 
     def save_competition(
         self,

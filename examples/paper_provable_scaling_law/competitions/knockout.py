@@ -205,9 +205,11 @@ class Knockout(Competition):
                     if (answer_a == target and answer_b != target) or (
                         answer_a != target and answer_b == target
                     ):
-                        valid_cmp += 1
-                        if answer_winner == target:
-                            correct_cmp += 1
+                        valid_cmp += pair["score_a"] + pair["score_b"]
+                        if answer_a == target:
+                            correct_cmp += pair["score_a"]
+                        if answer_b == target:
+                            correct_cmp += pair["score_b"]
                 question_stats["acc"][str(candidate_num)] = correct / total
                 majority_correct = 0
                 majority_cnt = 0

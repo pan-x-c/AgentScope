@@ -21,13 +21,13 @@ class LUCB(Competition):
         self,
         judge: MixedJudge,
         cache: Cache,
-        n: int,  # 32
-        k: int,  # 4
-        t: int,  # 20
-        n_opponent: int = 2,
+        n: int,
+        k: int,
+        t: int,
+        n_opponent: int = 1,
         c_bonus: float = 0.99,
         win_indicator: str = "win_rate",
-        budget: int = 0,  # 32
+        budget: int = 0,
     ):
         super().__init__(judge, cache)
         self.n = n
@@ -292,13 +292,14 @@ class LUCB(Competition):
                     ]:
                         answer_a = candidates[pair["a"]]["answer"]
                         answer_b = candidates[pair["b"]]["answer"]
-                        answer_winner = candidates[pair["winner"]]["answer"]
                         if (answer_a == target and answer_b != target) or (
                             answer_a != target and answer_b == target
                         ):
-                            valid_cmp += 1
-                            if answer_winner == target:
-                                correct_cmp += 1
+                            valid_cmp += pair["cmp_num"]
+                            if answer_a == target:
+                                correct_cmp += pair["score_a"]
+                            if answer_b == target:
+                                correct_cmp += pair["score_b"]
                     active_signal = np.zeros(n, dtype=np.bool_)
                     for idx in ucb_result["detail"][f"round_{round_num}"][
                         "active_ids"
@@ -307,7 +308,7 @@ class LUCB(Competition):
                     pool_size = len(
                         ucb_result["detail"][f"round_{round_num}"][
                             "active_ids"
-                        ]
+                        ],
                     )
                     if self.win_indicator == "ucb":
                         scores = (

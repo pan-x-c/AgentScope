@@ -235,12 +235,12 @@ class CompetitionFigureDrawer:
         )
 
     @classmethod
-    def draw_scatter(
+    def _draw_scatter_plot(
         cls,
         dataset_name: str,
         category: str,
         competition_type: str,
-        details: dict,
+        details: list,
         config: dict,
         figure_dir: str,
         judge_field: str,
@@ -253,13 +253,18 @@ class CompetitionFigureDrawer:
         right_p_cmps = []
         wrong_p_gens = []
         wrong_p_cmps = []
-        for stat in details.values():
+        for stat in details:
+            p_gen = (
+                stat["acc"]["0"]
+                if competition_type == "lucb"
+                else stat["acc"]["1"]
+            )
             if stat["cmp"]["valid"] > 0:
                 if stat["acc"][judge_field] >= threshold:
-                    right_p_gens.append(stat["acc"]["1"])
+                    right_p_gens.append(p_gen)
                     right_p_cmps.append(stat["cmp"]["p_cmp"])
                 else:
-                    wrong_p_gens.append(stat["acc"]["1"])
+                    wrong_p_gens.append(p_gen)
                     wrong_p_cmps.append(stat["cmp"]["p_cmp"])
             if stat["acc"]["1"] == 0:
                 all_wrong_cnt += 1
@@ -269,6 +274,13 @@ class CompetitionFigureDrawer:
         gs = fig.add_gridspec(1, 2, width_ratios=[3, 1], wspace=0.0)
         ax = fig.add_subplot(gs[0])
         ax_hist = fig.add_subplot(gs[1], sharey=ax)
+        ax.grid(
+            True,
+            linestyle="dashed",
+            linewidth=0.8,
+            color="#ccc",
+            alpha=0.6,
+        )
         ax.scatter(
             right_p_gens,
             right_p_cmps,
@@ -307,44 +319,38 @@ class CompetitionFigureDrawer:
         ax.set_xlim(-0.05, 1.05)
         ax.set_ylim(-0.10, 1.10)
         ax.set_xlabel("$P_{gen}$")
-        ax.set_ylabel("$P_{comp}$")
+        ax.set_ylabel("$\hat{P}_{comp}$")  # noqa: W605
         ax.axhline(
             y=0.5,
             color="black",
             linestyle="dotted",
             linewidth=1.0,
         )
-        ax.grid(
-            True,
-            linestyle="dashed",
-            linewidth=1,
-            color="gray",
-            alpha=0.5,
-        )
+
         ax.text(
             -0.05,
             1.03,
-            "#[$P_{comp}>0.5$] = " + str(above_count),
+            "#[$\hat{P}_{comp}>0.5$] = " + str(above_count),  # noqa: W605
             fontsize=9,
             verticalalignment="center",
         )
         ax.text(
             -0.05,
             -0.05,
-            "#[$P_{comp}≤0.5$] = " + str(below_count),
+            "#[$\hat{P}_{comp}≤0.5$] = " + str(below_count),  # noqa: W605
             fontsize=9,
             verticalalignment="center",
         )
 
         ax.text(
-            -0.05,
+            -0.25,
             -0.33,
             "#[$P_{gen}$=0] = " + str(all_wrong_cnt),
             fontsize=9,
             verticalalignment="center",
         )
         ax.text(
-            0.65,
+            0.75,
             -0.33,
             "#[$P_{gen}$=1] = " + str(all_correct_cnt),
             fontsize=9,
@@ -395,22 +401,34 @@ class CompetitionFigureDrawer:
             for config in configs
         ]
         for i, stats in enumerate(run_stats):
+            run_details = []
             for category in categories:
+                run_details.extend(stats[category]["details"].values())
                 judge_field = (
                     str(configs[i]["n"])
                     if competition_type != "lucb"
                     else str(configs[i]["t"])
                 )
-                cls.draw_scatter(
+                cls._draw_scatter_plot(
                     dataset_name=dataset_name,
                     category=category,
                     competition_type=competition_type,
-                    details=stats[category]["details"],
+                    details=stats[category]["details"].values(),
                     config=configs[i],
                     figure_dir=figure_dir,
                     judge_field=judge_field,
                     threshold=threshold,
                 )
+            cls._draw_scatter_plot(
+                dataset_name=dataset_name,
+                category="all",
+                competition_type=competition_type,
+                details=run_details,
+                config=configs[i],
+                figure_dir=figure_dir,
+                judge_field=judge_field,
+                threshold=threshold,
+            )
 
     @classmethod
     def draw_subset_acc(
