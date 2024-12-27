@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 from .cache import Cache
 
-
 FIGURE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "imgs")
 
 
@@ -457,17 +456,22 @@ class CompetitionFigureDrawer:
         # draw categories
         lines = []
         for i, run in enumerate(run_stats):
-            line = {"acc": defaultdict(float), "cnt": 0}
+            cnt = 0
+            acc = defaultdict(float)
             for category in categories:
                 question_stats = run[category]["details"]
                 for stat in question_stats.values():
                     if stat["cmp"]["p_cmp"] < threshold:
                         continue
-                    line["cnt"] += 1
+                    cnt += 1
                     for k, v in stat["acc"].items():
-                        line["acc"][k] += v
-            for k in line["acc"]:
-                line["acc"][k] /= line["cnt"]
+                        acc[k] += v
+            for k in acc:
+                acc[k] /= cnt
+            line = {
+                "acc": acc,
+                "cnt": cnt,
+            }
             line.update(configs[i])
             lines.append(line)
         cls._draw_acc_line(
@@ -504,13 +508,15 @@ class CompetitionFigureDrawer:
         # draw categories
         lines = []
         for i, run in enumerate(run_stats):
-            line = {"acc": defaultdict(float), "cnt": 0}
+            acc = defaultdict(float)
+            cnt = 0
             for category in categories:
                 for k, v in run[category]["acc_vs_m"].items():
-                    line["acc"][k] += v * run[category]["cnt"]
-                line["cnt"] += run[category]["cnt"]
-            for k in line["acc"]:
-                line["acc"][k] /= line["cnt"]
+                    acc[k] += v * run[category]["cnt"]
+                cnt += run[category]["cnt"]
+            for k in acc:
+                acc[k] /= cnt
+            line = {"acc": acc, "cnt": cnt}
             line.update(configs[i])
             lines.append(line)
         cls._draw_acc_line(
