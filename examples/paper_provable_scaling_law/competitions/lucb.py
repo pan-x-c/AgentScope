@@ -245,6 +245,7 @@ class LUCB(Competition):
         return defaultdict(
             lambda: {
                 "acc": defaultdict(float),
+                "pool_acc": defaultdict(float),
                 "pool_size": defaultdict(float),
                 "cnt": 0,
                 "details": {},
@@ -268,6 +269,7 @@ class LUCB(Competition):
             "0": sum(1 for x in candidates if x["answer"] == target)
             / len(candidates),
         }
+        question_stats["pool_acc"] = {"0": question_stats["acc"]["0"]}
         question_stats["pool_size"] = {"0": self.n}
         valid_cmp, correct_cmp = self._process_lucb_rounds(
             ucb_result=ucb_result,
@@ -293,6 +295,9 @@ class LUCB(Competition):
             competition_stats[category]["pool_size"][t] += question_stats[
                 "pool_size"
             ][t]
+            competition_stats[category]["pool_acc"][t] += question_stats[
+                "pool_acc"
+            ][t]
         competition_stats[category]["cnt"] += 1
         competition_stats[category]["details"][
             question_stats["id"]
@@ -303,6 +308,7 @@ class LUCB(Competition):
             for t in stats["acc"]:
                 stats["acc"][t] /= stats["cnt"]
                 stats["pool_size"][t] /= stats["cnt"]
+                stats["pool_acc"][t] /= stats["cnt"]
             self.cache.save_competition_stats(
                 stats=stats,
                 competition_type="lucb",
@@ -319,6 +325,7 @@ class LUCB(Competition):
     ) -> tuple:
         valid_cmp = 0
         correct_cmp = 0
+        active_ids = range(self.n)
         final_ids = range(self.n)
         pool_size = self.n
         for round_num in range(1, self.t + 1):
@@ -336,42 +343,30 @@ class LUCB(Competition):
                             correct_cmp += pair["score_a"]
                         if answer_b == target:
                             correct_cmp += pair["score_b"]
+                active_ids = ucb_result["detail"][round_name]["active_ids"]
                 active_signal = np.zeros(self.n, dtype=np.bool_)
-                for idx in ucb_result["detail"][round_name]["active_ids"]:
+                for idx in active_ids:
                     active_signal[idx] = True
-                pool_size = len(
-                    ucb_result["detail"][round_name]["active_ids"],
+                pool_size = len(active_ids)
+                scores = (
+                    np.array(
+                        ucb_result["detail"][round_name][self.win_indicator],
+                    )
+                    * active_signal
                 )
-                if self.win_indicator == "ucb":
-                    scores = (
-                        np.array(
-                            ucb_result["detail"][round_name]["ucb"],
-                        )
-                        * active_signal
-                    )
-                elif self.win_indicator == "lcb":
-                    scores = (
-                        np.array(
-                            ucb_result["detail"][round_name]["lcb"],
-                        )
-                        * active_signal
-                    )
-                else:
-                    scores = (
-                        np.array(
-                            ucb_result["detail"][round_name]["avg_win_rate"],
-                        )
-                        * active_signal
-                    )
                 max_score = np.max(scores)
                 final_ids = np.where(
                     np.isclose(scores, max_score, atol=1e-8),
                 )[0].tolist()
             else:
                 pool_size = 1
+                active_ids = [active_ids[0]]
             question_stats["acc"][str(round_num)] = sum(
                 int(candidates[final_idx]["answer"] == target)
                 for final_idx in final_ids
             ) / len(final_ids)
+            question_stats["pool_acc"][str(round_num)] = sum(
+                int(candidates[idx]["answer"] == target) for idx in active_ids
+            ) / len(active_ids)
             question_stats["pool_size"][str(round_num)] = pool_size
         return valid_cmp, correct_cmp

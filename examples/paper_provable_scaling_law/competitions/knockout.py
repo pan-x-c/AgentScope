@@ -278,4 +278,4 @@ class Knockout(Competition):
         votes = defaultdict(int)
         for c in candidates:
             votes[c["answer"]] += 1
-        return max(votes, key=votes.get)
+        return max(votes, key=votes.get)  # type: ignore[arg-type]
