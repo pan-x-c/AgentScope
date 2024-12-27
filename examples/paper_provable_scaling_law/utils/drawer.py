@@ -486,6 +486,7 @@ class CompetitionFigureDrawer:
         configs: List[dict],
         sub_dir: str = "default",
     ) -> None:
+        """Draw acc vs m for league competition."""
         competition_type = "league"
         figure_dir = os.path.join(FIGURE_DIR, sub_dir)
         os.makedirs(figure_dir, exist_ok=True)

@@ -135,7 +135,7 @@ class Knockout(Competition):
         )
         return candidates[0]
 
-    def default_competition_stats(self):
+    def default_competition_stats(self) -> dict:
         return defaultdict(
             lambda: {
                 "acc": defaultdict(float),
