@@ -48,6 +48,14 @@ class League(Competition):
         self.m = m if m else (n - 1)
         assert self.m < self.n and self.m > 0
 
+    def _check_stop(self, candidates: List[dict]) -> bool:
+        stop = True
+        for i in range(1, self.n):
+            if candidates[i] != candidates[0]:
+                stop = False
+                break
+        return stop
+
     def competition(
         self,
         question: dict,
@@ -67,19 +75,11 @@ class League(Competition):
             category=question["category"],
             suffix=f"{self.n}_{self.k}_{self.m}",
         )
+        league_record = {"final": None}
         if league_record:
             return league_record["final"]
-        else:
-            league_record = {
-                "final": None,
-            }
         cmp_matrix = [[0 for _ in range(self.n)] for i in range(self.n)]
-        all_same = True
-        for i in range(1, self.n):
-            if candidates[i] != candidates[0]:
-                all_same = False
-                break
-        if all_same:
+        if self._check_stop(candidates):
             final = candidates[0]
             league_record = {
                 "final": final,

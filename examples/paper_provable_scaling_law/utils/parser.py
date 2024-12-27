@@ -112,30 +112,6 @@ class MMLUProParser(TagParser):
             return self.extract_again(text)
 
 
-class MATHParser(TagParser):
-    """
-    Modified from MATH
-
-    https://github.com/EleutherAI/lm-evaluation-harness/blob/main/lm_eval/tasks/leaderboard/math/utils.py
-    """
-
-    def __init__(self, name: str) -> None:
-        super().__init__(
-            name,
-            "The final answer is $$your answer$$",
-        )
-
-    def parse_content(self, text: str) -> Any:
-        from .dataset import MATH
-
-        pattern = r"\$\$(.*?)\$\$"
-        match = re.search(pattern, text)
-        if match:
-            return MATH.normalize_final_answer(match.group(1))
-        else:
-            return MATH.INVALID_ANSWER
-
-
 class ChoiceParser(TagParser):
     """
     Parse result from specific choices.

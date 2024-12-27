@@ -89,10 +89,52 @@ class LUCB(Competition):
             ).tolist()
         return idx_top_ucb + idx_bottom_lcb
 
+    def _run_lucb_round(
+        self,
+        activate_ids: List,
+        candidates: List,
+        question: dict,
+    ) -> List:
+        futures = []
+        for idx in candidates:
+            opponent_num = self.n_opponent
+            candidate_opponent_list = [x for x in activate_ids if x != idx]
+            opponent_list = []
+            while opponent_num >= len(candidate_opponent_list):
+                opponent_list.extend(candidate_opponent_list)
+                opponent_num -= len(candidate_opponent_list)
+            if opponent_num > 0:
+                opponent_list.extend(
+                    np.random.choice(
+                        candidate_opponent_list,
+                        size=opponent_num,
+                        replace=False,
+                    ),
+                )
+            for opponent_id in opponent_list:
+                futures.append(
+                    self.judge.pairwise_compare(
+                        question,
+                        candidates[idx],
+                        candidates[opponent_id],
+                        k=self.k,
+                        reuse=False,
+                    ),
+                )
+        return futures
+
+    def _check_stop(self, candidates: List, active_ids: List) -> bool:
+        """Check if the stop condition is satisfied."""
+        seen_answers = set()
+        for idx in active_ids:
+            if candidates[idx]["answer"] not in seen_answers:
+                seen_answers.add(candidates[idx]["answer"])
+        return len(seen_answers) <= 1
+
     def run_lucb(self, question: dict, candidates: List) -> Tuple:
         """The main procedure of LUCB"""
         total_cmp_cnt = 0
-        ucb_stats = {"final": None, "detail": {}}
+        lucb_stats = {"detail": {}}
         ucb = np.ones(self.n, dtype=np.float64)
         lcb = np.zeros(self.n, dtype=np.float64)
         avg_win_rate = np.full(self.n, 0.5, dtype=np.float64)
@@ -101,11 +143,8 @@ class LUCB(Competition):
         # whether the candidate is active or not
         active_signal = np.ones(self.n, dtype=np.bool_)
         for t in range(self.t):
-            seen_answers = set()
-            for idx in np.where(active_signal)[0]:
-                if candidates[idx]["answer"] not in seen_answers:
-                    seen_answers.add(candidates[idx]["answer"])
-            if len(seen_answers) <= 1:
+            active_ids = np.where(active_signal)[0]
+            if self._check_stop(candidates=candidates, active_ids=active_ids):
                 break
             round_stats = {
                 "compare_cnt": 0,
@@ -120,39 +159,15 @@ class LUCB(Competition):
                     lcb=lcb,
                 )
             )
-            active_candidate_ids = np.where(active_signal)[0]
-            futures = []
-            for idx in candidates_for_comparision:
-                opponent_num = self.n_opponent
-                candidate_opponent_list = [
-                    x for x in active_candidate_ids if x != idx
-                ]
-                opponent_list = []
-                while opponent_num >= len(candidate_opponent_list):
-                    opponent_list.extend(candidate_opponent_list)
-                    opponent_num -= len(candidate_opponent_list)
-                if opponent_num > 0:
-                    opponent_list.extend(
-                        np.random.choice(
-                            candidate_opponent_list,
-                            size=opponent_num,
-                            replace=False,
-                        ),
-                    )
-                for opponent_id in opponent_list:
-                    futures.append(
-                        self.judge.pairwise_compare(
-                            question,
-                            candidates[idx],
-                            candidates[opponent_id],
-                            k=self.k,
-                            reuse=False,
-                        ),
-                    )
+            futures = self._run_lucb_round(
+                activate_ids=active_ids,
+                candidates=candidates_for_comparision,
+                question=question,
+            )
             for future in futures:
                 result = future.result()
                 total_cmp_cnt += self.k
-                round_stats["compare_cnt"] += self.k
+                round_stats["compare_cnt"] += self.k  # type: ignore[operator]
                 round_stats["comparisons"].append(result)
                 win_cnt_matrix[result["a"]][result["b"]] += result["score_a"]
                 lose_cnt_matrix[result["a"]][result["b"]] += result["score_b"]
@@ -200,16 +215,12 @@ class LUCB(Competition):
                     "lose_cnt_matrix": lose_cnt_matrix.tolist(),
                 },
             )
-            ucb_stats["detail"][f"round_{t + 1}"] = round_stats
+            lucb_stats["detail"][f"round_{t + 1}"] = round_stats
 
-        max_ucb_idx = np.argmax(ucb * active_signal)
-        max_win_rate_idx = np.argmax(avg_win_rate * active_signal)
-        ucb_stats["final_ucb"] = candidates[max_ucb_idx]
-        ucb_stats["final_win_rate"] = candidates[max_win_rate_idx]
-        ucb_stats["total_cmp_cnt"] = total_cmp_cnt
-        final = self.get_final(ucb_stats)
-        ucb_stats["final"] = final
-        return final, ucb_stats
+        lucb_stats["total_cmp_cnt"] = total_cmp_cnt
+        final = self.get_final(lucb_stats)
+        lucb_stats["final"] = final
+        return final, lucb_stats
 
     def competition(
         self,

@@ -73,19 +73,12 @@ class Cache:
         """
         stats_dir = os.path.join(self.generation_dir, "stats", category)
         os.makedirs(stats_dir, exist_ok=True)
-        json.dump(
-            stats,
-            open(
-                os.path.join(
-                    stats_dir,
-                    f"{instance_id}.json",
-                ),
-                "w",
-                encoding="utf-8",
-            ),
-            ensure_ascii=False,
-            indent=2,
-        )
+        with open(
+            os.path.join(stats_dir, f"{instance_id}.json"),
+            "w",
+            encoding="utf-8",
+        ) as f:
+            json.dump(stats, f, ensure_ascii=False, indent=2)
 
     def save_generation(
         self,
@@ -274,7 +267,6 @@ class Cache:
                 f"{competition_type}_stats",
                 f"{category}_{suffix}.json",
             )
-            result[category] = json.load(
-                open(competition_stats_file, "r", encoding="utf-8"),
-            )
+            with open(competition_stats_file, "r", encoding="utf-8") as f:
+                result[category] = json.load(f)
         return result

@@ -42,6 +42,16 @@ class Knockout(Competition):
         self.k = k
         self.skip_same = skip_same
 
+    def _check_stop(self, candidates: List) -> bool:
+        if self.skip_same:
+            stop = True
+            for i in range(1, len(candidates)):
+                if candidates[i] != candidates[0]:
+                    stop = False
+                    break
+            return stop
+        return False
+
     def competition(
         self,
         question: dict,
@@ -68,22 +78,17 @@ class Knockout(Competition):
             "final": None,
             "detail": {},
         }
-        all_same = False
+        stop_signal = False
         while len(candidates) > 1:
             round_num += 1
             winners = []
+            pairs = []
+            stop_signal = self._check_stop(candidates)
             if len(candidates) % 2 == 1:
                 winners.append(candidates[-1])
-            pairs = []
-            if not all_same and self.skip_same:
-                all_same = True
-                for i in range(1, len(candidates)):
-                    if candidates[i] != candidates[0]:
-                        all_same = False
-                        break
             for i in range(1, len(candidates), 2):
                 # pair-wise compare
-                if all_same:
+                if stop_signal:
                     pairs.append(None)
                 else:
                     pairs.append(
@@ -96,7 +101,7 @@ class Knockout(Competition):
                     )
             rounds_detail = []
             for i, pair in enumerate(pairs):
-                if all_same:
+                if stop_signal:
                     rounds_detail.append(
                         {
                             "winner": candidates[i * 2]["cid"],
