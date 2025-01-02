@@ -30,7 +30,6 @@ class Knockout(Competition):
         cache: Cache,
         n: int,
         k: int,
-        skip_same: bool = True,
     ):
         """
         Args:
@@ -40,17 +39,14 @@ class Knockout(Competition):
         super().__init__(judge, cache)
         self.n = n
         self.k = k
-        self.skip_same = skip_same
 
     def _check_stop(self, candidates: List) -> bool:
-        if self.skip_same:
-            stop = True
-            for i in range(1, len(candidates)):
-                if candidates[i] != candidates[0]:
-                    stop = False
-                    break
-            return stop
-        return False
+        stop = True
+        for i in range(1, len(candidates)):
+            if candidates[i]["answer"] != candidates[0]["answer"]:
+                stop = False
+                break
+        return stop
 
     def competition(
         self,
@@ -83,7 +79,8 @@ class Knockout(Competition):
             round_num += 1
             winners = []
             pairs = []
-            stop_signal = self._check_stop(candidates)
+            if not stop_signal:
+                stop_signal = self._check_stop(candidates)
             if len(candidates) % 2 == 1:
                 winners.append(candidates[-1])
             for i in range(1, len(candidates), 2):

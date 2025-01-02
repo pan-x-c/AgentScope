@@ -126,11 +126,12 @@ class LUCB(Competition):
 
     def _check_stop(self, candidates: List, active_ids: List) -> bool:
         """Check if the stop condition is satisfied."""
-        seen_answers = set()
+        stop = True
         for idx in active_ids:
-            if candidates[idx]["answer"] not in seen_answers:
-                seen_answers.add(candidates[idx]["answer"])
-        return len(seen_answers) <= 1
+            if candidates[idx]["answer"] != active_ids[0]["answer"]:
+                stop = False
+                break
+        return stop
 
     def run_lucb(self, question: dict, candidates: List) -> Tuple:
         """The main procedure of LUCB"""

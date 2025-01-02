@@ -51,7 +51,7 @@ class League(Competition):
     def _check_stop(self, candidates: List[dict]) -> bool:
         stop = True
         for i in range(1, self.n):
-            if candidates[i] != candidates[0]:
+            if candidates[i]["answer"] != candidates[0]["answer"]:
                 stop = False
                 break
         return stop
