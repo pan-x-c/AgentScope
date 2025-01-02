@@ -317,7 +317,7 @@ class CompetitionFigureDrawer:
         )
         ax.set_xlim(-0.05, 1.05)
         ax.set_ylim(-0.10, 1.10)
-        ax.set_xlabel("$P_{gen}$")
+        ax.set_xlabel(r"$\hat{P}_{gen}$")  # noqa: W605
         ax.set_ylabel(r"$\hat{P}_{comp}$")  # noqa: W605
         ax.axhline(
             y=0.5,
@@ -344,14 +344,14 @@ class CompetitionFigureDrawer:
         ax.text(
             -0.25,
             -0.33,
-            "#[$P_{gen}$=0] = " + str(all_wrong_cnt),
+            r"#[$\hat{P}_{gen}$=0] = " + str(all_wrong_cnt),  # noqa: W605
             fontsize=9,
             verticalalignment="center",
         )
         ax.text(
             0.75,
             -0.33,
-            "#[$P_{gen}$=1] = " + str(all_correct_cnt),
+            r"#[$\hat{P}_{gen}$=1] = " + str(all_correct_cnt),  # noqa: W605
             fontsize=9,
             verticalalignment="center",
         )
@@ -526,4 +526,56 @@ class CompetitionFigureDrawer:
             competition_type=competition_type,
             figure_dir=figure_dir,
             x_label="M",
+        )
+
+    @classmethod
+    def draw_pool_acc(
+        cls,
+        dataset_name: str,
+        categories: List[str],
+        configs: List[dict],
+        sub_dir: str = "default",
+    ) -> None:
+        """Draw pool acc for lucb competition."""
+        competition_type = "lucb"
+        figure_dir = os.path.join(FIGURE_DIR, sub_dir)
+        os.makedirs(figure_dir, exist_ok=True)
+        stats = cls._load_runs(configs, competition_type, categories)
+        # draw categories
+        for category in categories:
+            lines = []
+            for i, stat in enumerate(stats):
+                line = {"acc": stat[category]["pool_acc"]}
+                line.update(configs[i])
+                lines.append(line)
+            cls._draw_acc_line(
+                dataset_name=dataset_name,
+                category=category,
+                competition_type=competition_type,
+                lines=lines,
+                figure_dir=figure_dir,
+                x_label="T" if competition_type == "lucb" else "N",
+            )
+        # draw all
+        all_lines = []
+        for i, stat in enumerate(stats):
+            all_cnt = 0
+            all_acc = defaultdict(float)
+            for category in categories:
+                for k, v in stat[category]["pool_acc"].items():
+                    all_acc[k] += v * stat[category]["cnt"]
+                all_cnt += stat[category]["cnt"]
+            for k in all_acc:
+                all_acc[k] /= all_cnt
+            line = {"acc": all_acc}
+            line.update(configs[i])
+            all_lines.append(line)
+        print(f"[ALL]: {all_lines}")
+        cls._draw_acc_line(
+            dataset_name=dataset_name,
+            category="all",
+            competition_type=competition_type,
+            lines=all_lines,
+            figure_dir=figure_dir,
+            x_label="T" if competition_type == "lucb" else "N",
         )

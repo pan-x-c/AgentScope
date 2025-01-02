@@ -51,7 +51,7 @@ class LUCB(Competition):
         else:
             return stats["final_win_rate"]
 
-    def _select_candidates_for_comparison(
+    def _select_candidates(
         self,
         active_signal: np.ndarray,
         ucb: np.ndarray,
@@ -92,11 +92,12 @@ class LUCB(Competition):
     def _run_lucb_round(
         self,
         activate_ids: List,
+        comparison_ids: List,
         candidates: List,
         question: dict,
     ) -> List:
         futures = []
-        for idx in candidates:
+        for idx in comparison_ids:
             opponent_num = self.n_opponent
             candidate_opponent_list = [x for x in activate_ids if x != idx]
             opponent_list = []
@@ -151,17 +152,15 @@ class LUCB(Competition):
                 "active_ids": [],
                 "comparisons": [],
             }
-            # find active candidate id where active_signal == 1
-            candidates_for_comparision = (
-                self._select_candidates_for_comparison(
-                    active_signal=active_signal,
-                    ucb=ucb,
-                    lcb=lcb,
-                )
+            comparision_ids = self._select_candidates(
+                active_signal=active_signal,
+                ucb=ucb,
+                lcb=lcb,
             )
             futures = self._run_lucb_round(
                 activate_ids=active_ids,
-                candidates=candidates_for_comparision,
+                comparison_ids=comparision_ids,
+                candidates=candidates,
                 question=question,
             )
             for future in futures:
@@ -217,6 +216,10 @@ class LUCB(Competition):
             )
             lucb_stats["detail"][f"round_{t + 1}"] = round_stats
 
+        lucb_stats["final_ucb"] = candidates[np.argmax(ucb * active_signal)]
+        lucb_stats["final_win_rate"] = candidates[
+            np.argmax(avg_win_rate * active_signal)
+        ]
         lucb_stats["total_cmp_cnt"] = total_cmp_cnt
         final = self.get_final(lucb_stats)
         lucb_stats["final"] = final
