@@ -75,9 +75,9 @@ class League(Competition):
             category=question["category"],
             suffix=f"{self.n}_{self.k}_{self.m}",
         )
-        league_record = {"final": None}
         if league_record:
             return league_record["final"]
+        league_record = {"final": None}
         cmp_matrix = [[0 for _ in range(self.n)] for i in range(self.n)]
         if self._check_stop(candidates):
             final = candidates[0]
@@ -153,6 +153,7 @@ class League(Competition):
             category=category,
             suffix=f"{self.n}_{self.k}_{self.m}",
         )
+        
         score_matrix = np.array(
             competition_result["score_matrix"],
             dtype=np.float64,
