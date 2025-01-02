@@ -13,6 +13,136 @@ from utils.worker import MixedJudge
 from utils.cache import Cache
 
 
+class LUCBState:
+    """State of LUCB algorithm."""
+
+    def __init__(
+        self,
+        cache: Cache,
+        qid: str,
+        category: str,
+        n: int,
+        k: int,
+        c_bonus: float = 0.99,
+        latest_t: int = 0,
+    ):
+        self.c_bonus = c_bonus
+        self.ucb = np.ones(n, dtype=np.float64)
+        self.lcb = np.zeros(n, dtype=np.float64)
+        self.avg_win_rate = np.full(n, 0.5, dtype=np.float64)
+        self.win_cnt_matrix = np.zeros((n, n), dtype=np.float64)
+        self.lose_cnt_matrix = np.zeros((n, n), dtype=np.float64)
+        # whether the candidate is active or not
+        self.active_signal = np.ones(n, dtype=np.bool_)
+        self.state_dict = cache.load_competition(
+            instance_id=qid,
+            competition_type="lucb",
+            category=category,
+            suffix=f"{n}_{k}_{latest_t}",
+        )
+        assert (not latest_t) or (
+            "detail" in self.state_dict
+        ), f"Checkpointed state at round {latest_t} not found."
+        if not self.state_dict:
+            self.state_dict = {"detail": {}}
+        if latest_t != 0:
+            round_states = self.state_dict["detail"]
+            if len(round_states) > 0:
+                latest_round = list(round_states.keys())[-1]
+                state = round_states[latest_round]
+                self.ucb = np.array(state["ucb"], dtype=np.float64)
+                self.lcb = np.array(state["lcb"], dtype=np.float64)
+                self.avg_win_rate = np.array(
+                    state["avg_win_rate"],
+                    dtype=np.float64,
+                )
+                self.win_cnt_matrix = np.array(
+                    state["win_cnt_matrix"],
+                    dtype=np.float64,
+                )
+                self.lose_cnt_matrix = np.array(
+                    state["lose_cnt_matrix"],
+                    dtype=np.float64,
+                )
+                self.active_signal = np.zeros(n, dtype=np.bool_)
+                self.active_signal[state["active_ids"]] = True
+
+    @property
+    def active_ids(self) -> List[int]:
+        """Get the active ids."""
+        return np.where(self.active_signal)[0].tolist()
+
+    @property
+    def max_ucb_id(self) -> int:
+        return np.argmax(self.ucb * self.active_signal)
+
+    @property
+    def max_win_rate_id(self) -> int:
+        return np.argmax(self.avg_win_rate * self.active_signal)
+
+    def add_comparison_result(
+        self,
+        cid_a: int,
+        cid_b: int,
+        win_cnt_a: float,
+        win_cnt_b: float,
+        has_budget: bool = False,
+    ) -> None:
+        self.win_cnt_matrix[cid_a, cid_b] += win_cnt_a
+        self.lose_cnt_matrix[cid_a, cid_b] += win_cnt_b
+        if not has_budget:
+            self.win_cnt_matrix[cid_b, cid_a] += win_cnt_b
+            self.lose_cnt_matrix[cid_b, cid_a] += win_cnt_a
+
+    def update_state(self) -> None:
+        while True:
+            for idx in self.active_ids:
+                total_win_count = np.sum(
+                    self.win_cnt_matrix[idx] * self.active_signal,
+                )
+                total_lose_count = np.sum(
+                    self.lose_cnt_matrix[idx] * self.active_signal,
+                )
+                total_count = total_win_count + total_lose_count
+                if total_count >= 0.5:
+                    self.avg_win_rate[idx] = total_win_count / total_count
+                    bonus = np.sqrt(self.c_bonus / total_count)
+                    self.ucb[idx] = min(self.avg_win_rate[idx] + bonus, 1.0)
+                    self.lcb[idx] = max(self.avg_win_rate[idx] - bonus, 0.0)
+                else:
+                    self.avg_win_rate[idx] = 0.5
+                    self.ucb[idx] = 1.0
+                    self.lcb[idx] = 0.0
+            max_lcb = np.max(self.lcb * self.active_signal)
+            update_active_signal = False
+            for idx in self.active_ids:
+                if self.ucb[idx] < max(max_lcb, 0.5):
+                    self.active_signal[idx] = False
+                    update_active_signal = True
+            if not update_active_signal:
+                break
+
+    def add_round_state(
+        self,
+        round_id: int,
+        round_state: dict,
+    ) -> None:
+        round_state.update(
+            {
+                "ucb": self.ucb.tolist(),
+                "lcb": self.lcb.tolist(),
+                "avg_win_rate": self.avg_win_rate.tolist(),
+                "win_cnt_matrix": self.win_cnt_matrix.tolist(),
+                "lose_cnt_matrix": self.lose_cnt_matrix.tolist(),
+                "active_ids": np.where(self.active_signal)[0].tolist(),
+            },
+        )
+        self.state_dict["detail"][f"round_{round_id + 1}"] = round_state
+
+    def get_state_dict(self) -> dict:
+        return self.state_dict
+
+
 @Competition.register("lucb")
 class LUCB(Competition):
     """An implementation of LUCB algorithm."""
@@ -28,6 +158,7 @@ class LUCB(Competition):
         c_bonus: float = 0.99,
         win_indicator: str = "win_rate",
         budget: int = 0,
+        latest_t: int = 0,
     ):
         super().__init__(judge, cache)
         self.n = n
@@ -37,6 +168,7 @@ class LUCB(Competition):
         self.c_bonus = c_bonus
         self.win_indicator = win_indicator
         self.has_budget = budget != 0
+        self.latest_t = latest_t
         if self.has_budget:
             # 0 means no budget
             self.m = budget // (self.k * self.n_opponent)
@@ -44,28 +176,25 @@ class LUCB(Competition):
         else:
             self.m = 0
 
-    def get_final(self, stats: dict) -> dict:
+    def get_final(self, state: dict) -> dict:
         """Get the final winner with specific win indicator."""
         if self.win_indicator == "ucb":
-            return stats["final_ucb"]
+            return state["final_ucb"]
         else:
-            return stats["final_win_rate"]
+            return state["final_win_rate"]
 
-    def _select_candidates(
-        self,
-        active_signal: np.ndarray,
-        ucb: np.ndarray,
-        lcb: np.ndarray,
-    ) -> List:
-        active_candidate_ids = np.where(active_signal)[0]
+    def _select_candidates(self, lucb_state: LUCBState) -> List:
+        active_candidate_ids = lucb_state.active_ids
         if not self.has_budget:
             # use all active candidates if no budget
-            return active_candidate_ids.tolist()
+            return active_candidate_ids
         m_top_ucb = self.m // 2
         m_bottom_lcb = self.m - m_top_ucb
         if len(active_candidate_ids) > m_top_ucb:
             scores_for_top_ucb = (
-                ucb + np.random.randn(self.n) * 1e-8 + active_signal * 10
+                lucb_state.ucb
+                + np.random.randn(self.n) * 1e-8
+                + lucb_state.active_signal * 10
             )
             sorted_idx = np.argsort(scores_for_top_ucb)
             idx_top_ucb = sorted_idx[-m_top_ucb:].tolist()
@@ -77,7 +206,9 @@ class LUCB(Competition):
             ).tolist()
         if len(active_candidate_ids) > m_bottom_lcb:
             scores_for_bottom_lcb = (
-                lcb + np.random.randn(self.n) * 1e-8 - active_signal * 10
+                lucb_state.lcb
+                + np.random.randn(self.n) * 1e-8
+                - lucb_state.active_signal * 10
             )
             sorted_idx = np.argsort(scores_for_bottom_lcb)
             idx_bottom_lcb = sorted_idx[:m_bottom_lcb].tolist()
@@ -128,36 +259,32 @@ class LUCB(Competition):
         """Check if the stop condition is satisfied."""
         stop = True
         for idx in active_ids:
-            if candidates[idx]["answer"] != active_ids[0]["answer"]:
+            if candidates[idx]["answer"] != candidates[0]["answer"]:
                 stop = False
                 break
         return stop
 
     def run_lucb(self, question: dict, candidates: List) -> Tuple:
         """The main procedure of LUCB"""
+        lucb_state = LUCBState(
+            cache=self.cache,
+            qid=question["id"],
+            category=question["category"],
+            n=self.n,
+            k=self.k,
+            latest_t=self.latest_t,
+        )
         total_cmp_cnt = 0
-        lucb_stats = {"detail": {}}
-        ucb = np.ones(self.n, dtype=np.float64)
-        lcb = np.zeros(self.n, dtype=np.float64)
-        avg_win_rate = np.full(self.n, 0.5, dtype=np.float64)
-        win_cnt_matrix = np.zeros((self.n, self.n), dtype=np.float64)
-        lose_cnt_matrix = np.zeros((self.n, self.n), dtype=np.float64)
-        # whether the candidate is active or not
-        active_signal = np.ones(self.n, dtype=np.bool_)
-        for t in range(self.t):
-            active_ids = np.where(active_signal)[0]
+        for t in range(self.latest_t, self.t):
+            active_ids = lucb_state.active_ids
             if self._check_stop(candidates=candidates, active_ids=active_ids):
                 break
-            round_stats = {
+            round_state = {
                 "compare_cnt": 0,
                 "active_ids": [],
                 "comparisons": [],
             }
-            comparision_ids = self._select_candidates(
-                active_signal=active_signal,
-                ucb=ucb,
-                lcb=lcb,
-            )
+            comparision_ids = self._select_candidates(lucb_state=lucb_state)
             futures = self._run_lucb_round(
                 activate_ids=active_ids,
                 comparison_ids=comparision_ids,
@@ -167,64 +294,25 @@ class LUCB(Competition):
             for future in futures:
                 result = future.result()
                 total_cmp_cnt += self.k
-                round_stats["compare_cnt"] += self.k  # type: ignore[operator]
-                round_stats["comparisons"].append(result)
-                win_cnt_matrix[result["a"]][result["b"]] += result["score_a"]
-                lose_cnt_matrix[result["a"]][result["b"]] += result["score_b"]
-                if not self.has_budget:
-                    win_cnt_matrix[result["b"]][result["a"]] += result[
-                        "score_b"
-                    ]
-                    lose_cnt_matrix[result["b"]][result["a"]] += result[
-                        "score_a"
-                    ]
+                round_state["compare_cnt"] += self.k  # type: ignore[operator]
+                round_state["comparisons"].append(result)
+                lucb_state.add_comparison_result(
+                    cid_a=result["a"],
+                    cid_b=result["b"],
+                    win_cnt_a=result["score_a"],
+                    win_cnt_b=result["score_b"],
+                    has_budget=self.has_budget,
+                )
+            lucb_state.update_state()
+            lucb_state.add_round_state(round_id=t, round_state=round_state)
 
-            while True:
-                for idx in np.where(active_signal)[0]:
-                    total_win_count = np.sum(
-                        win_cnt_matrix[idx] * active_signal,
-                    )
-                    total_lose_count = np.sum(
-                        lose_cnt_matrix[idx] * active_signal,
-                    )
-                    total_count = total_win_count + total_lose_count
-                    if total_count >= 0.5:
-                        avg_win_rate[idx] = total_win_count / total_count
-                        bonus = np.sqrt(self.c_bonus / total_count)
-                        ucb[idx] = min(avg_win_rate[idx] + bonus, 1.0)
-                        lcb[idx] = max(avg_win_rate[idx] - bonus, 0.0)
-                    else:
-                        avg_win_rate[idx] = 0.5
-                        ucb[idx] = 1.0
-                        lcb[idx] = 0.0
-                max_lcb = np.max(lcb * active_signal)
-                update_active_signal = False
-                for idx in np.where(active_signal)[0]:
-                    if ucb[idx] < max(max_lcb, 0.5):
-                        active_signal[idx] = False
-                        update_active_signal = True
-                if not update_active_signal:
-                    break
-            round_stats.update(
-                {
-                    "active_ids": np.where(active_signal)[0].tolist(),
-                    "ucb": ucb.tolist(),
-                    "lcb": lcb.tolist(),
-                    "avg_win_rate": avg_win_rate.tolist(),
-                    "win_cnt_matrix": win_cnt_matrix.tolist(),
-                    "lose_cnt_matrix": lose_cnt_matrix.tolist(),
-                },
-            )
-            lucb_stats["detail"][f"round_{t + 1}"] = round_stats
-
-        lucb_stats["final_ucb"] = candidates[np.argmax(ucb * active_signal)]
-        lucb_stats["final_win_rate"] = candidates[
-            np.argmax(avg_win_rate * active_signal)
-        ]
-        lucb_stats["total_cmp_cnt"] = total_cmp_cnt
-        final = self.get_final(lucb_stats)
-        lucb_stats["final"] = final
-        return final, lucb_stats
+        state = lucb_state.get_state_dict()
+        state["final_ucb"] = candidates[lucb_state.max_ucb_id]
+        state["final_win_rate"] = candidates[lucb_state.max_win_rate_id]
+        state["total_cmp_cnt"] = state.get("total_cmp_cnt", 0) + total_cmp_cnt
+        final = self.get_final(state)
+        state["final"] = final
+        return final, state
 
     def competition(
         self,
@@ -360,8 +448,7 @@ class LUCB(Competition):
                             correct_cmp += pair["score_b"]
                 active_ids = ucb_result["detail"][round_name]["active_ids"]
                 active_signal = np.zeros(self.n, dtype=np.bool_)
-                for idx in active_ids:
-                    active_signal[idx] = True
+                active_signal[active_ids] = True
                 pool_size = len(active_ids)
                 scores = (
                     np.array(
