@@ -74,10 +74,12 @@ class LUCBState:
 
     @property
     def max_ucb_id(self) -> int:
+        """Get the candidate id with the largest ucb score."""
         return np.argmax(self.ucb * self.active_signal)
 
     @property
     def max_win_rate_id(self) -> int:
+        """Get the candidate id with the largest win rate."""
         return np.argmax(self.avg_win_rate * self.active_signal)
 
     def add_comparison_result(
@@ -88,6 +90,7 @@ class LUCBState:
         win_cnt_b: float,
         has_budget: bool = False,
     ) -> None:
+        """Add the comparison result to the state."""
         self.win_cnt_matrix[cid_a, cid_b] += win_cnt_a
         self.lose_cnt_matrix[cid_a, cid_b] += win_cnt_b
         if not has_budget:
@@ -95,6 +98,7 @@ class LUCBState:
             self.lose_cnt_matrix[cid_b, cid_a] += win_cnt_a
 
     def update_state(self) -> None:
+        """Update the state of the LUCB algorithm."""
         while True:
             for idx in self.active_ids:
                 total_win_count = np.sum(
@@ -127,6 +131,7 @@ class LUCBState:
         round_id: int,
         round_state: dict,
     ) -> None:
+        """Record the round state"""
         round_state.update(
             {
                 "ucb": self.ucb.tolist(),
@@ -140,6 +145,7 @@ class LUCBState:
         self.state_dict["detail"][f"round_{round_id + 1}"] = round_state
 
     def get_state_dict(self) -> dict:
+        """Get the LUCB state as a dict."""
         return self.state_dict
 
 
