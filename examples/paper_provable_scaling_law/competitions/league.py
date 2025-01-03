@@ -153,7 +153,7 @@ class League(Competition):
             category=category,
             suffix=f"{self.n}_{self.k}_{self.m}",
         )
-        
+
         score_matrix = np.array(
             competition_result["score_matrix"],
             dtype=np.float64,

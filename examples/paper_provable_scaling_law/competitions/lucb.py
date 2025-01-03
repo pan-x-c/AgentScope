@@ -265,7 +265,10 @@ class LUCB(Competition):
         """Check if the stop condition is satisfied."""
         stop = True
         for idx in active_ids:
-            if candidates[idx]["answer"] != candidates[0]["answer"]:
+            if (
+                candidates[idx]["answer"]
+                != candidates[active_ids[0]]["answer"]
+            ):
                 stop = False
                 break
         return stop
