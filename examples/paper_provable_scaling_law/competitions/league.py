@@ -186,9 +186,18 @@ class League(Competition):
             question_stats["acc"][f"{candidate_num}"] /= self.n
         valid_cmp = 0
         correct_cmp = 0
+        max_correct_win_rate = 0
+        max_incorrect_win_rate = 0
         # calculate_p_cmp
         for i in range(self.n):
             i_correct = candidates[i]["answer"] == target
+            win_cnt = sum(score_matrix[i])
+            lose_cnt = sum(score_matrix[:, i])
+            win_rate = win_cnt / (win_cnt + lose_cnt)
+            if i_correct:
+                max_correct_win_rate = max(max_correct_win_rate, win_rate)
+            else:
+                max_incorrect_win_rate = max(max_incorrect_win_rate, win_rate)
             for j in range(self.n):
                 j_correct = candidates[j]["answer"] == target
                 if i_correct != j_correct:
@@ -199,6 +208,8 @@ class League(Competition):
             "valid": valid_cmp,
             "correct": correct_cmp,
             "p_cmp": correct_cmp / valid_cmp if valid_cmp > 0 else 0,
+            "max_correct_win_rate": max_correct_win_rate,
+            "max_incorrect_win_rate": max_incorrect_win_rate,
         }
 
         # calculate acc vs m

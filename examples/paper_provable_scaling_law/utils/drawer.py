@@ -234,41 +234,82 @@ class CompetitionFigureDrawer:
         )
 
     @classmethod
-    def _draw_scatter_plot(
+    def calculate_scatter_state(
         cls,
-        dataset_name: str,
-        category: str,
         competition_type: str,
         details: list,
-        config: dict,
-        figure_dir: str,
-        judge_field: str,
-        threshold: float = 1.0,
-    ) -> None:
-        """Draw scatter plot of P_cmp and P_gen"""
+    ) -> dict:
+        """Calculate the state for scatter plot."""
+        if competition_type == "league":
+            middle = 0.0
+        else:
+            middle = 0.5
         all_correct_cnt = 0
         all_wrong_cnt = 0
         right_p_gens = []
         right_p_cmps = []
         wrong_p_gens = []
         wrong_p_cmps = []
+        above_cnt = 0
+        below_cnt = 0
         for stat in details:
-            p_gen = (
-                stat["acc"]["0"]
-                if competition_type == "lucb"
-                else stat["acc"]["1"]
-            )
+            p_gen = next(iter(stat["acc"].values()))
+            if competition_type == "league":
+                y_value = (
+                    stat["cmp"]["max_correct_win_rate"]
+                    - stat["cmp"]["max_incorrect_win_rate"]
+                )
+            else:
+                y_value = stat["cmp"]["p_cmp"]
             if stat["cmp"]["valid"] > 0:
-                if stat["acc"][judge_field] >= threshold:
+                final_p_gen = next(reversed(stat["acc"].values()))
+                if final_p_gen >= 0.5:
                     right_p_gens.append(p_gen)
-                    right_p_cmps.append(stat["cmp"]["p_cmp"])
+                    right_p_cmps.append(y_value)
                 else:
                     wrong_p_gens.append(p_gen)
-                    wrong_p_cmps.append(stat["cmp"]["p_cmp"])
-            if stat["acc"]["1"] == 0:
+                    wrong_p_cmps.append(y_value)
+                if y_value > middle:
+                    above_cnt += 1
+                else:
+                    below_cnt += 1
+            if p_gen == 0:
                 all_wrong_cnt += 1
-            if stat["acc"]["1"] == 1:
+            if p_gen == 1:
                 all_correct_cnt += 1
+
+        return {
+            "right_p_gens": right_p_gens,
+            "right_p_cmps": right_p_cmps,
+            "wrong_p_gens": wrong_p_gens,
+            "wrong_p_cmps": wrong_p_cmps,
+            "above_cnt": above_cnt,
+            "below_cnt": below_cnt,
+            "all_correct_cnt": all_correct_cnt,
+            "all_wrong_cnt": all_wrong_cnt,
+        }
+
+    @classmethod
+    def _draw_scatter_plot(
+        cls,
+        dataset_name: str,
+        category: str,
+        competition_type: str,
+        data: dict,
+        config: dict,
+        figure_dir: str,
+        bottom: float = 0.0,
+        top: float = 1.0,
+        x_label: str = r"$\hat{P}_{gen}$",  # noqa: W605
+        y_label: str = r"$\hat{P}_{comp}$",  # noqa: W605
+    ) -> None:
+        """Draw scatter plot of P_cmp and P_gen"""
+        all_correct_cnt = data["all_correct_cnt"]
+        all_wrong_cnt = data["all_wrong_cnt"]
+        right_p_gens = data["right_p_gens"]
+        right_p_cmps = data["right_p_cmps"]
+        wrong_p_gens = data["wrong_p_gens"]
+        wrong_p_cmps = data["wrong_p_cmps"]
         fig = plt.figure(figsize=(4, 3))
         gs = fig.add_gridspec(1, 2, width_ratios=[3, 1], wspace=0.0)
         ax = fig.add_subplot(gs[0])
@@ -297,7 +338,7 @@ class CompetitionFigureDrawer:
             color=config["color"],
             marker="x",
         )
-        bins = np.linspace(-0.0, 1.0, 50)
+        bins = np.linspace(bottom, top, 50)
         ax_hist.hist(
             right_p_cmps + wrong_p_cmps,
             bins=bins,
@@ -306,52 +347,49 @@ class CompetitionFigureDrawer:
             alpha=0.6,
         )
         ax_hist.set_axis_off()
-        above_count = sum(
-            1 for p_cmp in right_p_cmps + wrong_p_cmps if p_cmp > 0.5
-        )
-        below_count = sum(
-            1 for p_cmp in right_p_cmps + wrong_p_cmps if p_cmp <= 0.5
-        )
         ax.set_title(
             f"{dataset_name}: {category}",
         )
         ax.set_xlim(-0.05, 1.05)
-        ax.set_ylim(-0.10, 1.10)
-        ax.set_xlabel(r"$\hat{P}_{gen}$")  # noqa: W605
-        ax.set_ylabel(r"$\hat{P}_{comp}$")  # noqa: W605
+        ax.set_ylim(
+            bottom - 0.10 * (top - bottom),
+            top + 0.10 * (top - bottom),
+        )
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+        middle = (top + bottom) / 2
         ax.axhline(
-            y=0.5,
+            y=middle,
             color="black",
             linestyle="dotted",
             linewidth=1.0,
         )
-
         ax.text(
             -0.05,
-            1.03,
-            r"#[$\hat{P}_{comp}>0.5$] = " + str(above_count),  # noqa: W605
+            top + 0.03 * (top - bottom),
+            f"#[{y_label}$>{middle}$] = " + str(data["above_cnt"]),
             fontsize=9,
             verticalalignment="center",
         )
         ax.text(
             -0.05,
-            -0.05,
-            r"#[$\hat{P}_{comp}≤0.5$] = " + str(below_count),  # noqa: W605
+            bottom - 0.05 * (top - bottom),
+            f"#[{y_label}$≤{middle}$] = " + str(data["below_cnt"]),
             fontsize=9,
             verticalalignment="center",
         )
 
         ax.text(
             -0.25,
-            -0.33,
-            r"#[$\hat{P}_{gen}$=0] = " + str(all_wrong_cnt),  # noqa: W605
+            bottom - 0.33 * (top - bottom),
+            f"#[{x_label}$=0$] = " + str(all_wrong_cnt),
             fontsize=9,
             verticalalignment="center",
         )
         ax.text(
             0.75,
-            -0.33,
-            r"#[$\hat{P}_{gen}$=1] = " + str(all_correct_cnt),  # noqa: W605
+            bottom - 0.33 * (top - bottom),
+            f"#[{x_label}$=1$] = " + str(all_correct_cnt),
             fontsize=9,
             verticalalignment="center",
         )
@@ -381,7 +419,6 @@ class CompetitionFigureDrawer:
         categories: List[str],
         configs: List[dict],
         sub_dir: str = "default",
-        threshold: float = 1.0,
     ) -> None:
         """
         Draw scatter plot of P_cmp and P_gen
@@ -403,30 +440,41 @@ class CompetitionFigureDrawer:
             run_details = []
             for category in categories:
                 run_details.extend(stats[category]["details"].values())
-                judge_field = (
-                    str(configs[i]["n"])
-                    if competition_type != "lucb"
-                    else str(configs[i]["t"])
-                )
                 cls._draw_scatter_plot(
                     dataset_name=dataset_name,
                     category=category,
                     competition_type=competition_type,
-                    details=stats[category]["details"].values(),
+                    data=cls.calculate_scatter_state(
+                        details=stats[category]["details"].values(),
+                        competition_type=competition_type,
+                    ),
                     config=configs[i],
                     figure_dir=figure_dir,
-                    judge_field=judge_field,
-                    threshold=threshold,
+                    bottom=0.0 if competition_type != "league" else -1.0,
+                    top=1.0,
+                    y_label=(
+                        r"$\hat{P}_{comp}$"
+                        if competition_type != "league"
+                        else r"$\hat{\Delta}$"
+                    ),
                 )
             cls._draw_scatter_plot(
                 dataset_name=dataset_name,
                 category="all",
                 competition_type=competition_type,
-                details=run_details,
+                data=cls.calculate_scatter_state(
+                    details=run_details,
+                    competition_type=competition_type,
+                ),
                 config=configs[i],
                 figure_dir=figure_dir,
-                judge_field=judge_field,
-                threshold=threshold,
+                bottom=0.0 if competition_type != "league" else -1.0,
+                top=1.0,
+                y_label=(
+                    r"$\hat{P}_{comp}$"
+                    if competition_type != "league"
+                    else r"$\hat{\Delta}$"
+                ),
             )
 
     @classmethod
