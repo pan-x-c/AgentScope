@@ -627,3 +627,121 @@ class CompetitionFigureDrawer:
             figure_dir=figure_dir,
             x_label="T" if competition_type == "lucb" else "N",
         )
+
+    @classmethod
+    def _draw_pie(
+        cls,
+        dataset_name: str,
+        category: str,
+        values: List,
+        labels: List,
+        figure_dir: str,
+    ) -> None:
+        os.makedirs(figure_dir, exist_ok=True)
+        fig, ax = plt.subplots(figsize=(5, 4))
+        ax.pie(
+            values,
+            labels=labels,
+            autopct="%1.1f%%",
+            startangle=90,
+            colors=["#99FF99", "#FF9999", "#FFCC99", "#66B3FF"],
+        )
+        ax.set_title(f"{dataset_name}: {category}")
+        plt.tight_layout()
+        plt.savefig(
+            os.path.join(
+                figure_dir,
+                f"pie_{category}.pdf",
+            ),
+            bbox_inches="tight",
+            pad_inches=0.02,
+        )
+        plt.savefig(
+            os.path.join(
+                figure_dir,
+                f"pie_{category}.png",
+            ),
+            bbox_inches="tight",
+            pad_inches=0.02,
+        )
+
+    @classmethod
+    def draw_diff_pie(
+        cls,
+        dataset_name: str,
+        categories: List[str],
+        configs: List[dict],
+        sub_dir: str = "default",
+    ) -> None:
+        assert len(configs) == 2
+        figure_dir = os.path.join(FIGURE_DIR, sub_dir)
+        run_a, run_b = [
+            Cache(
+                project_name=config["project"],
+                job_name=config["job"],
+            ).load_competition_stats(
+                competition_type=config["competition_type"],
+                categories=categories,
+                suffix=cls._construct_suffix(
+                    config["competition_type"], config
+                ),
+            )
+            for config in configs
+        ]
+        both_right = 0
+        both_wrong = 0
+        a_right_b_wrong = 0
+        a_wrong_b_right = 0
+        for category in categories:
+            category_both_right = 0
+            category_both_wrong = 0
+            category_a_right_b_wrong = 0
+            category_a_wrong_b_right = 0
+            a_detail = run_a[category]["details"]
+            b_detail = run_b[category]["details"]
+            for qid in a_detail.keys():
+                a_acc = next(reversed(a_detail[qid]["acc"].values()))
+                a_right = a_acc > 0.5
+                b_acc = next(reversed(b_detail[qid]["acc"].values()))
+                b_right = b_acc > 0.5
+                if a_right and b_right:
+                    category_both_right += 1
+                elif not a_right and not b_right:
+                    category_both_wrong += 1
+                elif a_right and not b_right:
+                    category_a_right_b_wrong += 1
+                elif not a_right and b_right:
+                    category_a_wrong_b_right += 1
+            cls._draw_pie(
+                dataset_name=dataset_name,
+                category=category,
+                values=[
+                    category_both_right,
+                    category_both_wrong,
+                    category_a_right_b_wrong,
+                    category_a_wrong_b_right,
+                ],
+                labels=[
+                    "Both Right",
+                    "Both Wrong",
+                    f"{configs[0]['name']} Right, {configs[1]['name']} Wrong",
+                    f"{configs[0]['name']} Wrong, {configs[1]['name']} Right",
+                ],
+                figure_dir=figure_dir,
+            )
+            both_right += category_both_right
+            both_wrong += category_both_wrong
+            a_right_b_wrong += category_a_right_b_wrong
+            a_wrong_b_right += category_a_wrong_b_right
+        cls._draw_pie(
+            dataset_name=dataset_name,
+            category="all",
+            values=[both_right, both_wrong, a_right_b_wrong, a_wrong_b_right],
+            labels=[
+                "Both Right",
+                "Both Wrong",
+                f"{configs[0]['name']} Right, {configs[1]['name']} Wrong",
+                f"{configs[0]['name']} Wrong, {configs[1]['name']} Right",
+            ],
+            figure_dir=figure_dir,
+        )
