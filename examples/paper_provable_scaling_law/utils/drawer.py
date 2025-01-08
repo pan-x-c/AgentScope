@@ -56,12 +56,13 @@ class CompetitionFigureDrawer:
         lines: List[dict],
         figure_dir: str,
         x_label: str = "N",
+        n_col: int = 3,
     ) -> None:
         """Draw accuracy line plot."""
         _, ax = plt.subplots(figsize=(4, 3))
         for line in lines:
             ax.plot(
-                line["acc"].keys(),
+                list(map(int, line["acc"].keys())),
                 line["acc"].values(),
                 label=line["label"],
                 marker=line["marker"],
@@ -79,12 +80,12 @@ class CompetitionFigureDrawer:
         ax.set_xlabel(x_label)
         ax.set_ylabel("Accuracy")
         ax.legend(
-            ncol=2,
-            handlelength=1.8,
+            ncol=n_col,
+            handlelength=1.6,
             handletextpad=0.2,
             labelspacing=0.2,
             columnspacing=0.3,
-            loc="lower center",
+            loc="best",
         )
         plt.tight_layout()
         plt.savefig(
@@ -182,25 +183,27 @@ class CompetitionFigureDrawer:
         # draw categories
         for category in categories:
             lines = []
+            majority_lines = []
             for i, stat in enumerate(stats):
                 line = {"acc": stat[category]["acc"]}
                 majority_line = {"acc": stat[category]["majority_acc"]}
                 line.update(configs[i])
                 majority_line.update(configs[i])
                 majority_line["linestyle"] = "dotted"
-                majority_line["marker"] = "s"
-                majority_line["label"] += "(MV)"
+                majority_line["label"] += " (MV)"
                 lines.append(line)
-                lines.append(majority_line)
+                majority_lines.append(majority_line)
             cls._draw_acc_line(
                 dataset_name=dataset_name,
                 category=category,
                 competition_type=competition_type,
-                lines=lines,
+                lines=lines + majority_lines,
                 figure_dir=figure_dir,
+                n_col=2,
             )
         # draw all
         all_lines = []
+        all_majority_lines = []
         for i, stat in enumerate(stats):
             all_cnt = 0
             all_acc = defaultdict(float)
@@ -220,17 +223,17 @@ class CompetitionFigureDrawer:
             line.update(configs[i])
             majority_line.update(configs[i])
             majority_line["linestyle"] = "dotted"
-            majority_line["marker"] = "s"
             majority_line["label"] += "(MV)"
             all_lines.append(line)
-            all_lines.append(majority_line)
+            all_majority_lines.append(majority_line)
         print(f"[ALL]: {all_lines}")
         cls._draw_acc_line(
             dataset_name=dataset_name,
             category="all",
             competition_type=competition_type,
-            lines=all_lines,
+            lines=all_lines + all_majority_lines,
             figure_dir=figure_dir,
+            n_col=2,
         )
 
     @classmethod
@@ -524,7 +527,7 @@ class CompetitionFigureDrawer:
             lines.append(line)
         cls._draw_acc_line(
             dataset_name=dataset_name,
-            category="all",
+            category="all (subset)",
             lines=lines,
             competition_type=competition_type,
             figure_dir=figure_dir,
@@ -638,7 +641,7 @@ class CompetitionFigureDrawer:
         figure_dir: str,
     ) -> None:
         os.makedirs(figure_dir, exist_ok=True)
-        fig, ax = plt.subplots(figsize=(5, 4))
+        _, ax = plt.subplots(figsize=(5, 4))
         ax.pie(
             values,
             labels=labels,
@@ -673,6 +676,7 @@ class CompetitionFigureDrawer:
         configs: List[dict],
         sub_dir: str = "default",
     ) -> None:
+        """Draw pie chart for different competition."""
         assert len(configs) == 2
         figure_dir = os.path.join(FIGURE_DIR, sub_dir)
         run_a, run_b = [
@@ -683,7 +687,8 @@ class CompetitionFigureDrawer:
                 competition_type=config["competition_type"],
                 categories=categories,
                 suffix=cls._construct_suffix(
-                    config["competition_type"], config
+                    config["competition_type"],
+                    config,
                 ),
             )
             for config in configs
@@ -692,6 +697,8 @@ class CompetitionFigureDrawer:
         both_wrong = 0
         a_right_b_wrong = 0
         a_wrong_b_right = 0
+        arbw_set = []
+        awbr_set = []
         for category in categories:
             category_both_right = 0
             category_both_wrong = 0
@@ -710,8 +717,12 @@ class CompetitionFigureDrawer:
                     category_both_wrong += 1
                 elif a_right and not b_right:
                     category_a_right_b_wrong += 1
+                    arbw_set.append(b_detail[qid])
+                    awbr_set.append(a_detail[qid])
                 elif not a_right and b_right:
                     category_a_wrong_b_right += 1
+                    awbr_set.append(a_detail[qid])
+                    arbw_set.append(b_detail[qid])
             cls._draw_pie(
                 dataset_name=dataset_name,
                 category=category,
@@ -724,8 +735,8 @@ class CompetitionFigureDrawer:
                 labels=[
                     "Both Right",
                     "Both Wrong",
-                    f"{configs[0]['name']} Right, {configs[1]['name']} Wrong",
-                    f"{configs[0]['name']} Wrong, {configs[1]['name']} Right",
+                    f"{configs[0]['label']} Right, {configs[1]['label']} Wrong",
+                    f"{configs[0]['label']} Wrong, {configs[1]['label']} Right",
                 ],
                 figure_dir=figure_dir,
             )
@@ -740,8 +751,36 @@ class CompetitionFigureDrawer:
             labels=[
                 "Both Right",
                 "Both Wrong",
-                f"{configs[0]['name']} Right, {configs[1]['name']} Wrong",
-                f"{configs[0]['name']} Wrong, {configs[1]['name']} Right",
+                f"{configs[0]['label']} Right, {configs[1]['label']} Wrong",
+                f"{configs[0]['label']} Wrong, {configs[1]['label']} Right",
             ],
             figure_dir=figure_dir,
+        )
+        cls._draw_scatter_plot(
+            dataset_name=dataset_name,
+            category="all",
+            data=cls.calculate_scatter_state(
+                details=awbr_set,
+                competition_type="knockout",
+            ),
+            competition_type="knockout",
+            config=configs[0],
+            figure_dir=figure_dir,
+            bottom=0.0,
+            top=1.0,
+            y_label=(r"$\hat{P}_{comp}$"),
+        )
+        cls._draw_scatter_plot(
+            dataset_name=dataset_name,
+            category="all",
+            data=cls.calculate_scatter_state(
+                details=arbw_set,
+                competition_type="knockout",
+            ),
+            competition_type="knockout",
+            config=configs[1],
+            figure_dir=figure_dir,
+            bottom=0.0,
+            top=1.0,
+            y_label=(r"$\hat{P}_{comp}$"),
         )
