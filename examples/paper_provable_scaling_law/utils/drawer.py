@@ -749,8 +749,10 @@ class CompetitionFigureDrawer:
                 labels=[
                     "Both Right",
                     "Both Wrong",
-                    f"{configs[0]['label']} Right, {configs[1]['label']} Wrong",
-                    f"{configs[0]['label']} Wrong, {configs[1]['label']} Right",
+                    f"{configs[0]['label']} Right, "
+                    f"{configs[1]['label']} Wrong",
+                    f"{configs[0]['label']} Wrong, "
+                    f"{configs[1]['label']} Right",
                 ],
                 figure_dir=figure_dir,
             )

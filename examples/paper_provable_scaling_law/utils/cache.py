@@ -155,8 +155,8 @@ class Cache:
     def load_pairwise_comparison(
         self,
         instance_id: str,
-        cid_a: str,
-        cid_b: str,
+        cid_a: int,
+        cid_b: int,
         category: str = DEFAULT_CATEGORY,
     ) -> dict:
         """Load pairwise comparison details from
