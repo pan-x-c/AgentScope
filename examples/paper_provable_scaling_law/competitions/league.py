@@ -142,6 +142,44 @@ class League(Competition):
             },
         )
 
+    def _sample_acc(
+        self,
+        target: str,
+        score_matrix: List[List[float]],
+        candidates: List[dict],
+        candidate_num: int,
+        num_sample: int,
+        n: int,
+        m: int,
+    ) -> float:
+        import numpy as np
+
+        score_matrix = np.array(score_matrix)
+        all_idxs = np.array(range(n))
+        total_acc = 0
+        for _ in range(num_sample):
+            subset = np.random.choice(all_idxs, candidate_num, replace=False)
+            sub_matrix = score_matrix[np.ix_(subset, subset)]
+            sub_board = [
+                sum(
+                    (
+                        sub_matrix[j][(j + i + 1) % candidate_num]
+                        for i in range(min(m, candidate_num - 1))
+                    )
+                )
+                for j in range(candidate_num)
+            ]
+            max_score = np.max(sub_board)
+            final_ids = np.where(np.isclose(sub_board, max_score, atol=1e-8))[
+                0
+            ].tolist()
+            total_acc += sum(
+                1
+                for idx in final_ids
+                if candidates[subset[idx]]["answer"] == target
+            ) / len(final_ids)
+        return total_acc / num_sample
+
     def get_question_stats(self, question: dict) -> dict:
         import numpy as np
 
@@ -174,16 +212,15 @@ class League(Competition):
         # calculate acc vs n
         while candidate_num < self.n:
             candidate_num += 1
-            question_stats["acc"][f"{candidate_num}"] = 0
-            for i in range(0, self.n):
-                indices = [(i + j) % self.n for j in range(candidate_num)]
-                sub_matrix = score_matrix[np.ix_(indices, indices)]
-                sub_board = [sum(sub_matrix[j]) for j in range(candidate_num)]
-                sub_final = candidates[indices[np.argmax(sub_board)]]
-                question_stats["acc"][f"{candidate_num}"] += int(
-                    sub_final["answer"] == target,
-                )
-            question_stats["acc"][f"{candidate_num}"] /= self.n
+            question_stats["acc"][f"{candidate_num}"] = self._sample_acc(
+                target,
+                score_matrix,
+                candidates,
+                candidate_num,
+                32,
+                self.n,
+                self.m,
+            )
         valid_cmp = 0
         correct_cmp = 0
         max_correct_win_rate = 0
@@ -215,23 +252,15 @@ class League(Competition):
         # calculate acc vs m
         question_stats["acc_vs_m"] = {}
         for m in range(1, self.m + 1):
-            score_board = []
-            for i in range(self.n):
-                score_board.append(
-                    sum(
-                        score_matrix[i][(i + j) % self.n]
-                        for j in range(1, m + 1)
-                    ),
-                )
-            max_score = np.max(score_board)
-            finals = [
-                candidates[i]
-                for i, score in enumerate(score_board)
-                if score == max_score
-            ]
-            question_stats["acc_vs_m"][str(m)] = sum(
-                1 for final in finals if final["answer"] == target
-            ) / len(finals)
+            question_stats["acc_vs_m"][f"{m}"] = self._sample_acc(
+                target,
+                score_matrix,
+                candidates,
+                self.n,
+                32,
+                self.n,
+                m,
+            )
         return question_stats
 
     def update_competition_stats(
