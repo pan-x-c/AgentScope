@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Drawer for competition figures."""
 import os
+import json
 from collections import defaultdict
 from typing import List
 from matplotlib import pyplot as plt
@@ -61,14 +62,27 @@ class CompetitionFigureDrawer:
         """Draw accuracy line plot."""
         _, ax = plt.subplots(figsize=(4, 3))
         for line in lines:
+            if competition_type != "lucb":
+                xs = line["acc"].keys()
+            else:
+                xs = list(map(int, line["acc"].keys()))
             ax.plot(
-                list(map(int, line["acc"].keys())),
+                xs,
                 line["acc"].values(),
                 label=line["label"],
                 marker=line["marker"],
                 color=line["color"],
                 linestyle=line.get("linestyle", "solid"),
+                markevery=line.get("markevery", 1),
             )
+            if "hline" in line:
+                ax.axhline(
+                    y=line["hline"],
+                    linestyle="dotted",
+                    color=line["color"],
+                    linewidth=2.0,
+                    alpha=0.8,
+                )
         ax.set_title(f"{dataset_name}: {category}")
         ax.grid(
             True,
@@ -147,7 +161,7 @@ class CompetitionFigureDrawer:
             line = {"acc": all_acc}
             line.update(configs[i])
             all_lines.append(line)
-        print(f"[ALL]: {all_lines}")
+        print(f"[ALL]: {json.dumps(all_lines, ensure_ascii=False)}")
         cls._draw_acc_line(
             dataset_name=dataset_name,
             category="all",
@@ -621,7 +635,7 @@ class CompetitionFigureDrawer:
             line = {"acc": all_acc}
             line.update(configs[i])
             all_lines.append(line)
-        print(f"[ALL]: {all_lines}")
+        print(f"[ALL]: {json.dumps(all_lines)}")
         cls._draw_acc_line(
             dataset_name=dataset_name,
             category="all",

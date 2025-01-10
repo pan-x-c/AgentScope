@@ -4,7 +4,7 @@
 # pylint: disable=C0301
 from __future__ import annotations
 import random
-from typing import List
+from typing import List, Tuple
 
 from agentscope.rpc import async_func, RpcMeta
 from agentscope.manager import ModelManager
@@ -177,6 +177,58 @@ class MixedJudge(metaclass=RpcMeta):
         self.cache = cache
         self.random_select = random_select
 
+    def _load_cache(
+        self,
+        question: dict,
+        cid_a: int,
+        cid_b: int,
+        k: int,
+        reuse: bool = True,
+    ) -> Tuple[int, dict]:
+        """Load the cache for a question."""
+        cache_result = self.cache.load_pairwise_comparison(
+            instance_id=question["id"],
+            cid_a=cid_a,
+            cid_b=cid_b,
+            category=question.get("category", "all"),
+        )
+        if cache_result is None:
+            return 0, {}
+        cmp_num = cache_result.get("cmp_num", 0)
+        if reuse:
+            if k < cmp_num:
+                partial_result = {
+                    "cmp_num": k,
+                    "score_a": 0,
+                    "score_b": 0,
+                    "a": cid_a,
+                    "b": cid_b,
+                    "cmp_a_b": cache_result["cmp_a_b"][: k // 2],
+                    "cmp_b_a": cache_result["cmp_b_a"][: k - (k // 2)],
+                }
+                partial_result["score_a"] = sum(
+                    _["winner"].get("a") for _ in partial_result["cmp_a_b"]
+                ) + sum(
+                    _["winner"].get("b") for _ in partial_result["cmp_b_a"]
+                )
+                partial_result["score_b"] = sum(
+                    _["winner"].get("b") for _ in partial_result["cmp_a_b"]
+                ) + sum(
+                    _["winner"].get("a") for _ in partial_result["cmp_b_a"]
+                )
+                if partial_result["score_a"] > partial_result["score_b"]:
+                    partial_result["winner"] = cid_a
+                elif partial_result["score_a"] < partial_result["score_b"]:
+                    partial_result["winner"] = cid_b
+                else:
+                    partial_result["winner"] = random.choice([cid_a, cid_b])
+                return 0, partial_result
+            elif k > cmp_num:
+                return k - cmp_num, cache_result
+            else:
+                return 0, cache_result
+        return k, cache_result
+
     @async_func
     def pairwise_compare(
         self,
@@ -198,19 +250,15 @@ class MixedJudge(metaclass=RpcMeta):
             k: The number of comparisons.
             reuse: Whether to reuse the results from cache.
         """
-        cache_result = self.cache.load_pairwise_comparison(
-            instance_id=question["id"],
+        k, cache_result = self._load_cache(
+            question=question,
             cid_a=candidate_a["cid"],
             cid_b=candidate_b["cid"],
-            category=question.get("category", "all"),
+            k=k,
+            reuse=reuse,
         )
-        cmp_num = cache_result.get("cmp_num", 0)
-        rest_k = max(0, k - cmp_num)
-        if reuse:
-            if rest_k == 0:
-                return cache_result
-            else:
-                k = rest_k
+        if k == 0:
+            return cache_result
         if self.random_select:
             judge_seq = [
                 random.randint(0, self.judge_num - 1) for _ in range(k)
@@ -247,7 +295,7 @@ class MixedJudge(metaclass=RpcMeta):
             "cmp_b_a": cache_result.get("cmp_b_a", []) + b_a,
         }
         if reuse:
-            result["cmp_num"] += cmp_num
+            result["cmp_num"] += cache_result.get("cmp_num", 0)
             result["score_a"] += cache_result.get("score_a", 0)
             result["score_b"] += cache_result.get("score_b", 0)
 
