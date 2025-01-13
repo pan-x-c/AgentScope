@@ -217,7 +217,7 @@ class League(Competition):
                 score_matrix,
                 candidates,
                 candidate_num,
-                32,
+                128,
                 self.n,
                 self.m,
             )
@@ -257,7 +257,7 @@ class League(Competition):
                 score_matrix,
                 candidates,
                 self.n,
-                32,
+                64,
                 self.n,
                 m,
             )
