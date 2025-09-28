@@ -26,12 +26,12 @@ class TestTrinityModel(IsolatedAsyncioTestCase):
         messages = [{"role": "user", "content": "Hello"}]
         mock_message = Mock()
         mock_message.content = "Hi there!"
-        mock_message.role = "assistant"
+        mock_message.reasoning_content = None
         mock_message.tool_calls = []
         mock_message.audio = None
         mock_message.parsed = None
         mock_choice = Mock()
-        mock_choice.messaage = mock_message
+        mock_choice.message = mock_message
         mock_response = Mock()
         mock_response.choices = [mock_choice]
         mock_usage = Mock()
