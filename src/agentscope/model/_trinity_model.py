@@ -27,6 +27,9 @@ class TrinityModel(OpenAIChatModel):
         Args:
             openai_async_client (`AsyncOpenAI`):
                 The OpenAI async client instance provided by Trinity-RFT.
+            generate_kwargs (dict[str, JSONSerializableObject] | None):
+                Additional keyword arguments to pass to the model's generate
+                method. Defaults to None.
         """
         model_name = getattr(openai_async_client, "model_path", None)
         if model_name is None:
