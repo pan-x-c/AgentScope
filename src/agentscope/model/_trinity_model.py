@@ -28,15 +28,15 @@ class TrinityModel(OpenAIChatModel):
             openai_async_client (`AsyncOpenAI`):
                 The OpenAI async client instance provided by Trinity-RFT.
         """
-        model_name = getattr(openai_async_client, "model_name", None)
+        model_name = getattr(openai_async_client, "model_path", None)
         if model_name is None:
             raise ValueError(
                 "The provided openai_async_client does not have a "
-                "`model_name` attribute. Please ensure you are using "
+                "`model_path` attribute. Please ensure you are using "
                 "the instance provided by Trinity-RFT.",
             )
         super().__init__(
-            model_name=getattr(openai_async_client, "model_name"),
+            model_name=model_name,
             api_key="EMPTY",
             generate_kwargs=generate_kwargs,
             stream=False,  # RL training does not support streaming
