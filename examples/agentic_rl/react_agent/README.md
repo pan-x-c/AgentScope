@@ -1,8 +1,7 @@
-# Train ReAct Agent with Reinforcement Learning
+# RL Training Example with Trinity-RFT
 
-This example demonstrates how to train the ReAct agent using reinforcement learning (RL). Here we use [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) as the training framework and train the agent on the GSM8K dataset.
-
-> Trinity-RFT is a flexible, general-purpose framework for reinforcement fine-tuning (RFT) of large language models (LLMs). It provides high compatibility with agent frameworks and supports training agents without code modification. For more details, please refer to the [Trinity-RFT's ReAct Agent Training](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/example_react.html).
+[Trinity-RFT](https://github.com/modelscope/Trinity-RFT) is a flexible, general-purpose framework for reinforcement fine-tuning (RFT) of large language models (LLMs). It provides high compatibility with agent frameworks and supports training agents without code modification.
+In this example, we demonstrate how to train an agent built by AgentScope in Trinity-RFT.
 
 ## Preparation
 

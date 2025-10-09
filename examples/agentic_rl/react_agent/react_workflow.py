@@ -13,7 +13,7 @@ from trinity.common.experience import Experience
 from trinity.common.models.model import ModelWrapper
 from trinity.common.workflows.workflow import WORKFLOWS, Task, Workflow
 from agentscope.agent import ReActAgent
-from agentscope.model import TrinityModel
+from agentscope.model import TrinityChatModel
 from agentscope.formatter import OpenAIChatFormatter
 from agentscope.message import Msg
 
@@ -54,7 +54,7 @@ class ReActWorkflow(Workflow):
         self.agent = ReActAgent(
             name="react_agent",
             sys_prompt=template.system_prompt,
-            model=TrinityModel(
+            model=TrinityChatModel(
                 openai_async_client=model.get_openai_async_client(),
                 generate_kwargs={
                     "temperature": self.rollout_args.get("temperature", 1.0),

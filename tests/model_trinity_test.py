@@ -3,7 +3,7 @@
 from unittest.async_case import IsolatedAsyncioTestCase
 from unittest.mock import Mock, AsyncMock
 
-from agentscope.model import TrinityModel, ChatResponse
+from agentscope.model import TrinityChatModel, ChatResponse
 from agentscope.message import TextBlock
 
 
@@ -17,7 +17,7 @@ class TestTrinityModel(IsolatedAsyncioTestCase):
         mock_client.model_path = MODEL_NAME
 
         # test init
-        model = TrinityModel(openai_async_client=mock_client)
+        model = TrinityChatModel(openai_async_client=mock_client)
         self.assertEqual(model.model_name, MODEL_NAME)
         self.assertFalse(model.stream)
         self.assertIs(model.client, mock_client)

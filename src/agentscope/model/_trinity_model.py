@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=too-many-branches
 """A model class for RL Training with Trinity-RFT."""
 from typing import (
     TYPE_CHECKING,
@@ -14,7 +13,7 @@ else:
     AsyncOpenAI = "openai.AsyncOpenAI"
 
 
-class TrinityModel(OpenAIChatModel):
+class TrinityChatModel(OpenAIChatModel):
     """A model class for RL Training with Trinity-RFT."""
 
     def __init__(
@@ -27,7 +26,8 @@ class TrinityModel(OpenAIChatModel):
         Args:
             openai_async_client (`AsyncOpenAI`):
                 The OpenAI async client instance provided by Trinity-RFT.
-            generate_kwargs (dict[str, JSONSerializableObject] | None):
+            generate_kwargs (`dict[str, JSONSerializableObject] | None`, \
+            optional):
                 Additional keyword arguments to pass to the model's generate
                 method. Defaults to None.
         """

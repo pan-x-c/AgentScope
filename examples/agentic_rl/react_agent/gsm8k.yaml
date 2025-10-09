@@ -1,4 +1,4 @@
-project: AgentScope-ReAct
+project: AgentScope-ReAct-Simplifed
 name: GSM8K-Qwen3-8B
 checkpoint_root_dir: ${oc.env:TRINITY_CHECKPOINT_ROOT_DIR,./checkpoints}
 algorithm:
@@ -71,4 +71,8 @@ trainer:
         log_prob_max_token_len_per_gpu: ${trainer.trainer_config.actor_rollout_ref.actor.ppo_max_token_len_per_gpu}
         ulysses_sequence_parallel_size: ${trainer.trainer_config.actor_rollout_ref.actor.ulysses_sequence_parallel_size} # sp size
 monitor:
-  monitor_type: tensorboard
+  monitor_type: mlflow
+  monitor_args:
+    uri: http://39.101.69.229:8083/
+    username: admin
+    password: password1234

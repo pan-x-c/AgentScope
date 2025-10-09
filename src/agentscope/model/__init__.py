@@ -8,7 +8,7 @@ from ._openai_model import OpenAIChatModel
 from ._anthropic_model import AnthropicChatModel
 from ._ollama_model import OllamaChatModel
 from ._gemini_model import GeminiChatModel
-from ._trinity_model import TrinityModel
+from ._trinity_model import TrinityChatModel
 
 __all__ = [
     "ChatModelBase",
@@ -18,5 +18,5 @@ __all__ = [
     "AnthropicChatModel",
     "OllamaChatModel",
     "GeminiChatModel",
-    "TrinityModel",
+    "TrinityChatModel",
 ]

@@ -372,6 +372,8 @@ as_studio
     - [RAG](https://github.com/agentscope-ai/agentscope/tree/main/examples/functionality/rag)
     - [Long-Term Memory](https://github.com/agentscope-ai/agentscope/tree/main/examples/functionality/long_term_memory)
     - [Session with SQLite](https://github.com/agentscope-ai/agentscope/tree/main/examples/functionality/session_with_sqlite)
+  - Training
+    - [RL with Trinity-RFT](https://github.com/agentscope-ai/agentscope/tree/main/examples/agentic_rl/react_agent)
 
 ## ⚖️ License
 
