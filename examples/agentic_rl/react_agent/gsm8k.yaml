@@ -2,9 +2,8 @@ project: AgentScope-ReAct-Simplifed
 name: GSM8K-Qwen3-8B
 checkpoint_root_dir: ${oc.env:TRINITY_CHECKPOINT_ROOT_DIR,./checkpoints}
 algorithm:
-  algorithm_type: grpo
+  algorithm_type: multi_step_grpo
   repeat_times: 8
-  advantage_fn: step_wise_grpo
 model:
   model_path: ${oc.env:TRINITY_MODEL_PATH,Qwen/Qwen3-8B}
   max_response_tokens: 16384
@@ -71,8 +70,4 @@ trainer:
         log_prob_max_token_len_per_gpu: ${trainer.trainer_config.actor_rollout_ref.actor.ppo_max_token_len_per_gpu}
         ulysses_sequence_parallel_size: ${trainer.trainer_config.actor_rollout_ref.actor.ulysses_sequence_parallel_size} # sp size
 monitor:
-  monitor_type: mlflow
-  monitor_args:
-    uri: http://39.101.69.229:8083/
-    username: admin
-    password: password1234
+  monitor_type: tensorboard

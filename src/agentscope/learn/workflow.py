@@ -5,88 +5,69 @@ from typing import (
     Dict,
     Callable,
     Awaitable,
-    Optional,
-    List,
-    TYPE_CHECKING,
+    get_type_hints,
 )
 
+import inspect
+
+
 from ..model import TrinityChatModel
-
-if TYPE_CHECKING:
-    from openai import OpenAI
-    from trinity.common.workflow import Workflow as TrinityWorkflow
-    from trinity.common.workflow import Task, WORKFLOWS
-    from trinity.common.model import ModelWrapper
-    from trinity.common.experience import Experience
-else:
-    Task = "trinity.common.workflows.Task"
-    TrinityWorkflow = "trinity.common.workflows.Workflow"
-    ModelWrapper = "trinity.common.model.ModelWrapper"
-    Experience = "trinity.common.experience.Experience"
-    OpenAI = "openai.OpenAI"
-
-
-TRAINABLE_WORKFLOW_NAME = "agentscope_trainable_workflow"
 
 
 WorkflowType = Callable[[Dict, TrinityChatModel], Awaitable[float]]
 
 
-@WORKFLOWS.register_module(TRAINABLE_WORKFLOW_NAME)
-class TrinityWorkflowAdapter(TrinityWorkflow):
-    """Adapter to wrap a Workflow instance for Trinity compatibility."""
+def validate_function_signature(func: Callable) -> bool:
+    """Validate if a function matches the workflow type signature.
 
-    def __init__(
-        self,
-        *,
-        task: Task,
-        model: ModelWrapper,
-        auxiliary_models: Optional[List[OpenAI]],
+    Args:
+        func (Callable): The function to validate.
+    """
+    # check if the function is asynchronous
+    if not inspect.iscoroutinefunction(func):
+        print("The function is not asynchronous.")
+        return False
+    # Define expected parameter types and return type manually
+    expected_params = [
+        ("task", Dict),
+        ("model", TrinityChatModel),
+    ]
+    expected_return = float
+
+    func_signature = inspect.signature(func)
+    func_hints = get_type_hints(func)
+
+    # Check if the number of parameters matches
+    if len(func_signature.parameters) != len(expected_params):
+        print(
+            f"Expected {len(expected_params)} parameters, "
+            f"but got {len(func_signature.parameters)}",
+        )
+        return False
+
+    # Validate each parameter's name and type
+    for (param_name, _), (expected_name, expected_type) in zip(
+        func_signature.parameters.items(),
+        expected_params,
     ):
-        """Initialize the adapter with the task and model."""
-        super().__init__(
-            task=task,
-            model=model,
-            auxiliary_models=auxiliary_models,
-        )
-        self.workflow_func = task.workflow_args.get("workflow_func")
-        self.model: TrinityChatModel = TrinityChatModel(
-            model.get_openai_async_client(),
-        )
+        if (
+            param_name != expected_name
+            or func_hints.get(param_name) != expected_type
+        ):
+            print(
+                f"Expected parameter {expected_name} of type "
+                f"{expected_type}, but got {param_name} of"
+                f" type {func_hints.get(param_name)}",
+            )
+            return False
 
-    @property
-    def asynchronous(self) -> bool:
-        """This workflow runs asynchronously."""
-        return True
-
-    @property
-    def repeatable(self) -> bool:
-        """This workflow is not repeatable."""
+    # Validate the return type
+    return_annotation = func_hints.get("return", None)
+    if return_annotation != expected_return:
+        print(
+            f"Expected return type {expected_return}, "
+            f"but got {return_annotation}",
+        )
         return False
 
-    @property
-    def resetable(self) -> bool:
-        """This workflow cannot be reset."""
-        return False
-
-    def construct_experiences(
-        self,
-        reward: float,
-    ) -> List[Experience]:
-        """Construct experiences from the agent's interaction history.
-
-        Args:
-            reward (float): The reward value to assign to each experience.
-
-        Returns:
-            List: A list of Experience objects.
-        """
-        exps = self.model.extract_experience_from_history()
-        for exp in exps:
-            exp.reward = reward
-        return exps
-
-    async def run_async(self) -> List[Experience]:
-        """Run the workflow asynchronously and return experiences."""
-        reward = await self.workflow_func(self.task.raw_task, self.model)
-        return self.construct_experiences(reward)
+    return True
