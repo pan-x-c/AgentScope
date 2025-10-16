@@ -1,6 +1,7 @@
-# RL Training Example with Trinity-RFT
+# Agent Learning Tutorial with Trinity-RFT and AgentScope
 
-[Trinity-RFT](https://github.com/modelscope/Trinity-RFT) is a flexible, general-purpose framework for reinforcement fine-tuning (RFT) of large language models (LLMs). It provides high compatibility with agent frameworks and supports training agents without code modification.
+> [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) is a flexible, general-purpose framework for reinforcement fine-tuning (RFT) of large language models (LLMs). It provides high compatibility with agent frameworks and supports training agents without code modification.
+
 In this example, we demonstrate how to train an agent built by AgentScope in Trinity-RFT.
 
 ## Preparation
@@ -17,7 +18,6 @@ huggingface-cli download openai/gsm8k --repo-type dataset
 huggingface-cli download Qwen/Qwen3-8B
 ```
 
-
 ## Run the Example
 
 You can run the example with the following command:
@@ -27,5 +27,5 @@ You can run the example with the following command:
 ray start --head
 
 # run the training script
-trinity run --config examples/agentic_rl/react_agent/gsm8k.yaml --plugin-dir examples/agentic_rl/react_agent
+python train_react.py
 ```
