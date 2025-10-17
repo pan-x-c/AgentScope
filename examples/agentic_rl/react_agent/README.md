@@ -1,33 +1,38 @@
-# Training Agent Workflow using RL with Trinity-RFT
+# Training agent workflows with RL using Trinity-RFT
 
-> [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) is a flexible, general-purpose framework for reinforcement fine-tuning (RFT) of large language models (LLMs). It provides high compatibility with agent frameworks and supports training agents without code modification.
+AgentScope exposes a `learn` interface to train agent workflows using reinforcement learning (RL).
+The `learn` interface leverages Trinity-RFT so you can start training with only a small workflow function that returns a reward signal.
 
-AgentScope provides a `learn` interface to train agent workflows using reinforcement learning (RL). This interface leverages the functionality of Trinity-RFT, allowing users to train agents with minimal code changes.
+
+> [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) is a flexible, general-purpose framework for reinforcement fine-tuning (RFT) of large language models (LLMs).
+> It integrates well with agent frameworks and supports training agents with minimal code changes.
 
 ---
 
-## Overview
+## How to implement
 
-To train an agent using reinforcement learning, you need to define a workflow function with the following signature:
+To train an agent workflow using RL, implement a workflow function with the
+following signature:
 
 ```python
 def workflow_function(
     task: Dict,
     model: TrinityChatModel,
 ) -> float:
-    """A workflow function that defines the agent's behavior and returns a reward signal.
+    """Run the agent workflow on a single task and return a scalar reward.
 
     Args:
-        task (Dict): The task to be performed by the agent workflow, typically containing input data and other relevant information.
-        model (TrinityChatModel): The model used by the agent.
+        task (Dict): Input data for the workflow (for example, contains 'question' and
+            'answer' keys for a math problem).
+        model (TrinityChatModel): The model instance used by the agent.
 
     Returns:
-        float: The reward signal for the agent's performance on the task.
+        float: A scalar reward measuring the agent's performance on the task.
     """
 ```
 
-Here, we use the `ReActAgent` to solve math problems as an example. Below is a simplified version of the training script. For the complete code, please refer to the [train_react.py](./train_react.py) file.
-
+Below is a simplified example that uses `ReActAgent` to solve math problems. For the
+full implementation see [train_react.py](./train_react.py).
 
 ```python
 from typing import Dict
@@ -40,34 +45,35 @@ from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
 from agentscope.message import Msg
 
+
 class ResponseStructure(BaseModel):
-    """Response structure for Math tasks.
-    Note: This is a simplified response structure for demonstration purposes.
-    """
-    result: str = Field(
-        description="Your final answer to the given math problem."
-    )
+    """Response structure for math tasks (simplified)."""
+
+    result: str = Field(description="Final answer to the math problem.")
+
 
 def calculate_reward(answer: str, truth: str) -> float:
-    """Calculate reward based on whether the prediction matches the answer.
-    Note: This is a simplified reward function for demonstration purposes.
+    """Simple reward: 1.0 for exact match, else 0.0.
+
+    This is a toy reward function; replace it with a more robust metric if needed.
     """
+
     return 1.0 if answer.strip() == truth.strip() else 0.0
 
-async def react_agent_workflow(task: Dict, model: TrinityChatModel) -> float:
-    """The workflow function for the ReAct agent training.
 
-    Args:
-        task (Dict): The task to be performed by the agent workflow, here we suppose it contains 'question' and 'answer' keys.
-        model (TrinityChatModel): The model used by the agent.
+async def react_agent_workflow(task: Dict, model: TrinityChatModel) -> float:
+    """Workflow function for ReAct agent training.
     """
+
+    sys_prompt = "You are a helpful math problem solving agent."  # Example system prompt
     formatter = OpenAIChatFormatter()
+    # Make sure `sys_prompt` is defined in your script or config before using it
     agent = ReActAgent(
         name="react_agent",
         sys_prompt=sys_prompt,
         model=model,
         enable_meta_tool=True,
-        formatter=OpenAIChatFormatter(),
+        formatter=formatter,
     )
 
     response = await agent.reply(
@@ -78,48 +84,47 @@ async def react_agent_workflow(task: Dict, model: TrinityChatModel) -> float:
     reward = calculate_reward(response.metadata["result"], task["answer"])
     return reward
 
+
 if __name__ == "__main__":
     learn(
         workflow_func=react_agent_workflow,
-        config=LearnConfig.load_config("/path/to/your/config.yaml")
+        config=LearnConfig.load_config("/path/to/your/config.yaml"),
     )
 ```
 
-To convert an existing agent workflow into a trainable workflow, encapsulate your agent logic inside the workflow function and return a reward signal based on the agent's performance on the task.
+The training logic is implemented inside `react_agent_workflow`. The agent
+implementation itself doesn't need to change — only the workflow function must
+return a reward signal that Trinity-RFT will use for reinforcement fine-tuning.
+
+For configuration details, see the Trinity-RFT configuration guide:
+[Trinity-RFT configuration guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html)
 
 ---
 
-## Preparation
+## How to run
 
-1. **Hardware Requirements**
-   - Ensure you have at least 2 NVIDIA GPUs with CUDA 12.4 or above installed.
-   - This example uses 8 H20 GPUs for training, but you can adjust the configuration file (`gsm8k.yaml`) based on your hardware. For detailed configurations, please refer to the [Configuration Guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html).
+1. Prerequisites
 
-2. **Install Trinity-RFT**
-   - Follow the [Installation Guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html) to install the latest version of Trinity-RFT (>= 0.3.1).
+    - At least 2 NVIDIA GPUs with CUDA 12.4 or newer.
+    - Adjust the configuration file ([gsm8k.yaml](./gsm8k.yaml)) based on your hardware.
+    - Follow the Trinity-RFT [installation guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html) to install a compatible version (Trinity-RFT >= 0.3.1).
+    - Download the GSM8K dataset and Qwen/Qwen3-8B model checkpoints (example):
 
-3. **Download Required Resources**
-   - Download the GSM8K dataset and Qwen/Qwen3-8B model checkpoints:
+      ```bash
+      huggingface-cli download openai/gsm8k --repo-type dataset
+      huggingface-cli download Qwen/Qwen3-8B
+      ```
 
-     ```bash
-     huggingface-cli download openai/gsm8k --repo-type dataset
-     huggingface-cli download Qwen/Qwen3-8B
-     ```
+2. Set up a Ray cluster
 
----
+    ```bash
+    ray start --head
+    # for multi-node setup, run the following command on worker nodes
+    # ray start --address=<master_address>
+    ```
 
-## Run the Example
+3. Run the training script
 
-1. **Set up Ray Cluster**
-   - Start the Ray cluster:
-
-     ```bash
-     ray start --head
-     ```
-
-2. **Run the Training Script**
-   - Execute the training script:
-
-     ```bash
-     python train_react.py
-     ```
+    ```bash
+    python train_react.py
+    ```
