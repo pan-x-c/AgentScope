@@ -1,4 +1,4 @@
-# Agent Learning Tutorial with Trinity-RFT and AgentScope
+# Training ReAct Agent using RL with Trinity-RFT
 
 > [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) is a flexible, general-purpose framework for reinforcement fine-tuning (RFT) of large language models (LLMs). It provides high compatibility with agent frameworks and supports training agents without code modification.
 
