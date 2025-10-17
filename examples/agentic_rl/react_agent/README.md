@@ -75,7 +75,7 @@ async def react_agent_workflow(task: Dict, model: TrinityChatModel) -> float:
         structured_model=ResponseStructure,
     )
 
-    reward = calculate_reward(response.structured.result, task["answer"])
+    reward = calculate_reward(response.metadata["result"], task["answer"])
     return reward
 
 if __name__ == "__main__":
@@ -92,10 +92,11 @@ To convert an existing agent workflow into a trainable workflow, encapsulate you
 ## Preparation
 
 1. **Hardware Requirements**
-   - Ensure you have at least 2 NVIDIA GPUs with CUDA 12.4 or above installed. This example uses 8 H20 GPUs for training, but you can adjust the configuration based on your hardware.
+   - Ensure you have at least 2 NVIDIA GPUs with CUDA 12.4 or above installed.
+   - This example uses 8 H20 GPUs for training, but you can adjust the configuration file (`gsm8k.yaml`) based on your hardware. For detailed configurations, please refer to the [Configuration Guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html).
 
 2. **Install Trinity-RFT**
-   - Follow the [Installation Guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html).
+   - Follow the [Installation Guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html) to install the latest version of Trinity-RFT (>= 0.3.1).
 
 3. **Download Required Resources**
    - Download the GSM8K dataset and Qwen/Qwen3-8B model checkpoints:
