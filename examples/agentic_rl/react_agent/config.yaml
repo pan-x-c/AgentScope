@@ -1,4 +1,4 @@
-project: AgentScope-ReAct-Simplifed
+project: AgentScope-ReAct
 name: GSM8K-Qwen3-8B
 checkpoint_root_dir: ${oc.env:TRINITY_CHECKPOINT_ROOT_DIR,./checkpoints}
 algorithm:
@@ -27,12 +27,6 @@ buffer:
         response_key: 'answer'
       rollout_args:
         temperature: 1.0
-    eval_tasksets: []
-    default_workflow_type: 'react_agent'
-  trainer_input:
-    experience_buffer:
-      name: agentscope_gsm8k_buffer
-      storage_type: queue
 explorer:
   eval_interval: 50
   runner_per_model: 8
