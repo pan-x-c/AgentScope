@@ -1,11 +1,7 @@
 # Training agent workflows with RL using Trinity-RFT
 
 AgentScope exposes a `learn` interface to train agent workflows using reinforcement learning (RL).
-The `learn` interface leverages Trinity-RFT so you can start training with only a small workflow function that returns a reward signal.
-
-
-> [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) is a flexible, general-purpose framework for reinforcement fine-tuning (RFT) of large language models (LLMs).
-> It integrates well with agent frameworks and supports training agents with minimal code changes.
+The `learn` interface leverages [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) which supports training agents with minimal code changes.
 
 ---
 
@@ -27,12 +23,42 @@ def workflow_function(
         model (TrinityChatModel): The model instance used by the agent.
 
     Returns:
-        float: A scalar reward measuring the agent's performance on the task.
+        float: A reward signal measuring the agent's performance on the task.
     """
 ```
 
-Below is a simplified example that uses `ReActAgent` to solve math problems. For the
-full implementation see [train_react.py](./train_react.py).
+Here we use a math problem solving scenario as an example to illustrate how to convert an existing agent workflow into a trainable workflow function.
+
+Suppose you have an agent workflow that solves math problems using the `ReActAgent`
+
+```python
+from agentscope.agent import ReActAgent
+
+# model = ...  # Initialize your ChatModel here
+
+query = "What is the sum of the first 10 prime numbers?"
+agent = ReActAgent(
+    name="react_agent",
+    sys_prompt="You are a helpful math problem solving agent.",
+    model=model,
+    enable_meta_tool=True,
+    formatter=OpenAIChatFormatter(),
+)
+
+response = await agent.reply(
+    msg=Msg("user", query, role="user"),
+)
+
+print(response)
+```
+
+To convert the above agent workflow into a trainable workflow function, there are 4 main steps:
+
+1. Define the workflow function with the required signature (`react_workflow_function`).
+2. Initialize the agent and run it with given `task` and `model`.
+3. Implement a reward calculation mechanism based on the agent's response (`calculate_reward` and `ResponseStructure`).
+4. Use the `learn` interface to train the workflow function.
+
 
 ```python
 from typing import Dict
@@ -46,12 +72,6 @@ from agentscope.formatter import OpenAIChatFormatter
 from agentscope.message import Msg
 
 
-class ResponseStructure(BaseModel):
-    """Response structure for math tasks (simplified)."""
-
-    result: str = Field(description="Final answer to the math problem.")
-
-
 def calculate_reward(answer: str, truth: str) -> float:
     """Simple reward: 1.0 for exact match, else 0.0.
 
@@ -61,19 +81,24 @@ def calculate_reward(answer: str, truth: str) -> float:
     return 1.0 if answer.strip() == truth.strip() else 0.0
 
 
-async def react_agent_workflow(task: Dict, model: TrinityChatModel) -> float:
-    """Workflow function for ReAct agent training.
+class ResponseStructure(BaseModel):
+    """Response structure for math tasks (simplified).
+    This structure let the agent output be easily parsed,
+    allowing for easy reward calculation.
     """
 
-    sys_prompt = "You are a helpful math problem solving agent."  # Example system prompt
-    formatter = OpenAIChatFormatter()
-    # Make sure `sys_prompt` is defined in your script or config before using it
+    result: str = Field(description="Final answer to the math problem.")
+
+
+async def react_workflow_function(task: Dict, model: TrinityChatModel) -> float:
+    """Workflow function for ReAct agent training."""
+
     agent = ReActAgent(
         name="react_agent",
-        sys_prompt=sys_prompt,
+        sys_prompt="You are a helpful math problem solving agent.",
         model=model,
         enable_meta_tool=True,
-        formatter=formatter,
+        formatter=OpenAIChatFormatter(),
     )
 
     response = await agent.reply(
@@ -87,21 +112,20 @@ async def react_agent_workflow(task: Dict, model: TrinityChatModel) -> float:
 
 if __name__ == "__main__":
     learn(
-        workflow_func=react_agent_workflow,
+        workflow_func=react_workflow_function,
         config=LearnConfig.load_config("/path/to/your/config.yaml"),
     )
 ```
 
-The training logic is implemented inside `react_agent_workflow`. The agent
-implementation itself doesn't need to change — only the workflow function must
-return a reward signal that Trinity-RFT will use for reinforcement fine-tuning.
-
-For configuration details, see the Trinity-RFT configuration guide:
-[Trinity-RFT configuration guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html)
+> Above code is a simplified example.
+> For a complete implementation, see [train_react.py](./train_react.py).
+> For configuration details, see [Trinity-RFT Configuration Guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html).
 
 ---
 
 ## How to run
+
+After implementing the workflow function, follow these steps to run the training:
 
 1. Prerequisites
 
