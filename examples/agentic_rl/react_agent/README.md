@@ -58,7 +58,7 @@ Outputs:
 
 Since the `model` has the same interface as `OpenAIChatModel`, you can directly use it to initialize the agent.
 
-However, the `task` dictionary is a sample from the training dataset, and it varies based on the training dataset.
+However, the `task` dictionary is a sample from the training dataset and can vary. You need to extract the relevant fields from `task` to run the agent.
 
 Suppose your training dataset is a `.jsonl` file with samples like:
 
@@ -114,10 +114,12 @@ class ResponseStructure(BaseModel):
 
     result: str = Field(description="Final answer to the math problem.")
 
-# response = await agent.reply(
-#     msg=Msg("user", task["question"], role="user"),
-#     structured_model=ResponseStructure,  # <-- specify structured model here
-# )
+# ... inside workflow_function ...
+#    response = await agent.reply(
+#        msg=Msg("user", task["question"], role="user"),
+#        structured_model=ResponseStructure,  # <-- specify structured model here
+#    )
+#    return calculate_reward(response.metadata["result"], task["answer"])
 ```
 
 ### Step 4: Use `learn` to train the workflow function
@@ -213,7 +215,7 @@ After implementing the workflow function, follow these steps to run the training
 1. Prerequisites
 
     - At least 2 NVIDIA GPUs with CUDA 12.4 or newer.
-    - Adjust the configuration file ([gsm8k.yaml](./gsm8k.yaml)) based on your hardware.
+    - Adjust the configuration file ([config.yaml](./config.yaml)) based on your hardware.
     - Follow the Trinity-RFT [installation guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html) to install a compatible version (Trinity-RFT >= 0.3.1).
     - Download the GSM8K dataset and Qwen/Qwen3-8B model checkpoints (example):
 
