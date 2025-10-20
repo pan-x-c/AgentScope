@@ -1,31 +1,11 @@
 # Training agent workflows with RL using Trinity-RFT
 
 AgentScope exposes a `learn` interface to train agent workflows using reinforcement learning (RL).
-The `learn` interface leverages [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) which supports training agents with minimal code changes.
+The `learn` interface leverages [Trinity-RFT](https://github.com/modelscope/Trinity-RFT), which supports training agents with minimal code changes.
 
 ---
 
 ## How to implement
-
-To train an agent workflow using RL, implement a workflow function with the
-following signature:
-
-```python
-def workflow_function(
-    task: Dict,
-    model: TrinityChatModel,
-) -> float:
-    """Run the agent workflow on a single task and return a scalar reward.
-
-    Args:
-        task (Dict): Input data for the workflow (for example, contains 'question' and
-            'answer' keys for a math problem).
-        model (TrinityChatModel): The model instance used by the agent.
-
-    Returns:
-        float: A reward signal measuring the agent's performance on the task.
-    """
-```
 
 Here we use a math problem solving scenario as an example to illustrate how to convert an existing agent workflow into a trainable workflow function.
 
@@ -52,13 +32,117 @@ response = await agent.reply(
 print(response)
 ```
 
-To convert the above agent workflow into a trainable workflow function, there are 4 main steps:
+### Step 1: Define a workflow function
 
-1. Define the workflow function with the required signature (`react_workflow_function`).
-2. Initialize the agent and run it with given `task` and `model`.
-3. Implement a reward calculation mechanism based on the agent's response (`calculate_reward` and `ResponseStructure`).
-4. Use the `learn` interface to train the workflow function.
+To train an agent workflow using RL, you need to implement a workflow function with the following signature.
 
+```python
+def workflow_function(
+    task: Dict,
+    model: TrinityChatModel,
+) -> float:
+    """Run the agent workflow on a single task and return a scalar reward."""
+```
+
+Inputs:
+
+- `task`: A dictionary representing a single training task, converted from a sample in the training dataset. For example, in a math problem solving task, `task` may contain `question` and `answer` fields.
+
+- `model`: A `TrinityChatModel` instance, which has the same interface as `OpenAIChatModel`, but it supports automatically converting invoke history into trainable data that can be used by Trinity-RFT.
+
+Outputs:
+
+- A scalar reward (float) indicating the quality of the agent's response on the given task.
+
+### Step 2: Initialize and run the agent using the provided task and model
+
+Since the `model` has the same interface as `OpenAIChatModel`, you can directly use it to initialize the agent.
+
+However, the `task` dictionary is a sample from the training dataset, and it varies based on the training dataset.
+
+Suppose your training dataset is a `.jsonl` file with samples like:
+
+```json
+{"question": "What is 2 + 2?", "answer": "4"}
+{"question": "What is 4 + 4?", "answer": "8"}
+```
+
+In this case, you can extract the `question` field from `task` to run the agent:
+
+```python
+def workflow_function(
+    task: Dict,
+    model: TrinityChatModel,
+) -> float:
+    agent = ReActAgent(
+        name="react_agent",
+        sys_prompt="You are a helpful math problem solving agent.",
+        model=model,
+        enable_meta_tool=True,
+        formatter=OpenAIChatFormatter(),
+    )
+
+    response = await agent.reply(
+        msg=Msg("user", task["question"], role="user"),
+    )
+
+    # TODO
+```
+
+### Step 3: Implement a reward calculation mechanism
+
+To train the agent using RL, you need to define a reward calculation mechanism that computes a reward based on the agent's response.
+
+Continuing from the previous code snippet, suppose you want to give a reward of `1.0` if the agent's answer matches the ground truth answer in `task["answer"]`, and `0.0` otherwise.
+
+```python
+def calculate_reward(answer: str, truth: str) -> float:
+    """Simple reward: 1.0 for exact match, else 0.0."""
+    return 1.0 if answer.strip() == truth.strip() else 0.0
+```
+
+To facilitate reward calculation, you can define a structured response model that allows easy parsing of the agent's output.
+
+```python
+from pydantic import BaseModel, Field
+
+class ResponseStructure(BaseModel):
+    """Response structure for math tasks (simplified).
+    This structure let the agent output be easily parsed,
+    allowing for easy reward calculation.
+    """
+
+    result: str = Field(description="Final answer to the math problem.")
+
+# response = await agent.reply(
+#     msg=Msg("user", task["question"], role="user"),
+#     structured_model=ResponseStructure,  # <-- specify structured model here
+# )
+```
+
+### Step 4: Use `learn` to train the workflow function
+
+Finally, you can use the `learn` interface to train the defined workflow function with a configuration file.
+
+```python
+from agentscope.learn import learn, LearnConfig
+
+# your workflow function here...
+
+if __name__ == "__main__":
+    learn(
+        workflow_func=workflow_function,
+        config=LearnConfig.load_config("/path/to/your/config.yaml"),
+    )
+```
+
+The trained model, training dataset, RL algorithm, training cluster and other configurations are all located in the configuration file, which should follow the Trinity-RFT configuration format.
+
+See [config.yaml](./config.yaml) for an example configuration. For full configuration details, see [Trinity-RFT Configuration Guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html).
+
+---
+
+### Complete example
 
 ```python
 from typing import Dict
@@ -83,7 +167,7 @@ def calculate_reward(answer: str, truth: str) -> float:
 
 class ResponseStructure(BaseModel):
     """Response structure for math tasks (simplified).
-    This structure let the agent output be easily parsed,
+    This structure makes the agent's output easy to parse,
     allowing for easy reward calculation.
     """
 
@@ -117,9 +201,8 @@ if __name__ == "__main__":
     )
 ```
 
-> Above code is a simplified example.
-> For a complete implementation, see [train_react.py](./train_react.py).
-> For configuration details, see [Trinity-RFT Configuration Guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html).
+> Above code is a simplified example for illustration purposes only.
+> For a complete implementation, please refer to [main.py](./main.py).
 
 ---
 
@@ -139,7 +222,7 @@ After implementing the workflow function, follow these steps to run the training
       huggingface-cli download Qwen/Qwen3-8B
       ```
 
-2. Set up a Ray cluster
+2. Set up a [Ray](https://github.com/ray-project/ray) cluster
 
     ```bash
     ray start --head
@@ -150,5 +233,5 @@ After implementing the workflow function, follow these steps to run the training
 3. Run the training script
 
     ```bash
-    python train_react.py
+    python main.py
     ```

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=line-too-long
 """Example of training a ReAct agent using RL with Trinity-RFT."""
+import os
 from typing import Dict
 
 
@@ -79,7 +80,11 @@ async def run_react_agent(task: Dict, model: TrinityChatModel) -> float:
 
 
 if __name__ == "__main__":
-    config = LearnConfig.load_config("./gsm8k.yaml")
+    config_path = os.path.join(
+        os.path.dirname(__file__),
+        "config.yaml",
+    )
+    config = LearnConfig.load_config(config_path)
     learn(
         workflow_func=run_react_agent,
         config=config,
