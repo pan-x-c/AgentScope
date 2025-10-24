@@ -10,7 +10,7 @@ from agentscope.message import Msg
 
 class DemoWorkflow__Math(TrinityNativeLearnProtocol):
 
-    async def workflow_func(task_context: TaskContext) -> float:
+    async def workflow_func(self, task_context: TaskContext) -> float:
         """Workflow function for ReAct agent training."""
         task = task_context.get_task()
 
@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
         async def debug():
             task_context = TaskContext()
-            await DemoWorkflow__Math.workflow_func(task_context)
+            await DemoWorkflow__Math().workflow_func(task_context)
             reward = task_context.get_workflow_result()
 
         asyncio.run(debug())
