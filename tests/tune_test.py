@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 from unittest.async_case import IsolatedAsyncioTestCase
 
 from agentscope.model import TrinityChatModel, OpenAIChatModel
-from agentscope.learn.workflow import validate_function_signature
+from agentscope.tune.workflow import validate_function_signature
 
 
 async def correct_interface(task: Dict, model: TrinityChatModel) -> float:
