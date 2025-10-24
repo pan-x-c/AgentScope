@@ -4,11 +4,11 @@ from pydantic import BaseModel, Field
 from agentscope.model._trinity_model import LearnHybridChatModel, LearnTargetChatModel
 from agentscope.model import DashScopeChatModel
 from agentscope.agent import ReActAgent
-from agentscope.tune.base_protocol import TaskContext, LearnProtocol
+from agentscope.tune.base_protocol import TaskContext, TrinityNativeLearnProtocol
 from agentscope.formatter import OpenAIChatFormatter
 from agentscope.message import Msg
 
-class DemoWorkflow__Math(LearnProtocol):
+class DemoWorkflow__Math(TrinityNativeLearnProtocol):
 
     async def workflow_func(task_context: TaskContext) -> float:
         """Workflow function for ReAct agent training."""
@@ -57,7 +57,6 @@ if __STAGE__ == 'debug-agentscope-workflow':
                 "question": "What is 7 multiplied by 6?",
                 "answer": "42"
             }
-
 
     async def debug():
         task_context = TaskContext()
