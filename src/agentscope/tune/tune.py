@@ -4,16 +4,16 @@ from .workflow import (
     WorkflowType,
     validate_function_signature,
 )
-from .config import LearnConfig
+from .config import TuneConfig
 
 
-def learn(workflow_func: WorkflowType, config: LearnConfig) -> None:
+def tune(workflow_func: WorkflowType, config: TuneConfig) -> None:
     """Train the agent workflow with the specific configuration.
 
     Args:
         workflow_func (WorkflowType): The learning workflow function
             to execute.
-        config (LearnConfig): The configuration for the learning process.
+        config (TuneConfig): The configuration for the learning process.
     """
     try:
         from trinity.cli.launcher import run_stage

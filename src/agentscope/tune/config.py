@@ -13,7 +13,7 @@ try:
     from trinity.common.config import Config
 
     @dataclass
-    class LearnConfig(Config):
+    class TuneConfig(Config):
         """Configuration for learning process."""
 
         def to_trinity_config(self, workflow_func: WorkflowType) -> Config:
@@ -29,14 +29,14 @@ try:
             return self.check_and_update()
 
         @classmethod
-        def load_config(cls, config_path: str) -> "LearnConfig":
+        def load_config(cls, config_path: str) -> "TuneConfig":
             """Load the learning configuration from a YAML file.
 
             Args:
                 config_path (str): The path to the configuration file.
 
             Returns:
-                LearnConfig: The loaded learning configuration.
+                TuneConfig: The loaded learning configuration.
             """
             schema = OmegaConf.structured(cls)
             yaml_config = OmegaConf.load(config_path)
@@ -48,8 +48,8 @@ try:
 
 except ImportError:
 
-    class LearnConfig:  # type: ignore [no-redef]
-        """A placeholder class for LearnConfig when
+    class TuneConfig:  # type: ignore [no-redef]
+        """A placeholder class for TuneConfig when
         dependencies are missing."""
 
         def __init__(self) -> None:
@@ -61,7 +61,7 @@ except ImportError:
             )
 
         @classmethod
-        def load_config(cls, config_path: str) -> "LearnConfig":
+        def load_config(cls, config_path: str) -> "TuneConfig":
             """Raise ImportError when trying to load configuration."""
             raise ImportError(
                 "Trinity-RFT is not installed. Please "

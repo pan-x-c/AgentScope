@@ -1,7 +1,7 @@
 # Training agent workflows with RL using Trinity-RFT
 
-AgentScope exposes a `learn` interface to train agent workflows using reinforcement learning (RL).
-The `learn` interface leverages [Trinity-RFT](https://github.com/modelscope/Trinity-RFT), which supports training agents with minimal code changes.
+AgentScope exposes a `tune` interface to train agent workflows using reinforcement learning (RL).
+The `tune` interface leverages [Trinity-RFT](https://github.com/modelscope/Trinity-RFT), which supports training agents with minimal code changes.
 
 ---
 
@@ -122,19 +122,19 @@ class ResponseStructure(BaseModel):
 #    return calculate_reward(response.metadata["result"], task["answer"])
 ```
 
-### Step 4: Use `learn` to train the workflow function
+### Step 4: Use `tune` to train the workflow function
 
-Finally, you can use the `learn` interface to train the defined workflow function with a configuration file.
+Finally, you can use the `tune` interface to train the defined workflow function with a configuration file.
 
 ```python
-from agentscope.learn import learn, LearnConfig
+from agentscope.tune import tune, TuneConfig
 
 # your workflow function here...
 
 if __name__ == "__main__":
-    learn(
+    tune(
         workflow_func=workflow_function,
-        config=LearnConfig.load_config("/path/to/your/config.yaml"),
+        config=TuneConfig.load_config("/path/to/your/config.yaml"),
     )
 ```
 
@@ -151,7 +151,7 @@ from typing import Dict
 
 from pydantic import BaseModel, Field
 
-from agentscope.learn import learn, LearnConfig
+from agentscope.tune import tune, TuneConfig
 from agentscope.model import TrinityChatModel
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
@@ -197,9 +197,9 @@ async def react_workflow_function(task: Dict, model: TrinityChatModel) -> float:
 
 
 if __name__ == "__main__":
-    learn(
+    tune(
         workflow_func=react_workflow_function,
-        config=LearnConfig.load_config("/path/to/your/config.yaml"),
+        config=TuneConfig.load_config("/path/to/your/config.yaml"),
     )
 ```
 
