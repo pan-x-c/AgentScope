@@ -1,12 +1,12 @@
 import asyncio
-from typing import Dict
 from pydantic import BaseModel, Field
-from agentscope.model._trinity_model import LearnHybridChatModel, LearnTargetChatModel
+from agentscope.model._trinity_model import TrainTargetChatModelPlaceHolder
 from agentscope.model import DashScopeChatModel
 from agentscope.agent import ReActAgent
-from agentscope.tune.base_protocol import TaskContext, TrinityNativeLearnProtocol
+from agentscope.tune.protocol import TaskContext, TrinityNativeLearnProtocol
 from agentscope.formatter import OpenAIChatFormatter
 from agentscope.message import Msg
+
 
 class DemoWorkflow__Math(TrinityNativeLearnProtocol):
 
@@ -18,8 +18,8 @@ class DemoWorkflow__Math(TrinityNativeLearnProtocol):
             name="react_agent",
             sys_prompt="You are a helpful math problem solving agent.",
             model=task_context.get_chatmodel(
-                DashScopeChatModel(model_name="qwen-max"),  # for debug
-                "path-to-qwen2.5-14b-instruct"              # for training
+                DashScopeChatModel(model_name="qwen-max"), # for debug
+                TrainTargetChatModelPlaceHolder(model_path="path-to-qwen2.5-14b-instruct") # for training
             ),
             enable_meta_tool=True,
             formatter=OpenAIChatFormatter(),
@@ -45,27 +45,26 @@ class DemoWorkflow__Math(TrinityNativeLearnProtocol):
 
 
 
-
 # Choose a stage dev/train
 __STAGE__ = 'debug-agentscope-workflow' # or 'train-agentscope-workflow'
+if __name__ == '__main__':
 
-# Develop mode, you can detach from trinity and implement your own TaskContext to simplify the debug process
-if __STAGE__ == 'debug-agentscope-workflow':
-    class DebugTaskContext(TaskContext):
-        def get_task(self):
-            return {
-                "question": "What is 7 multiplied by 6?",
-                "answer": "42"
-            }
+    # Develop mode, you can detach from trinity and implement your own TaskContext to simplify the debug process
+    if __STAGE__ == 'debug-agentscope-workflow':
+        class DebugTaskContext(TaskContext):
+            def get_task(self):
+                return {
+                    "question": "What is 7 multiplied by 6?",
+                    "answer": "42"
+                }
 
-    async def debug():
-        task_context = TaskContext()
-        await DemoWorkflow__Math.workflow_func(task_context)
-        reward = task_context.get_workflow_result()
+        async def debug():
+            task_context = TaskContext()
+            await DemoWorkflow__Math.workflow_func(task_context)
+            reward = task_context.get_workflow_result()
 
-    asyncio.run(debug())
+        asyncio.run(debug())
 
-# Train mode, attach to trinity, auto generate task context from trinity
-elif __STAGE__ == 'train-agentscope-workflow':
-    from agentscope.tune import learn
-    DemoWorkflow__Math().learn()
+    # Train mode, attach to trinity, auto generate task context from trinity
+    elif __STAGE__ == 'train-agentscope-workflow':
+        DemoWorkflow__Math().learn()

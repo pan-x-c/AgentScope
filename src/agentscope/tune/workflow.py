@@ -17,20 +17,6 @@ from ..model import TrinityChatModel
 WorkflowType = Callable[[Dict, TrinityChatModel], Awaitable[float]]
 
 
-"""
-To pass `validate_function_signature`, your workflow function should match the following signature:
-
-
-
-async def react_workflow_function(task: Dict, model: ChatModel) -> float:
-    ... your workflow implementation ...
-    return reward
-
-
-
-"""
-
-
 def validate_function_signature(func: Callable) -> bool:
     """Validate if a function matches the workflow type signature.
 

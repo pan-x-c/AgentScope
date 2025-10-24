@@ -2,42 +2,6 @@
 """The configurations for agent learning."""
 
 from dataclasses import dataclass
-from pydantic import BaseModel, Field
-from typing import List
-try:
-    from omegaconf import OmegaConf
-    from trinity.common.config import Config
-except:
-    pass
-
-from .workflow import (
-    WorkflowType,
-)
-
-
-class LearnProtocol(BaseModel):  # type: ignore [no-redef]
-    # trainer selection
-    trainer: str = Field(default="trinity")
-    # agentflow name in trainer
-    agentflow_name: str = Field(default="agentscope-evolver")
-    # trainable targets defined in agentflow
-    trainable_agent_targets: List[str] = Field(default=[])
-    # Use dataset provided by the trainer (True: read each query from workflow input; False: AgentScope handles each query)
-    external_dataset: bool = Field(default=True)
-    # Use external environment provided by the trainer (True: read environment handle from input; False: AgentScope runs environment and tools)
-    external_environment: bool = Field(default=False)
-    # Use external reward provided by the trainer (True: compute reward outside AgentScope after workflow; False: AgentScope computes reward)
-    external_reward: bool = Field(default=False)
-    # trainer's config path
-    trainer_config_path: str = Field(default="")
-
-    async def agentscope_execute(self, task):
-        raise NotImplementedError
-
-# -*- coding: utf-8 -*-
-"""The configurations for agent learning."""
-
-from dataclasses import dataclass
 
 from .workflow import (
     WorkflowType,

@@ -71,3 +71,8 @@ class LearnTargetChatModel(OpenAIChatModel):
 class LearnHybridChatModel(OpenAIChatModel):
     def __init__(*args, **kwargs):
         super().__init__(*args, **kwargs)
+
+class TrainTargetChatModelPlaceHolder(OpenAIChatModel):
+    def __init__(*args, **kwargs):
+        super().__init__(*args, **kwargs)
+
