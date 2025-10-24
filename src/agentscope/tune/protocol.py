@@ -17,7 +17,7 @@ class TaskContext:
     def get_task(self):
         raise NotImplementedError
 
-    def get_chatmodel(self, debug_model, train_model):
+    def get_chatmodel(self, debug_model, train_model=None):
         if self.mode=='debug':
             return DashScopeChatModel(model_name=debug_model)
         else:

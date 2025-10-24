@@ -19,7 +19,7 @@ class DemoWorkflow__Math(TrinityNativeLearnProtocol):
             sys_prompt="You are a helpful math problem solving agent.",
             model=task_context.get_chatmodel(
                 DashScopeChatModel(model_name="qwen-max"), # for debug
-                TrainTargetChatModelPlaceHolder(model_path="path-to-qwen2.5-14b-instruct") # for training
+                # TrainTargetChatModelPlaceHolder(model_path="path-to-qwen2.5-14b-instruct") # for training (optional if there is only one model in trinity)
             ),
             enable_meta_tool=True,
             formatter=OpenAIChatFormatter(),
