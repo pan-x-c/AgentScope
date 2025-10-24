@@ -61,3 +61,13 @@ class TrinityChatModel(OpenAIChatModel):
             ] = enable_thinking
         # change the client instance to the provided one
         self.client = openai_async_client
+
+
+class LearnTargetChatModel(OpenAIChatModel):
+    def __init__(*args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class LearnHybridChatModel(OpenAIChatModel):
+    def __init__(*args, **kwargs):
+        super().__init__(*args, **kwargs)
