@@ -10,14 +10,14 @@ from typing import (
 
 import inspect
 
-
+from .._logging import logger
 from ..model import TrinityChatModel
 
 
 WorkflowType = Callable[[Dict, TrinityChatModel], Awaitable[float]]
 
 
-def validate_function_signature(func: Callable) -> bool:
+def _validate_function_signature(func: Callable) -> bool:
     """Validate if a function matches the workflow type signature.
 
     Args:
@@ -25,7 +25,7 @@ def validate_function_signature(func: Callable) -> bool:
     """
     # check if the function is asynchronous
     if not inspect.iscoroutinefunction(func):
-        print("The function is not asynchronous.")
+        logger.warning("The function is not asynchronous.")
         return False
     # Define expected parameter types and return type manually
     expected_params = [
@@ -39,9 +39,10 @@ def validate_function_signature(func: Callable) -> bool:
 
     # Check if the number of parameters matches
     if len(func_signature.parameters) != len(expected_params):
-        print(
-            f"Expected {len(expected_params)} parameters, "
-            f"but got {len(func_signature.parameters)}",
+        logger.warning(
+            "Expected %d parameters, but got %d",
+            len(expected_params),
+            len(func_signature.parameters),
         )
         return False
 
@@ -54,19 +55,22 @@ def validate_function_signature(func: Callable) -> bool:
             param_name != expected_name
             or func_hints.get(param_name) != expected_type
         ):
-            print(
-                f"Expected parameter {expected_name} of type "
-                f"{expected_type}, but got {param_name} of"
-                f" type {func_hints.get(param_name)}",
+            logger.warning(
+                "Expected parameter %s of type %s, but got %s of type %s",
+                expected_name,
+                expected_type,
+                param_name,
+                func_hints.get(param_name),
             )
             return False
 
     # Validate the return type
     return_annotation = func_hints.get("return", None)
     if return_annotation != expected_return:
-        print(
-            f"Expected return type {expected_return}, "
-            f"but got {return_annotation}",
+        logger.warning(
+            "Expected return type %s, but got %s",
+            expected_return,
+            return_annotation,
         )
         return False
 

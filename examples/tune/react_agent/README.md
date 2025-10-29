@@ -14,22 +14,23 @@ Suppose you have an agent workflow that solves math problems using the `ReActAge
 ```python
 from agentscope.agent import ReActAgent
 
-# model = ...  # Initialize your ChatModel here
+async def run_react_agent():
+    # model = ...  # Initialize your ChatModel here
 
-query = "What is the sum of the first 10 prime numbers?"
-agent = ReActAgent(
-    name="react_agent",
-    sys_prompt="You are a helpful math problem solving agent.",
-    model=model,
-    enable_meta_tool=True,
-    formatter=OpenAIChatFormatter(),
-)
+    query = "What is the sum of the first 10 prime numbers?"
+    agent = ReActAgent(
+        name="react_agent",
+        sys_prompt="You are a helpful math problem solving agent.",
+        model=model,
+        enable_meta_tool=True,
+        formatter=OpenAIChatFormatter(),
+    )
 
-response = await agent.reply(
-    msg=Msg("user", query, role="user"),
-)
+    response = await agent.reply(
+        msg=Msg("user", query, role="user"),
+    )
 
-print(response)
+    print(response)
 ```
 
 ### Step 1: Define a workflow function
@@ -86,7 +87,7 @@ def workflow_function(
         msg=Msg("user", task["question"], role="user"),
     )
 
-    # TODO
+    # further steps to calculate reward... (See Step 3)
 ```
 
 ### Step 3: Implement a reward calculation mechanism

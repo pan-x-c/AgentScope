@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=line-too-long
 """Example of training a ReAct agent using RL with Trinity-RFT."""
 import os
 from typing import Dict
@@ -19,7 +18,10 @@ class GSM8KResponseStructure(BaseModel):
     """Response structure for GSM8K tasks."""
 
     result: str = Field(
-        description="Your solution of the given math problem. Put your final answer in boxed format, e.g., \\boxed{42}",  # noqa: E501
+        description=(
+            "Your solution of the given math problem. "
+            "Put your final answer in boxed format, e.g., \\boxed{42}"
+        ),
     )
 
 
@@ -33,6 +35,7 @@ class GSM8KRewardFn(MathBoxedRewardFn):
         format_score_coef: float = 0.1,
         **kwargs: Dict,
     ) -> dict[str, float]:
+        """Calculate the reward based on the response and truth."""
         # parse GSM8K truth
         if isinstance(truth, str) and "####" in truth:
             truth = truth.split("####")[1].strip()
@@ -57,7 +60,12 @@ async def run_react_agent(task: Dict, model: TrinityChatModel) -> float:
     Returns:
         float: The reward obtained by solving the task.
     """
-    sys_prompt = """You are an agent specialized in solving math problems with tools. Please solve the math problem given to you. You can write and execute Python code to perform calculation or verify your answer. You should return your final answer within \\boxed{{}}."""  # noqa: E501
+    sys_prompt = (
+        "You are an agent specialized in solving math problems with tools. "
+        "Please solve the math problem given to you. You can write and "
+        "execute Python code to perform calculation or verify your answer. "
+        "You should return your final answer within \\boxed{{}}."
+    )
 
     response_structure = GSM8KResponseStructure
     reward_fn = GSM8KRewardFn()

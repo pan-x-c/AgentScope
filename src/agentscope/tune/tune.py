@@ -2,7 +2,7 @@
 """The main entry point for agent learning."""
 from .workflow import (
     WorkflowType,
-    validate_function_signature,
+    _validate_function_signature,
 )
 from .config import TuneConfig
 
@@ -23,7 +23,7 @@ def tune(workflow_func: WorkflowType, config: TuneConfig) -> None:
             "`pip install trinity-rft`.",
         ) from e
 
-    if not validate_function_signature(workflow_func):
+    if not _validate_function_signature(workflow_func):
         raise ValueError(
             "Invalid workflow function signature, please "
             "check the types of your workflow input/output.",
