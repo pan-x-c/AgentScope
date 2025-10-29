@@ -3,7 +3,7 @@
 
 from dataclasses import dataclass
 
-from .workflow import (
+from ._workflow import (
     WorkflowType,
 )
 

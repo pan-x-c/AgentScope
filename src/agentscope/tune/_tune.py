@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """The main entry point for agent learning."""
-from .workflow import (
+from ._workflow import (
     WorkflowType,
     _validate_function_signature,
 )
-from .config import TuneConfig
+from ._config import TuneConfig
 
 
 def tune(workflow_func: WorkflowType, config: TuneConfig) -> None:
