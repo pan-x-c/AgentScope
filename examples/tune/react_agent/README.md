@@ -215,9 +215,9 @@ After implementing the workflow function, follow these steps to run the training
 
 1. Prerequisites
 
-    - At least 2 NVIDIA GPUs with CUDA 12.4 or newer.
+    - At least 2 NVIDIA GPUs with CUDA 12.6 or newer.
     - Adjust the configuration file ([config.yaml](./config.yaml)) based on your hardware.
-    - Follow the Trinity-RFT [installation guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html) to install a compatible version (Trinity-RFT >= 0.3.1).
+    - Follow the Trinity-RFT [installation guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html) to install a compatible version (Trinity-RFT >= 0.3.2).
     - Download the GSM8K dataset and Qwen/Qwen3-8B model checkpoints (example):
 
       ```bash
