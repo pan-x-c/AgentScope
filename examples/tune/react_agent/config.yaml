@@ -7,6 +7,8 @@ algorithm:
   repeat_times: 8  # repeat each training sample 8 times
 model:
   # path to the pre-trained model, default to Qwen/Qwen3-8B if TRINITY_MODEL_PATH not set
+  # Note: The model should have ReAct capabilities, e.g., Qwen3 8B or above
+  # smaller models may not perform well on complex reasoning tasks
   model_path: ${oc.env:TRINITY_MODEL_PATH,Qwen/Qwen3-8B}
   # maximum tokens generated in response
   max_response_tokens: 16384
@@ -36,13 +38,14 @@ explorer:
   runner_per_model: 16  # each model has 16 runners for parallel rollout
   max_timeout: 600  # max timeout for each rollout is 600 seconds
   rollout_model:
-    engine_num: 4  # setup 4 vllm engines
-    tensor_parallel_size: 1  # each engine uses tensor parallel size of 1
+    engine_num: 4  # setup 4 vllm inference model instances
+    tensor_parallel_size: 1  # each model instance uses tensor parallel size of 1
     enable_prefix_caching: false
     enforce_eager: true
     enable_openai_api: true  # some parameters to provide openai-style API, don't change them
     enable_history: true
     enable_auto_tool_choice: true
+    # Qwen3 series tool_call_parser and reasoning_parser, if you use other models, please adjust accordingly
     tool_call_parser: hermes
     reasoning_parser: deepseek_r1
     enable_thinking: true
