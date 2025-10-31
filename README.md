@@ -394,7 +394,7 @@ as_studio
   - Evaluation
     - [ACEBench](https://github.com/agentscope-ai/agentscope/tree/main/examples/evaluation/ace_bench)
   - Training
-    - [RL with Trinity-RFT](https://github.com/agentscope-ai/agentscope/tree/main/examples/training/react_agent)
+    - [Reinforcement learning (RL) with Trinity-RFT](https://github.com/agentscope-ai/agentscope/tree/main/examples/training/react_agent)
 
 ## ⚖️ License
 

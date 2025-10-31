@@ -396,7 +396,7 @@ as_studio
   - 评测
     - [ACEBench](https://github.com/agentscope-ai/agentscope/tree/main/examples/evaluation/ace_bench)
   - 训练
-    - [Trinity-RFT 强化学习训练](https://github.com/agentscope-ai/agentscope/tree/main/examples/training/react_agent)
+    - [使用 Trinity-RFT 进行强化学习训练](https://github.com/agentscope-ai/agentscope/tree/main/examples/training/react_agent)
 
 
 ## ⚖️ 许可
