@@ -7,7 +7,7 @@ from typing import Dict
 from pydantic import BaseModel, Field
 from trinity.common.rewards import MathBoxedRewardFn
 
-from agentscope.tune import tune, TuneConfig
+from agentscope.tune import tune
 from agentscope.model import TrinityChatModel
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
@@ -90,10 +90,9 @@ async def run_react_agent(task: Dict, model: TrinityChatModel) -> float:
 if __name__ == "__main__":
     config_path = os.path.join(
         os.path.dirname(__file__),
-        "config.yaml",
+        "config_pxc.yaml",
     )
-    config = TuneConfig.load_config(config_path)
     tune(
         workflow_func=run_react_agent,
-        config=config,
+        config_path=config_path,
     )

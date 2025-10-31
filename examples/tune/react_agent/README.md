@@ -128,14 +128,14 @@ class ResponseStructure(BaseModel):
 Finally, you can use the `tune` interface to train the defined workflow function with a configuration file.
 
 ```python
-from agentscope.tune import tune, TuneConfig
+from agentscope.tune import tune
 
 # your workflow function here...
 
 if __name__ == "__main__":
     tune(
         workflow_func=workflow_function,
-        config=TuneConfig.load_config("/path/to/your/config.yaml"),
+        config_path="/path/to/your/config.yaml",
     )
 ```
 
@@ -152,7 +152,7 @@ from typing import Dict
 
 from pydantic import BaseModel, Field
 
-from agentscope.tune import tune, TuneConfig
+from agentscope.tune import tune
 from agentscope.model import TrinityChatModel
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
@@ -200,7 +200,7 @@ async def react_workflow_function(task: Dict, model: TrinityChatModel) -> float:
 if __name__ == "__main__":
     tune(
         workflow_func=react_workflow_function,
-        config=TuneConfig.load_config("/path/to/your/config.yaml"),
+        config_path="/path/to/your/config.yaml",
     )
 ```
 
@@ -215,9 +215,9 @@ After implementing the workflow function, follow these steps to run the training
 
 1. Prerequisites
 
-    - At least 2 NVIDIA GPUs with CUDA 12.6 or newer.
+    - At least 2 NVIDIA GPUs with CUDA 12.8 or newer.
     - Adjust the configuration file ([config.yaml](./config.yaml)) based on your hardware.
-    - Follow the Trinity-RFT [installation guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html) to install a compatible version (Trinity-RFT >= 0.3.2).
+    - Follow the Trinity-RFT [installation guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html) to install the latest version from source code.
     - Download the GSM8K dataset and Qwen/Qwen3-8B model checkpoints (example):
 
       ```bash
