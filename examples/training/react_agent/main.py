@@ -90,7 +90,7 @@ async def run_react_agent(task: Dict, model: TrinityChatModel) -> float:
 if __name__ == "__main__":
     config_path = os.path.join(
         os.path.dirname(__file__),
-        "config_pxc.yaml",
+        "config.yaml",
     )
     tune(
         workflow_func=run_react_agent,
