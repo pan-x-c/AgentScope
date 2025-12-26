@@ -35,7 +35,7 @@ Returns:
         The reward value assigned by the judge function.
 """
 
-from dataclasses import dataclass
+import inspect
 from typing import (
     Dict,
     Callable,
@@ -47,7 +47,6 @@ from typing import (
     get_origin,
 )
 from pydantic import BaseModel
-import inspect
 
 from .._logging import logger
 from ..model import ChatModelBase
@@ -68,6 +67,7 @@ class Dataset(BaseModel):
     Agentscope will load the dataset from the given path using
     `datasets.load_dataset`.
     """
+
     path: str
     name: Optional[str] = None
     split: Optional[str] = None
@@ -92,7 +92,6 @@ class Dataset(BaseModel):
             split=self.split,
         )
         return ds[:n]
-
 
 
 def _is_type_compatible(
