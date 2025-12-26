@@ -8,7 +8,7 @@ from agentscope.model import TrinityChatModel, OpenAIChatModel
 from agentscope.tune._workflow import _validate_function_signature
 
 
-async def correct_interface(task: Dict, model: TrinityChatModel) -> float:
+async def correct_interface(task: Dict, model: TrinityChatModel, auxiliary_models: Dict[str, TrinityChatModel]) -> float:
     """Correct interface matching the workflow type."""
     return task["reward"]
 
@@ -27,17 +27,17 @@ async def wrong_interface_2(task: Dict) -> float:
     return 0.0
 
 
-async def wrong_interface_3(task: List, model: TrinityChatModel) -> float:
+async def wrong_interface_3(task: List, model: TrinityChatModel, auxiliary_models: Dict[str, TrinityChatModel]) -> float:
     """Wrong interface with wrong task type."""
     return 0.0
 
 
-async def wrong_interface_4(task: Dict, model: OpenAIChatModel) -> float:
+async def wrong_interface_4(task: Dict, model: Dict, auxiliary_models: Dict) -> float:
     """Wrong interface with wrong model type."""
     return 0.0
 
 
-async def wrong_interface_5(task: Dict, model: TrinityChatModel) -> str:
+async def wrong_interface_5(task: Dict, model: TrinityChatModel, auxiliary_models: Dict[str, TrinityChatModel]) -> str:
     """Wrong interface with wrong return type."""
     return "0.0"
 
