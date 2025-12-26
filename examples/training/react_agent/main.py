@@ -7,7 +7,7 @@ from typing import Dict
 from pydantic import BaseModel, Field
 from trinity.common.rewards import MathBoxedRewardFn
 
-from agentscope.tune import tune
+from agentscope.tune import tune, Dataset
 from agentscope.model import TrinityChatModel
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
@@ -50,7 +50,11 @@ class GSM8KRewardFn(MathBoxedRewardFn):
         )
 
 
-async def run_react_agent(task: Dict, model: TrinityChatModel) -> float:
+async def run_react_agent(
+    task: Dict,
+    model: TrinityChatModel,
+    auxiliary_models: Dict[str, TrinityChatModel],
+) -> float:
     """A simple workflow function using the ReAct agent to solve tasks.
 
     Args:
@@ -60,6 +64,10 @@ async def run_react_agent(task: Dict, model: TrinityChatModel) -> float:
     Returns:
         float: The reward obtained by solving the task.
     """
+    assert (
+        len(auxiliary_models) == 0
+    ), "No auxiliary models are used in this workflow."
+
     sys_prompt = (
         "You are an agent specialized in solving math problems with tools. "
         "Please solve the math problem given to you. You can write and "
@@ -92,7 +100,13 @@ if __name__ == "__main__":
         os.path.dirname(__file__),
         "config.yaml",
     )
+    dataset = Dataset(
+        path="openai/gsm8k",
+        name="main",
+        split="train",
+    )
     tune(
         workflow_func=run_react_agent,
+        train_dataset=dataset,
         config_path=config_path,
     )

@@ -1,19 +1,32 @@
 # -*- coding: utf-8 -*-
 """The main entry point for agent learning."""
 from dataclasses import dataclass
-from ._workflow import (
+from ._types import (
     WorkflowType,
+    JudgeType,
+    Dataset,
     _validate_function_signature,
 )
 
 
-def tune(workflow_func: WorkflowType, config_path: str) -> None:
+def tune(
+    *,
+    workflow_func: WorkflowType,
+    train_dataset: Dataset,
+    config_path: str,
+    judge_func: JudgeType | None = None,
+    eval_dataset: Dataset | None = None,
+) -> None:
     """Train the agent workflow with the specific configuration.
 
     Args:
         workflow_func (WorkflowType): The learning workflow function
             to execute.
+        train_dataset (Dataset): The training dataset.
         config_path (str): The configuration for the learning process.
+        judge_func (JudgeType | None): The judge function to evaluate
+            agent responses. (Optional)
+        eval_dataset (Dataset | None): The evaluation dataset. (Optional)
     """
     try:
         from trinity.cli.launcher import run_stage
@@ -35,9 +48,23 @@ def tune(workflow_func: WorkflowType, config_path: str) -> None:
     class TuneConfig(Config):
         """Configuration for learning process."""
 
-        def to_trinity_config(self, workflow_func: WorkflowType) -> Config:
+        def to_trinity_config(
+            self,
+            workflow_func: WorkflowType,
+            train_dataset: Dataset,
+            judge_func: JudgeType | None,
+            eval_dataset: Dataset | None,
+        ) -> Config:
             """Convert to Trinity-RFT compatible configuration."""
+            from trinity.common.config import TasksetConfig
+
             workflow_name = "agentscope_workflow_adapter"
+            self.buffer.explorer.input.taskset = TasksetConfig(
+                name="train_taskset",
+                path=train_dataset.path,
+                split=train_dataset.split,
+                subset_name=train_dataset.name,
+            )
             self.buffer.explorer_input.taskset.default_workflow_type = (
                 workflow_name
             )
@@ -45,6 +72,17 @@ def tune(workflow_func: WorkflowType, config_path: str) -> None:
             self.buffer.explorer_input.taskset.workflow_args[
                 "workflow_func"
             ] = workflow_func
+            if judge_func is not None:
+                self.buffer.explorer_input.taskset.workflow_args[
+                    "judge_func"
+                ] = judge_func
+            if eval_dataset is not None:
+                self.buffer.explorer.input.taskset = TasksetConfig(
+                    name="eval_taskset",
+                    path=eval_dataset.path,
+                    split=eval_dataset.split,
+                    subset_name=eval_dataset.name,
+                )
             return self.check_and_update()
 
         @classmethod
@@ -67,6 +105,9 @@ def tune(workflow_func: WorkflowType, config_path: str) -> None:
 
     return run_stage(
         config=TuneConfig.load_config(config_path).to_trinity_config(
-            workflow_func,
+            workflow_func=workflow_func,
+            train_dataset=train_dataset,
+            judge_func=judge_func,
+            eval_dataset=eval_dataset,
         ),
     )
