@@ -70,7 +70,7 @@ async def gsm8k_judge(
     Returns:
         JudgeOutput: The reward value assigned by the judge function.
     """
-    from trinity.common.rewards import MathBoxedRewardFn
+    from trinity.common.rewards.math_reward import MathBoxedRewardFn
 
     assert (
         len(auxiliary_models) == 0

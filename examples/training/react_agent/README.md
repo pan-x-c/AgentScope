@@ -275,11 +275,11 @@ After implementing the workflow function, follow these steps to run the training
     - At least 2 NVIDIA GPUs with CUDA 12.8 or newer.
     - Adjust the configuration file ([config.yaml](./config.yaml)) based on your hardware.
     - Follow the Trinity-RFT [installation guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html) to install the latest version from source code.
-    - Download the GSM8K dataset and Qwen/Qwen3-8B model checkpoints (example):
+    - Download the GSM8K dataset and Qwen/Qwen3-1.7B model checkpoints (example):
 
       ```bash
       huggingface-cli download openai/gsm8k --repo-type dataset
-      huggingface-cli download Qwen/Qwen3-8B
+      huggingface-cli download Qwen/Qwen3-1.7B
       ```
 
 2. Set up a [Ray](https://github.com/ray-project/ray) cluster

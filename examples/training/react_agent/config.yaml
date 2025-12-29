@@ -11,13 +11,13 @@ model:
   # smaller models may not perform well on complex reasoning tasks
   model_path: ${oc.env:TRINITY_MODEL_PATH,Qwen/Qwen3-8B}
   # maximum tokens generated in response
-  max_response_tokens: 16384
+  max_response_tokens: 12288
   # maximum token length for both input and output
   # if you face OOM, try to reduce max_model_len and max_response_tokens
-  max_model_len: 24576
+  max_model_len: 16384
 cluster:
   node_num: 1  # cluster with 1 node
-  gpu_per_node: 8  # each node has 8 GPUs
+  gpu_per_node: 2  # each node has 2 GPUs
 buffer:
   total_epochs: 1  # run taskset for 1 epoch
   batch_size: 32  # each step contains 32 samples from taskset
@@ -38,17 +38,14 @@ explorer:
   runner_per_model: 16  # each model has 16 runners for parallel rollout
   max_timeout: 600  # max timeout for each rollout is 600 seconds
   rollout_model:
-    engine_num: 4  # setup 4 vllm inference model instances
+    engine_num: 1  # setup 1 vllm inference model instance
     tensor_parallel_size: 1  # each model instance uses tensor parallel size of 1
-    enable_prefix_caching: false
-    enforce_eager: true
     enable_openai_api: true  # some parameters to provide openai-style API, don't change them
     enable_history: true
     enable_auto_tool_choice: true
     # Qwen3 series tool_call_parser and reasoning_parser, if you use other models, please adjust accordingly
     tool_call_parser: hermes
     reasoning_parser: deepseek_r1
-    enable_thinking: true
     dtype: bfloat16
     seed: 42
 synchronizer:
@@ -59,7 +56,7 @@ synchronizer:
 trainer:
   save_interval: 100  # save checkpoint every 100 steps
   use_dynamic_bsz: true
-  max_token_len_per_gpu: 24576  # if you face OOM, try to reduce this value
-  ulysses_sequence_parallel_size: 2  # use sequence parallelism to reduce memory usage
+  max_token_len_per_gpu: 16384  # if you face OOM, try to reduce this value
+  ulysses_sequence_parallel_size: 1  # use sequence parallelism to reduce memory usage
 monitor:
   monitor_type: tensorboard  # here we use tensorboard, you can also use wandb or mlflow

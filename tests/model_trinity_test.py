@@ -13,7 +13,7 @@ class TestTrinityModel(IsolatedAsyncioTestCase):
 
     async def test_init_with_trinity_client(self) -> None:
         """Test initialization with a valid OpenAI async client."""
-        MODEL_NAME = "Qwen/Qwen3-8B"
+        MODEL_NAME = "Qwen/Qwen3-1.7B"
         mock_client = Mock()
         mock_client.model_path = MODEL_NAME
 

@@ -53,7 +53,7 @@ def tune(
             from trinity.common.config import TasksetConfig
 
             workflow_name = "agentscope_workflow_adapter_v1"
-            self.buffer.explorer.input.taskset = TasksetConfig(
+            self.buffer.explorer_input.taskset = TasksetConfig(
                 name="train_taskset",
                 path=train_dataset.path,
                 split=train_dataset.split,
