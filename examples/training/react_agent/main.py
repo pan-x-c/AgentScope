@@ -3,7 +3,7 @@
 import os
 from typing import Dict
 
-from agentscope.tune import tune, Dataset, WorkflowOutput, JudgeOutput
+from agentscope.tuner import tune, Dataset, WorkflowOutput, JudgeOutput
 from agentscope.model import TrinityChatModel
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter

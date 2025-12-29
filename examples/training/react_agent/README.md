@@ -1,7 +1,7 @@
 # Training agent workflows with RL using Trinity-RFT
 
-AgentScope exposes a `tune` interface to train agent workflows using reinforcement learning (RL).
-The `tune` interface leverages [Trinity-RFT](https://github.com/modelscope/Trinity-RFT), which supports training agents with minimal code changes.
+AgentScope exposes a `tuner` interface to train agent workflows using reinforcement learning (RL).
+The `tuner` interface leverages [Trinity-RFT](https://github.com/modelscope/Trinity-RFT), which supports training agents with minimal code changes.
 
 ---
 
@@ -65,7 +65,7 @@ Note that the task sample format can vary based on your specific scenario. The k
 You can preview your dataset using the following code:
 
 ```python
-from agentscope.tune import Dataset
+from agentscope.tuner import Dataset
 
 Dataset(path="my_dataset", split="train").preview()
 
@@ -118,7 +118,7 @@ Below is a refactored version of the original `run_react_agent` function to fit 
 ```python
 from agentscope.agent import ReActAgent
 from agentscope.model import TrinityChatModel
-from agentscope.tune import WorkflowOutput
+from agentscope.tuner import WorkflowOutput
 from agentscope.message import Msg
 
 async def run_react_agent(
@@ -171,7 +171,7 @@ Here is an example implementation of a simple reward calculation mechanism that 
 
 ```python
 from agentscope.message import Msg
-from agentscope.tune import JudgeOutput
+from agentscope.tuner import JudgeOutput
 from agentscope.model import TrinityChatModel
 
 async def judge_function(
@@ -188,7 +188,7 @@ async def judge_function(
 Finally, you can use the `tune` interface to train the defined workflow function with a configuration file.
 
 ```python
-from agentscope.tune import tune
+from agentscope.tuner import tune
 
 # your workflow function here...
 
@@ -213,7 +213,7 @@ See [config.yaml](./config.yaml) for an example configuration. For full configur
 ```python
 from typing import Dict
 
-from agentscope.tune import tune, WorkflowOutput, JudgeOutput, Dataset
+from agentscope.tuner import tune, WorkflowOutput, JudgeOutput, Dataset
 from agentscope.model import TrinityChatModel
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
