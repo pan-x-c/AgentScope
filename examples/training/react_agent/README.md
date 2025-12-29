@@ -109,7 +109,7 @@ async def workflow_function(
 
 Below is a refactored version of the original `run_react_agent` function to fit the workflow function signature.
 
-**There are only 3 minor changes**:
+**There are only 3 minor changes from the original function**:
 
 1. use the input `model` to initialize the agent.
 2. use the `question` field from the `task` dictionary as the user query.
@@ -142,9 +142,9 @@ async def run_react_agent(
     )
 ```
 
-### Step 3: Implement a reward calculation mechanism
+### Step 3: Implement the judge function
 
-To train the agent using RL, you need to define a reward calculation mechanism that computes a reward following the signature below.
+To train the agent using RL, you need to define a judge function that computes a reward following the signature below.
 
 ```python
 async def judge_function(
@@ -159,6 +159,7 @@ async def judge_function(
     - `task`: A dictionary representing a single training task, same as the input to the workflow function.
     - `response`: The output from the workflow function, which can be the agent's response or other types of outputs depending on your workflow function implementation.
     - `auxiliary_models`: A dictionary of auxiliary models that can be used in the reward calculation. The keys are model names, and the values are `ChatModelBase` instances. These models are different from the main model in that they are not directly trained, but can be used to assist in calculating the reward (e.g., acting as Judge). Empty dict if no auxiliary models are needed.
+
 - Outputs:
     - `JudgeOutput`: An object containing the output of the judge function. It contains:
         - `reward`: A scalar float representing the reward calculated based on the input task and agent's response. This field must be filled.
@@ -173,9 +174,13 @@ from agentscope.message import Msg
 from agentscope.tune import JudgeOutput
 from agentscope.model import TrinityChatModel
 
-async def judge_function(task: Dict, response: Msg, auxiliary_models: Dict[str, TrinityChatModel]) -> float:
+async def judge_function(
+    task: Dict, response: Msg, auxiliary_models: Dict[str, TrinityChatModel]
+) -> JudgeOutput:
     """Simple reward: 1.0 for exact match, else 0.0."""
-    return 1.0 if answer.strip() == truth.strip() else 0.0
+    truth = task["answer"]
+    answer = response.get_text_content() or ""
+    return JudgeOutput(reward=1.0 if answer.strip() == truth.strip() else 0.0)
 ```
 
 ### Step 4: Use `tune` to train the workflow function
@@ -208,18 +213,11 @@ See [config.yaml](./config.yaml) for an example configuration. For full configur
 ```python
 from typing import Dict
 
-from pydantic import BaseModel, Field
-
 from agentscope.tune import tune, WorkflowOutput, JudgeOutput, Dataset
 from agentscope.model import TrinityChatModel
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
 from agentscope.message import Msg
-
-
-async def judge_function(task: Dict, response: Msg, auxiliary_models: Dict[str, TrinityChatModel]) -> float:
-    """Simple reward: 1.0 for exact match, else 0.0."""
-    return 1.0 if answer.strip() == truth.strip() else 0.0
 
 
 async def run_react_agent(
@@ -241,6 +239,15 @@ async def run_react_agent(
     return WorkflowOutput(
         response=response,
     )
+
+
+async def judge_function(
+    task: Dict, response: Msg, auxiliary_models: Dict[str, TrinityChatModel]
+) -> JudgeOutput:
+    """Simple reward: 1.0 for exact match, else 0.0."""
+    truth = task["answer"]
+    answer = response.get_text_content() or ""
+    return JudgeOutput(reward=1.0 if answer.strip() == truth.strip() else 0.0)
 
 
 if __name__ == "__main__":

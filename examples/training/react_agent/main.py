@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Example of training a ReAct agent using RL with Trinity-RFT."""
+"""Example of training a ReAct agent on GSM8K with Trinity-RFT."""
 import os
 from typing import Dict
 
