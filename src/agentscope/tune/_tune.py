@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 """The main entry point for agent learning."""
 from dataclasses import dataclass
+from typing import Callable
 from ._types import (
     WorkflowType,
     JudgeType,
     Dataset,
-    _validate_function_signature,
 )
 
 
 def tune(
     *,
-    workflow_func: WorkflowType,
+    workflow_func: Callable,
     train_dataset: Dataset,
     config_path: str,
-    judge_func: JudgeType | None = None,
+    judge_func: Callable | None = None,
     eval_dataset: Dataset | None = None,
 ) -> None:
     """Train the agent workflow with the specific configuration.
@@ -38,12 +38,6 @@ def tune(
             "`pip install trinity-rft`.",
         ) from e
 
-    if not _validate_function_signature(workflow_func):
-        raise ValueError(
-            "Invalid workflow function signature, please "
-            "check the types of your workflow input/output.",
-        )
-
     @dataclass
     class TuneConfig(Config):
         """Configuration for learning process."""
@@ -58,7 +52,7 @@ def tune(
             """Convert to Trinity-RFT compatible configuration."""
             from trinity.common.config import TasksetConfig
 
-            workflow_name = "agentscope_workflow_adapter"
+            workflow_name = "agentscope_workflow_adapter_v1"
             self.buffer.explorer.input.taskset = TasksetConfig(
                 name="train_taskset",
                 path=train_dataset.path,
