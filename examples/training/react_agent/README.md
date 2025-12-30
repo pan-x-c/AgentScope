@@ -1,9 +1,7 @@
-# Training agent workflows with RL using Trinity-RFT
+# AgentScope Tuner Quick Start Guide
 
 AgentScope provides a `tuner` sub-module to train agent workflows using reinforcement learning (RL).
-The `tuner` sub-module leverages [Trinity-RFT](https://github.com/modelscope/Trinity-RFT), which supports training agents with minimal code changes.
-
----
+This guide walks you through the steps to implement and train an agent workflow using RL with AgentScope Tuner.
 
 ## Overview
 
