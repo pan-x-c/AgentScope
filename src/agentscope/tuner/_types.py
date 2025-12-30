@@ -179,17 +179,15 @@ class TunerChatModel(OpenAIChatModel):
                 model inference.
             engine_num (int): The number of engines for model inference.
         """
-        generate_kwargs = {
-            "temperature": temperature,
-            "top_p": top_p,
-            "max_tokens": max_tokens,
-        }
         super().__init__(
             model_name=model_path,
             api_key="EMPTY",
-            generate_kwargs=generate_kwargs,
             stream=False,  # RL training does not support streaming
         )
+
+        self.generate_kwargs["temperature"] = temperature
+        self.generate_kwargs["top_p"] = top_p
+        self.generate_kwargs["max_tokens"] = max_tokens
         if enable_thinking is not None:
             if "chat_template_kwargs" not in self.generate_kwargs:
                 self.generate_kwargs["chat_template_kwargs"] = {}
