@@ -23,9 +23,9 @@ flowchart TD
     Task[Task] --> JudgeFunction
     JudgeFunction --> Reward[Reward]
 
-    classDef wfcolor fill:#e67e22,stroke:#333,stroke-width:4px,color:#111;
-    classDef judgecolor fill:#1abc9c,stroke:#333,stroke-width:4px,color:#111;
-    classDef taskcolor fill:#3498db,stroke:#333,stroke-width:4px,color:#111;
+    classDef wfcolor fill:#e67e22,stroke:#333,color:#111;
+    classDef judgecolor fill:#1abc9c,stroke:#333,color:#111;
+    classDef taskcolor fill:#3498db,stroke:#333,color:#111;
     class WorkflowFunction wfcolor;
     class JudgeFunction judgecolor;
     class Task taskcolor;
@@ -154,7 +154,7 @@ async def run_react_agent(
         msg=Msg("user", task["question"], role="user"),  # extract question from task
     )
 
-    return WorkflowOutput(
+    return WorkflowOutput(  # put the response into WorkflowOutput
         response=response,
     )
 ```
@@ -200,7 +200,7 @@ async def judge_function(
     return JudgeOutput(reward=1.0 if answer.strip() == truth.strip() else 0.0)
 ```
 
-### Step 4: Use `tune` to train the workflow function
+### Step 4: Start tuning
 
 Finally, you can use the `tune` interface to train the defined workflow function with a configuration file.
 
