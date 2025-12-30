@@ -98,7 +98,7 @@ async def gsm8k_judge(
 if __name__ == "__main__":
     config_path = os.path.join(
         os.path.dirname(__file__),
-        "config.yaml",
+        "config_pxc.yaml",
     )
     dataset = Dataset(
         path="openai/gsm8k",

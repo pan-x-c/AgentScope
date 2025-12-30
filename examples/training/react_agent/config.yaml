@@ -1,20 +1,20 @@
 project: AgentScope-ReAct
-name: GSM8K-Qwen3-8B
+name: GSM8K-Qwen3-1.7B
 # directory to save checkpoints, default to ./checkpoints if TRINITY_CHECKPOINT_ROOT_DIR not set
 checkpoint_root_dir: ${oc.env:TRINITY_CHECKPOINT_ROOT_DIR,./checkpoints}
 algorithm:
   algorithm_type: multi_step_grpo  # a GRPO-based algorithm for multi-step reasoning
   repeat_times: 8  # repeat each training sample 8 times
 model:
-  # path to the pre-trained model, default to Qwen/Qwen3-8B if TRINITY_MODEL_PATH not set
-  # Note: The model should have ReAct capabilities, e.g., Qwen3 8B or above
+  # path to the pre-trained model, default to Qwen/Qwen3-1.7B if TRINITY_MODEL_PATH not set
+  # Note: The model should have ReAct capabilities, e.g., Qwen3 1.7B or above
   # smaller models may not perform well on complex reasoning tasks
-  model_path: ${oc.env:TRINITY_MODEL_PATH,Qwen/Qwen3-8B}
+  model_path: ${oc.env:TRINITY_MODEL_PATH,Qwen/Qwen3-1.7B}
   # maximum tokens generated in response
-  max_response_tokens: 12288
+  max_response_tokens: 16384
   # maximum token length for both input and output
   # if you face OOM, try to reduce max_model_len and max_response_tokens
-  max_model_len: 16384
+  max_model_len: 24576
 cluster:
   node_num: 1  # cluster with 1 node
   gpu_per_node: 2  # each node has 2 GPUs
@@ -56,7 +56,6 @@ synchronizer:
 trainer:
   save_interval: 100  # save checkpoint every 100 steps
   use_dynamic_bsz: true
-  max_token_len_per_gpu: 16384  # if you face OOM, try to reduce this value
   ulysses_sequence_parallel_size: 1  # use sequence parallelism to reduce memory usage
 monitor:
   monitor_type: tensorboard  # here we use tensorboard, you can also use wandb or mlflow

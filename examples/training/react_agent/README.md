@@ -1,13 +1,19 @@
 # Training agent workflows with RL using Trinity-RFT
 
-AgentScope exposes a `tuner` interface to train agent workflows using reinforcement learning (RL).
-The `tuner` interface leverages [Trinity-RFT](https://github.com/modelscope/Trinity-RFT), which supports training agents with minimal code changes.
+AgentScope provides a `tuner` sub-module to train agent workflows using reinforcement learning (RL).
+The `tuner` sub-module leverages [Trinity-RFT](https://github.com/modelscope/Trinity-RFT), which supports training agents with minimal code changes.
 
 ---
 
-## How to implement
+## Overview
 
-Here we use a math problem solving scenario as an example to illustrate how to convert an existing agent workflow into a trainable workflow function.
+To train your agent workflow using RL, you need to prepare three components:
+
+1. **Workflow function**: Refactor your agent workflow into a workflow function that follows the specified input/output signature.
+2. **Judge function**: Implement a judge function that computes rewards based on the agent's responses.
+3. **Task dataset**: Prepare a dataset containing training samples for the agent to learn.
+
+The following diagram illustrates the relationship between these components:
 
 ```mermaid
 flowchart TD
@@ -16,7 +22,18 @@ flowchart TD
     Task[Task] --> WorkflowFunction
     Task[Task] --> JudgeFunction
     JudgeFunction --> Reward[Reward]
+
+    classDef wfcolor fill:#e67e22,stroke:#333,stroke-width:4px,color:#111;
+    classDef judgecolor fill:#1abc9c,stroke:#333,stroke-width:4px,color:#111;
+    classDef taskcolor fill:#3498db,stroke:#333,stroke-width:4px,color:#111;
+    class WorkflowFunction wfcolor;
+    class JudgeFunction judgecolor;
+    class Task taskcolor;
 ```
+
+## How to implement
+
+Here we use a math problem solving scenario as an example to illustrate how to implement the above three components.
 
 Suppose you have an agent workflow that solves math problems using the `ReActAgent`.
 
@@ -41,11 +58,11 @@ async def run_react_agent(query: str):
     print(response)
 ```
 
-### Step 1: Prepare dataset
+### Step 1: Prepare task dataset
 
 To train the agent solving math problems, you need a training dataset that contains samples of math problems and their corresponding ground truth answers.
 
-The dataset should be organized in huggingface dataset format and can be loaded using the `datasets` library's `load_dataset` function. For example:
+The dataset should be organized in huggingface [datasets](https://huggingface.co/docs/datasets/quickstart) format and can be loaded using the `datasets.load_dataset` function. For example:
 
 ```
 my_dataset/
