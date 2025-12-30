@@ -71,11 +71,13 @@ def tune(
                     "judge_func"
                 ] = judge_func
             if eval_dataset is not None:
-                self.buffer.explorer.input.taskset = TasksetConfig(
-                    name="eval_taskset",
-                    path=eval_dataset.path,
-                    split=eval_dataset.split,
-                    subset_name=eval_dataset.name,
+                self.buffer.explorer_input.eval_tasksets.append(
+                    TasksetConfig(
+                        name="eval_taskset",
+                        path=eval_dataset.path,
+                        split=eval_dataset.split,
+                        subset_name=eval_dataset.name,
+                    ),
                 )
             return self.check_and_update()
 

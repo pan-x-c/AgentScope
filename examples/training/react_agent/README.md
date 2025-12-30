@@ -24,7 +24,7 @@ flowchart TD
     JudgeFunction --> Reward[Reward]
 
     classDef wfcolor fill:#e67e22,stroke:#333,color:#111;
-    classDef judgecolor fill:#1abc9c,stroke:#333,color:#111;
+    classDef judgecolor fill:#1abc9c,stroke:#333,color:#111,stroke-dasharray: 5 5;
     classDef taskcolor fill:#3498db,stroke:#333,color:#111;
     class WorkflowFunction wfcolor;
     class JudgeFunction judgecolor;

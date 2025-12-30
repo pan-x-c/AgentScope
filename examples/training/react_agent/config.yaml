@@ -22,18 +22,6 @@ buffer:
   total_epochs: 1  # run taskset for 1 epoch
   batch_size: 32  # each step contains 32 samples from taskset
   train_batch_size: 256  # trainer batch size is 256 (multi-step reasoning generate more training samples)
-  explorer_input:
-    taskset:  # define the taskset for rollout
-      name: gsm8k
-      storage_type: file
-      path: 'openai/gsm8k'
-      subset_name: 'main'
-      split: 'train'
-      format:
-        prompt_key: 'question'
-        response_key: 'answer'
-      rollout_args:
-        temperature: 1.0
 explorer:
   runner_per_model: 16  # each model has 16 runners for parallel rollout
   max_timeout: 600  # max timeout for each rollout is 600 seconds
@@ -58,4 +46,4 @@ trainer:
   use_dynamic_bsz: true
   ulysses_sequence_parallel_size: 1  # use sequence parallelism to reduce memory usage
 monitor:
-  monitor_type: tensorboard  # here we use tensorboard, you can also use wandb or mlflow
+  monitor_type: tensorboard  # here we use tensorboard, you can also use wandb, mlflow or swanlab
