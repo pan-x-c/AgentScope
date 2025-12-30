@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """The main entry point for agent learning."""
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Any
 from ._types import (
     WorkflowType,
     JudgeType,
+    TunerChatModel,
     Dataset,
 )
 
@@ -12,8 +13,10 @@ from ._types import (
 def tune(
     *,
     workflow_func: Callable,
+    model: TunerChatModel,
     train_dataset: Dataset,
     config_path: str,
+    auxiliary_models: dict[str, TunerChatModel] | None = None,
     judge_func: Callable | None = None,
     eval_dataset: Dataset | None = None,
 ) -> None:
@@ -45,20 +48,23 @@ def tune(
         def to_trinity_config(
             self,
             workflow_func: WorkflowType,
-            train_dataset: Dataset,
+            train_dataset: Dataset | None,
+            model: TunerChatModel | None,
             judge_func: JudgeType | None,
             eval_dataset: Dataset | None,
+            auxiliary_models: dict[str, TunerChatModel] | None = None,
         ) -> Config:
             """Convert to Trinity-RFT compatible configuration."""
             from trinity.common.config import TasksetConfig
 
             workflow_name = "agentscope_workflow_adapter_v1"
-            self.buffer.explorer_input.taskset = TasksetConfig(
-                name="train_taskset",
-                path=train_dataset.path,
-                split=train_dataset.split,
-                subset_name=train_dataset.name,
-            )
+            if train_dataset is not None:
+                self.buffer.explorer_input.taskset = TasksetConfig(
+                    name="train_taskset",
+                    path=train_dataset.path,
+                    split=train_dataset.split,
+                    subset_name=train_dataset.name,
+                )
             self.buffer.explorer_input.taskset.default_workflow_type = (
                 workflow_name
             )
@@ -66,6 +72,21 @@ def tune(
             self.buffer.explorer_input.taskset.workflow_args[
                 "workflow_func"
             ] = workflow_func
+
+            if model is not None:
+                model_config = model.get_config()
+                self.model.model_path = model_config["model_path"]
+                self.model.max_model_len = model_config["max_model_len"]
+                self.model.max_response_tokens = model.max_tokens
+                self.explorer.rollout_model = self.get_model_config(model)
+                self.explorer.rollout_model.enable_history = True
+            if auxiliary_models is not None:
+                for name, aux_chat_model in auxiliary_models.items():
+                    model_config = self.get_model_config(aux_chat_model)
+                    model.model_name = name
+                    self.explorer.auxiliary_models.append(
+                        model_config,
+                    )
             if judge_func is not None:
                 self.buffer.explorer_input.taskset.workflow_args[
                     "judge_func"
@@ -80,6 +101,17 @@ def tune(
                     ),
                 )
             return self.check_and_update()
+
+        def get_model_config(
+            self,
+            chat_model: TunerChatModel,
+        ) -> Any:
+            """Get the model configuration for Trinity-RFT."""
+            from trinity.common.config import InferenceModelConfig
+
+            return InferenceModelConfig(
+                **chat_model.get_config(),
+            )
 
         @classmethod
         def load_config(cls, config_path: str) -> "TuneConfig":
@@ -103,7 +135,9 @@ def tune(
         config=TuneConfig.load_config(config_path).to_trinity_config(
             workflow_func=workflow_func,
             train_dataset=train_dataset,
+            model=model,
             judge_func=judge_func,
             eval_dataset=eval_dataset,
+            auxiliary_models=auxiliary_models,
         ),
     )

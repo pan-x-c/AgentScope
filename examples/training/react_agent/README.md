@@ -106,7 +106,7 @@ To train an agent workflow using RL, you need to refactor your agent with the fo
 ```python
 async def workflow_function(
     task: Dict,
-    model: TrinityChatModel,
+    model: TunerChatModel,
     auxiliary_models: Dict[str, ChatModelBase],
 ) -> WorkflowOutput:
     """Run the agent workflow on a single task and return a scalar reward."""
@@ -114,7 +114,7 @@ async def workflow_function(
 
 - Inputs:
     - `task`: A dictionary representing a single training task, converted from a sample in the training dataset. For example, if using the dataset prepared in Step 1, the `task` is a dictionary containing `question` and `answer` fields.
-    - `model`: A `TrinityChatModel` instance, which has the same interface as `OpenAIChatModel`, but it supports automatically converting invoke history into trainable data that can be used by Trinity-RFT.
+    - `model`: A `TunerChatModel` instance, which has the same interface as `OpenAIChatModel`, but it supports automatically converting invoke history into trainable data that can be used by Trinity-RFT.
     - `auxiliary_models`: A dictionary of auxiliary models that can be used in the workflow. The keys are model names, and the values are `ChatModelBase` instances. These models are different from the main `model` in that they are not directly trained, but can be used to assist the main model in completing the task (e.g., acting as Judge). Empty dict if no auxiliary models are needed.
 
 - Outputs:
@@ -134,14 +134,13 @@ Below is a refactored version of the original `run_react_agent` function to fit 
 
 ```python
 from agentscope.agent import ReActAgent
-from agentscope.model import TrinityChatModel
-from agentscope.tuner import WorkflowOutput
+from agentscope.tuner import WorkflowOutput, TunerChatModel
 from agentscope.message import Msg
 
 async def run_react_agent(
     task: Dict,
-    model: TrinityChatModel,
-    auxiliary_models: Dict[str, TrinityChatModel],
+    model: TunerChatModel,
+    auxiliary_models: Dict[str, TunerChatModel],
 ) -> WorkflowOutput:
     agent = ReActAgent(
         name="react_agent",
@@ -167,7 +166,7 @@ To train the agent using RL, you need to define a judge function that computes a
 async def judge_function(
     task: Dict,
     response: Any,
-    auxiliary_models: Dict[str, ChatModelBase],
+    auxiliary_models: Dict[str, TunerChatModel],
 ) -> JudgeOutput:
     """Calculate reward based on the input task and agent's response."""
 ```
@@ -175,7 +174,7 @@ async def judge_function(
 - Inputs:
     - `task`: A dictionary representing a single training task, same as the input to the workflow function.
     - `response`: The output from the workflow function, which can be the agent's response or other types of outputs depending on your workflow function implementation.
-    - `auxiliary_models`: A dictionary of auxiliary models that can be used in the reward calculation. The keys are model names, and the values are `ChatModelBase` instances. These models are different from the main model in that they are not directly trained, but can be used to assist in calculating the reward (e.g., acting as Judge). Empty dict if no auxiliary models are needed.
+    - `auxiliary_models`: A dictionary of auxiliary models that can be used in the reward calculation. The keys are model names, and the values are `TunerChatModel` instances. These models are different from the main model in that they are not directly trained, but can be used to assist in calculating the reward (e.g., acting as Judge). Empty dict if no auxiliary models are needed.
 
 - Outputs:
     - `JudgeOutput`: An object containing the output of the judge function. It contains:
@@ -188,11 +187,10 @@ Here is an example implementation of a simple reward calculation mechanism that 
 
 ```python
 from agentscope.message import Msg
-from agentscope.tuner import JudgeOutput
-from agentscope.model import TrinityChatModel
+from agentscope.tuner import JudgeOutput, TunerChatModel
 
 async def judge_function(
-    task: Dict, response: Msg, auxiliary_models: Dict[str, TrinityChatModel]
+    task: Dict, response: Msg, auxiliary_models: Dict[str, TunerChatModel]
 ) -> JudgeOutput:
     """Simple reward: 1.0 for exact match, else 0.0."""
     truth = task["answer"]
@@ -211,9 +209,11 @@ from agentscope.tuner import tune
 
 if __name__ == "__main__":
     dataset = Dataset(path="my_dataset", split="train")
+    model = TunerChatModel(model_path="Qwen/Qwen3-0.6B",max_model_len=16384)
     tune(
         workflow_func=run_react_agent,
         judge_func=judge_function,
+        model=model,
         train_dataset=dataset,
         config_path="/path/to/your/config.yaml",
     )
@@ -230,8 +230,7 @@ See [config.yaml](./config.yaml) for an example configuration. For full configur
 ```python
 from typing import Dict
 
-from agentscope.tuner import tune, WorkflowOutput, JudgeOutput, Dataset
-from agentscope.model import TrinityChatModel
+from agentscope.tuner import tune, WorkflowOutput, JudgeOutput, Dataset, TunerChatModel
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
 from agentscope.message import Msg
@@ -239,8 +238,8 @@ from agentscope.message import Msg
 
 async def run_react_agent(
     task: Dict,
-    model: TrinityChatModel,
-    auxiliary_models: Dict[str, TrinityChatModel],
+    model: TunerChatModel,
+    auxiliary_models: Dict[str, TunerChatModel],
 ) -> WorkflowOutput:
     agent = ReActAgent(
         name="react_agent",
@@ -259,7 +258,7 @@ async def run_react_agent(
 
 
 async def judge_function(
-    task: Dict, response: Msg, auxiliary_models: Dict[str, TrinityChatModel]
+    task: Dict, response: Msg, auxiliary_models: Dict[str, TunerChatModel]
 ) -> JudgeOutput:
     """Simple reward: 1.0 for exact match, else 0.0."""
     truth = task["answer"]
@@ -269,9 +268,11 @@ async def judge_function(
 
 if __name__ == "__main__":
     dataset = Dataset(path="my_dataset", split="train")
+    model = TunerChatModel(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
     tune(
         workflow_func=run_react_agent,
         judge_func=judge_function,
+        model=model,
         train_dataset=dataset,
         config_path="/path/to/your/config.yaml",
     )

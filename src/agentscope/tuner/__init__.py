@@ -8,6 +8,7 @@ from ._types import (
     WorkflowOutput,
     JudgeOutput,
     Dataset,
+    TunerChatModel,
 )
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "JudgeType",
     "JudgeOutput",
     "Dataset",
+    "TunerChatModel",
 ]
