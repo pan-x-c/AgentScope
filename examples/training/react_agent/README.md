@@ -207,19 +207,44 @@ from agentscope.tuner import tune
 
 if __name__ == "__main__":
     dataset = Dataset(path="my_dataset", split="train")
-    model = TunerChatModel(model_path="Qwen/Qwen3-0.6B",max_model_len=16384)
+    model = TunerChatModel(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
+    algorithm = Algorithm(
+        algorithm_type="multi_step_grpo",
+        group_size=8,
+        batch_size=32,
+        learning_rate=1e-6,
+    )
     tune(
         workflow_func=run_react_agent,
         judge_func=judge_function,
         model=model,
         train_dataset=dataset,
-        config_path="/path/to/your/config.yaml",
+        algorithm=algorithm,
     )
+    # for advanced users, you can also pass in config_path to load config from a yaml file
+    # tune(
+    #     workflow_func=run_react_agent,
+    #     judge_func=judge_function,
+    #     config_path="config.yaml",
+    #)
 ```
 
-The trained model, training dataset, RL algorithm, training cluster and other configurations are all located in the configuration file, which should follow the Trinity-RFT configuration format.
+Here, we use `Dataset` to load the training dataset, `TunerChatModel` to initialize the trainable model, and `Algorithm` to specify the RL algorithm and its hyperparameters.
 
-See [config.yaml](./config.yaml) for an example configuration. For full configuration details, see [Trinity-RFT Configuration Guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html).
+> Advanced users can ignore `model`, `train_dataset`, `algorithm` arguments and provide a configuration file path pointing to a YAML file using the `config_path` argument instead, see [config.yaml](./config.yaml) for an example.
+
+The checkpoint and logs will automatically be saved to the `checkpoints/AgentScope` directory under the current working directory and each run will be save in a sub-directory suffixed with current timestamp.
+You can found the tensorboard logs inside `monitor/tensorboard` of the checkpoint directory.
+
+```
+react_agent/
+    └── checkpoints/
+        └──AgentScope/
+            └── Experiement-20260104185355/  # each run saved in a sub-directory with timestamp
+                ├── monitor/
+                │   └── tensorboard/  # tensorboard logs
+                └── global_step_x/    # saved model checkpoints at step x
+```
 
 ---
 
@@ -228,7 +253,7 @@ See [config.yaml](./config.yaml) for an example configuration. For full configur
 ```python
 from typing import Dict
 
-from agentscope.tuner import tune, WorkflowOutput, JudgeOutput, Dataset, TunerChatModel
+from agentscope.tuner import tune, WorkflowOutput, JudgeOutput, Dataset, TunerChatModel, Algorithm
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
 from agentscope.message import Msg
@@ -267,12 +292,17 @@ async def judge_function(
 if __name__ == "__main__":
     dataset = Dataset(path="my_dataset", split="train")
     model = TunerChatModel(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
+    algorithm = Algorithm(
+        algorithm_type="multi_step_grpo",
+        group_size=8,
+        batch_size=32,
+        learning_rate=1e-6,
+    )
     tune(
         workflow_func=run_react_agent,
         judge_func=judge_function,
         model=model,
         train_dataset=dataset,
-        config_path="/path/to/your/config.yaml",
     )
 ```
 

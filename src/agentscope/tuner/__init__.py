@@ -2,17 +2,16 @@
 """The learning module of AgentScope, including RL and SFT."""
 
 from ._tune import tune
-from ._types import (
-    WorkflowType,
-    JudgeType,
-    WorkflowOutput,
-    JudgeOutput,
-    Dataset,
-    TunerChatModel,
-)
+from ._dataset import Dataset
+from ._judge import JudgeType, JudgeOutput
+from ._model import TunerChatModel
+from ._workflow import WorkflowType, WorkflowOutput
+from ._algorithm import Algorithm
+
 
 __all__ = [
     "tune",
+    "Algorithm",
     "WorkflowType",
     "WorkflowOutput",
     "JudgeType",

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Example of training a ReAct agent on GSM8K with Trinity-RFT."""
-import os
 from typing import Dict
 
 from agentscope.tuner import (
@@ -9,6 +8,7 @@ from agentscope.tuner import (
     WorkflowOutput,
     JudgeOutput,
     TunerChatModel,
+    Algorithm,
 )
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
@@ -101,10 +101,6 @@ async def gsm8k_judge(
 
 
 if __name__ == "__main__":
-    config_path = os.path.join(
-        os.path.dirname(__file__),
-        "config.yaml",
-    )
     dataset = Dataset(
         path="openai/gsm8k",
         name="main",
@@ -115,13 +111,19 @@ if __name__ == "__main__":
         max_model_len=24576,
         max_tokens=16384,
         temperature=1.0,
+        inference_engine_num=4,
         tensor_parallel_size=1,
-        engine_num=1,
+    )
+    algorithm = Algorithm(
+        algorithm_type="multi_step_grpo",
+        group_size=8,
+        learning_rate=1e-6,
+        batch_size=32,
     )
     tune(
         workflow_func=run_react_agent,
         judge_func=gsm8k_judge,
         train_dataset=dataset,
         model=tuner_model,
-        config_path=config_path,
+        algorithm=algorithm,
     )
