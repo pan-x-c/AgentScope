@@ -1,23 +1,46 @@
-# Training agent workflows with RL using Trinity-RFT
+# AgentScope Tuner Quick Start Guide
 
-AgentScope exposes a `tune` interface to train agent workflows using reinforcement learning (RL).
-The `tune` interface leverages [Trinity-RFT](https://github.com/modelscope/Trinity-RFT), which supports training agents with minimal code changes.
+AgentScope provides a `tuner` sub-module to train agent workflows using reinforcement learning (RL).
+This guide walks you through the steps to implement and train an agent workflow using RL with AgentScope Tuner.
 
----
+## Overview
+
+To train your agent workflow using RL, you need to prepare three components:
+
+1. **Workflow function**: Refactor your agent workflow into a workflow function that follows the specified input/output signature.
+2. **Judge function**: Implement a judge function that computes rewards based on the agent's responses.
+3. **Task dataset**: Prepare a dataset containing training samples for the agent to learn.
+
+The following diagram illustrates the relationship between these components:
+
+```mermaid
+flowchart TD
+    Model[Model] --> WorkflowFunction[Workflow Function]
+    WorkflowFunction --> JudgeFunction[Judge Function]
+    Task[Task] --> WorkflowFunction
+    Task[Task] --> JudgeFunction
+    JudgeFunction --> Reward[Reward]
+
+    classDef wfcolor fill:#e67e22,stroke:#333,color:#111;
+    classDef judgecolor fill:#1abc9c,stroke:#333,color:#111,stroke-dasharray: 5 5;
+    classDef taskcolor fill:#3498db,stroke:#333,color:#111;
+    class WorkflowFunction wfcolor;
+    class JudgeFunction judgecolor;
+    class Task taskcolor;
+```
 
 ## How to implement
 
-Here we use a math problem solving scenario as an example to illustrate how to convert an existing agent workflow into a trainable workflow function.
+Here we use a math problem solving scenario as an example to illustrate how to implement the above three components.
 
-Suppose you have an agent workflow that solves math problems using the `ReActAgent`
+Suppose you have an agent workflow that solves math problems using the `ReActAgent`.
 
 ```python
 from agentscope.agent import ReActAgent
 
-async def run_react_agent():
+async def run_react_agent(query: str):
     # model = ...  # Initialize your ChatModel here
 
-    query = "What is the sum of the first 10 prime numbers?"
     agent = ReActAgent(
         name="react_agent",
         sys_prompt="You are a helpful math problem solving agent.",
@@ -33,115 +56,195 @@ async def run_react_agent():
     print(response)
 ```
 
-### Step 1: Define a workflow function
+### Step 1: Prepare task dataset
 
-To train an agent workflow using RL, you need to implement a workflow function with the following signature.
+To train the agent solving math problems, you need a training dataset that contains samples of math problems and their corresponding ground truth answers.
 
-```python
-def workflow_function(
-    task: Dict,
-    model: TrinityChatModel,
-) -> float:
-    """Run the agent workflow on a single task and return a scalar reward."""
+The dataset should be organized in huggingface [datasets](https://huggingface.co/docs/datasets/quickstart) format and can be loaded using the `datasets.load_dataset` function. For example:
+
+```
+my_dataset/
+    ├── train.jsonl  # samples for training
+    └── test.jsonl   # samples for evaluation
 ```
 
-Inputs:
-
-- `task`: A dictionary representing a single training task, converted from a sample in the training dataset. For example, in a math problem solving task, `task` may contain `question` and `answer` fields.
-
-- `model`: A `TrinityChatModel` instance, which has the same interface as `OpenAIChatModel`, but it supports automatically converting invoke history into trainable data that can be used by Trinity-RFT.
-
-Outputs:
-
-- A scalar reward (float) indicating the quality of the agent's response on the given task.
-
-### Step 2: Initialize and run the agent using the provided task and model
-
-Since the `model` has the same interface as `OpenAIChatModel`, you can directly use it to initialize the agent.
-
-However, the `task` dictionary is a sample from the training dataset and can vary. You need to extract the relevant fields from `task` to run the agent.
-
-Suppose your training dataset is a `.jsonl` file with samples like:
+Suppose your `train.jsonl` contains samples like:
 
 ```json
 {"question": "What is 2 + 2?", "answer": "4"}
 {"question": "What is 4 + 4?", "answer": "8"}
 ```
 
-In this case, you can extract the `question` field from `task` to run the agent:
+Note that the task sample format can vary based on your specific scenario. The key point is that each sample should contain the necessary information for the agent to complete the task and for judging the quality of the response.
+
+You can preview your dataset using the following code:
 
 ```python
-def workflow_function(
+from agentscope.tuner import Dataset
+
+Dataset(path="my_dataset", split="train").preview()
+
+# Output:
+# {
+#   "question": [
+#     "What is 2 + 2?",
+#     "What is 4 + 4?"
+#   ],
+#   "answer": [
+#     "4",
+#     "8"
+#   ]
+# }
+```
+
+### Step 2: Define a workflow function
+
+To train an agent workflow using RL, you need to refactor your agent with the following signature.
+
+```python
+async def workflow_function(
     task: Dict,
-    model: TrinityChatModel,
-) -> float:
+    model: TunerChatModel,
+    auxiliary_models: Dict[str, ChatModelBase],
+) -> WorkflowOutput:
+    """Run the agent workflow on a single task and return a scalar reward."""
+```
+
+- Inputs:
+    - `task`: A dictionary representing a single training task, converted from a sample in the training dataset. For example, if using the dataset prepared in Step 1, the `task` is a dictionary containing `question` and `answer` fields.
+    - `model`: A `TunerChatModel` instance, which has the same interface as `OpenAIChatModel`, but it supports automatically converting invoke history into trainable data that can be used by Trinity-RFT.
+    - `auxiliary_models`: A dictionary of auxiliary models that can be used in the workflow. The keys are model names, and the values are `ChatModelBase` instances. These models are different from the main `model` in that they are not directly trained, but can be used to assist the main model in completing the task (e.g., acting as Judge). Empty dict if no auxiliary models are needed.
+
+- Outputs:
+    - `WorkflowOutput`: An object containing the output of the workflow function, which contains:
+        - `reward`: A scalar float representing the reward obtained from the workflow function. Fill this field if you want to directly output the reward from the workflow function. Otherwise, you can leave it as `None` and implement the reward calculation in the judge function.
+        - `response`: The output from the workflow function, which can be the agent's response or other types of outputs depending on your workflow function implementation. Used for reward calculation in the judge function. If you don't need to calculate reward in the judge function, you can leave it as `None`.
+        - `metrics`: A dictionary of additional metrics that can be logged during training. Leave it as `None` if no additional metrics are needed.
+
+
+Below is a refactored version of the original `run_react_agent` function to fit the workflow function signature.
+
+**There are only 3 minor changes from the original function**:
+
+1. use the input `model` to initialize the agent.
+2. use the `question` field from the `task` dictionary as the user query.
+3. return a `WorkflowOutput` object containing the agent's response.
+
+```python
+from agentscope.agent import ReActAgent
+from agentscope.tuner import WorkflowOutput, TunerChatModel
+from agentscope.message import Msg
+
+async def run_react_agent(
+    task: Dict,
+    model: TunerChatModel,
+    auxiliary_models: Dict[str, TunerChatModel],
+) -> WorkflowOutput:
     agent = ReActAgent(
         name="react_agent",
         sys_prompt="You are a helpful math problem solving agent.",
-        model=model,
-        enable_meta_tool=True,
+        model=model,  # directly use the trainable model here
         formatter=OpenAIChatFormatter(),
     )
 
     response = await agent.reply(
-        msg=Msg("user", task["question"], role="user"),
+        msg=Msg("user", task["question"], role="user"),  # extract question from task
     )
 
-    # further steps to calculate reward... (See Step 3)
+    return WorkflowOutput(  # put the response into WorkflowOutput
+        response=response,
+    )
 ```
 
-### Step 3: Implement a reward calculation mechanism
+### Step 3: Implement the judge function
 
-To train the agent using RL, you need to define a reward calculation mechanism that computes a reward based on the agent's response.
-
-Continuing from the previous code snippet, suppose you want to give a reward of `1.0` if the agent's answer matches the ground truth answer in `task["answer"]`, and `0.0` otherwise.
+To train the agent using RL, you need to define a judge function that computes a reward following the signature below.
 
 ```python
-def calculate_reward(answer: str, truth: str) -> float:
+async def judge_function(
+    task: Dict,
+    response: Any,
+    auxiliary_models: Dict[str, TunerChatModel],
+) -> JudgeOutput:
+    """Calculate reward based on the input task and agent's response."""
+```
+
+- Inputs:
+    - `task`: A dictionary representing a single training task, same as the input to the workflow function.
+    - `response`: The output from the workflow function, which can be the agent's response or other types of outputs depending on your workflow function implementation.
+    - `auxiliary_models`: A dictionary of auxiliary models that can be used in the reward calculation. The keys are model names, and the values are `TunerChatModel` instances. These models are different from the main model in that they are not directly trained, but can be used to assist in calculating the reward (e.g., acting as Judge). Empty dict if no auxiliary models are needed.
+
+- Outputs:
+    - `JudgeOutput`: An object containing the output of the judge function. It contains:
+        - `reward`: A scalar float representing the reward calculated based on the input task and agent's response. This field must be filled.
+        - `metrics`: A dictionary of additional metrics that can be logged during training. Leave it as `None` if no additional metrics are needed.
+
+Here is an example implementation of a simple reward calculation mechanism that gives a reward of `1.0` for an exact match between the agent's answer and the ground truth answer, and `0.0` otherwise.
+
+> Note: This is a toy reward function; in practice, you need to parse the agent's response to extract the final answer before comparing it with the ground truth. You may also want to use a more robust metric for reward calculation.
+
+```python
+from agentscope.message import Msg
+from agentscope.tuner import JudgeOutput, TunerChatModel
+
+async def judge_function(
+    task: Dict, response: Msg, auxiliary_models: Dict[str, TunerChatModel]
+) -> JudgeOutput:
     """Simple reward: 1.0 for exact match, else 0.0."""
-    return 1.0 if answer.strip() == truth.strip() else 0.0
+    truth = task["answer"]
+    answer = response.get_text_content() or ""
+    return JudgeOutput(reward=1.0 if answer.strip() == truth.strip() else 0.0)
 ```
 
-To facilitate reward calculation, you can define a structured response model that allows easy parsing of the agent's output.
-
-```python
-from pydantic import BaseModel, Field
-
-class ResponseStructure(BaseModel):
-    """Response structure for math tasks (simplified).
-    This structure let the agent output be easily parsed,
-    allowing for easy reward calculation.
-    """
-
-    result: str = Field(description="Final answer to the math problem.")
-
-# ... inside workflow_function ...
-#    response = await agent.reply(
-#        msg=Msg("user", task["question"], role="user"),
-#        structured_model=ResponseStructure,  # <-- specify structured model here
-#    )
-#    return calculate_reward(response.metadata["result"], task["answer"])
-```
-
-### Step 4: Use `tune` to train the workflow function
+### Step 4: Start tuning
 
 Finally, you can use the `tune` interface to train the defined workflow function with a configuration file.
 
 ```python
-from agentscope.tune import tune
+from agentscope.tuner import tune
 
 # your workflow function here...
 
 if __name__ == "__main__":
-    tune(
-        workflow_func=workflow_function,
-        config_path="/path/to/your/config.yaml",
+    dataset = Dataset(path="my_dataset", split="train")
+    model = TunerChatModel(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
+    algorithm = Algorithm(
+        algorithm_type="multi_step_grpo",
+        group_size=8,
+        batch_size=32,
+        learning_rate=1e-6,
     )
+    tune(
+        workflow_func=run_react_agent,
+        judge_func=judge_function,
+        model=model,
+        train_dataset=dataset,
+        algorithm=algorithm,
+    )
+    # for advanced users, you can also pass in config_path to load config from a yaml file
+    # tune(
+    #     workflow_func=run_react_agent,
+    #     judge_func=judge_function,
+    #     config_path="config.yaml",
+    #)
 ```
 
-The trained model, training dataset, RL algorithm, training cluster and other configurations are all located in the configuration file, which should follow the Trinity-RFT configuration format.
+Here, we use `Dataset` to load the training dataset, `TunerChatModel` to initialize the trainable model, and `Algorithm` to specify the RL algorithm and its hyperparameters.
 
-See [config.yaml](./config.yaml) for an example configuration. For full configuration details, see [Trinity-RFT Configuration Guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html).
+> Advanced users can ignore `model`, `train_dataset`, `algorithm` arguments and provide a configuration file path pointing to a YAML file using the `config_path` argument instead, see [config.yaml](./config.yaml) for an example.
+
+The checkpoint and logs will automatically be saved to the `checkpoints/AgentScope` directory under the current working directory and each run will be save in a sub-directory suffixed with current timestamp.
+You can found the tensorboard logs inside `monitor/tensorboard` of the checkpoint directory.
+
+```
+react_agent/
+    └── checkpoints/
+        └──AgentScope/
+            └── Experiement-20260104185355/  # each run saved in a sub-directory with timestamp
+                ├── monitor/
+                │   └── tensorboard/  # tensorboard logs
+                └── global_step_x/    # saved model checkpoints at step x
+```
 
 ---
 
@@ -150,62 +253,63 @@ See [config.yaml](./config.yaml) for an example configuration. For full configur
 ```python
 from typing import Dict
 
-from pydantic import BaseModel, Field
-
-from agentscope.tune import tune
-from agentscope.model import TrinityChatModel
+from agentscope.tuner import tune, WorkflowOutput, JudgeOutput, Dataset, TunerChatModel, Algorithm
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
 from agentscope.message import Msg
 
 
-def calculate_reward(answer: str, truth: str) -> float:
-    """Simple reward: 1.0 for exact match, else 0.0.
-
-    This is a toy reward function; replace it with a more robust metric if needed.
-    """
-
-    return 1.0 if answer.strip() == truth.strip() else 0.0
-
-
-class ResponseStructure(BaseModel):
-    """Response structure for math tasks (simplified).
-    This structure makes the agent's output easy to parse,
-    allowing for easy reward calculation.
-    """
-
-    result: str = Field(description="Final answer to the math problem.")
-
-
-async def react_workflow_function(task: Dict, model: TrinityChatModel) -> float:
-    """Workflow function for ReAct agent training."""
-
+async def run_react_agent(
+    task: Dict,
+    model: TunerChatModel,
+    auxiliary_models: Dict[str, TunerChatModel],
+) -> WorkflowOutput:
     agent = ReActAgent(
         name="react_agent",
         sys_prompt="You are a helpful math problem solving agent.",
-        model=model,
-        enable_meta_tool=True,
+        model=model,  # directly use the trainable model here
         formatter=OpenAIChatFormatter(),
     )
 
     response = await agent.reply(
-        msg=Msg("user", task["question"], role="user"),
-        structured_model=ResponseStructure,
+        msg=Msg("user", task["question"], role="user"),  # extract question from task
     )
 
-    reward = calculate_reward(response.metadata["result"], task["answer"])
-    return reward
+    return WorkflowOutput(
+        response=response,
+    )
+
+
+async def judge_function(
+    task: Dict, response: Msg, auxiliary_models: Dict[str, TunerChatModel]
+) -> JudgeOutput:
+    """Simple reward: 1.0 for exact match, else 0.0."""
+    truth = task["answer"]
+    answer = response.get_text_content() or ""
+    return JudgeOutput(reward=1.0 if answer.strip() == truth.strip() else 0.0)
 
 
 if __name__ == "__main__":
+    dataset = Dataset(path="my_dataset", split="train")
+    model = TunerChatModel(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
+    algorithm = Algorithm(
+        algorithm_type="multi_step_grpo",
+        group_size=8,
+        batch_size=32,
+        learning_rate=1e-6,
+    )
     tune(
-        workflow_func=react_workflow_function,
-        config_path="/path/to/your/config.yaml",
+        workflow_func=run_react_agent,
+        judge_func=judge_function,
+        model=model,
+        train_dataset=dataset,
+        algorithm=algorithm,
     )
 ```
 
+> Note:
 > Above code is a simplified example for illustration purposes only.
-> For a complete implementation, please refer to [main.py](./main.py).
+> For a complete implementation, please refer to [main.py](./main.py), which trains a ReAct agent to solve math problems on the GSM8K dataset.
 
 ---
 
@@ -218,11 +322,11 @@ After implementing the workflow function, follow these steps to run the training
     - At least 2 NVIDIA GPUs with CUDA 12.8 or newer.
     - Adjust the configuration file ([config.yaml](./config.yaml)) based on your hardware.
     - Follow the Trinity-RFT [installation guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html) to install the latest version from source code.
-    - Download the GSM8K dataset and Qwen/Qwen3-8B model checkpoints (example):
+    - Download the GSM8K dataset and Qwen/Qwen3-0.6B model checkpoints (example):
 
       ```bash
       huggingface-cli download openai/gsm8k --repo-type dataset
-      huggingface-cli download Qwen/Qwen3-8B
+      huggingface-cli download Qwen/Qwen3-0.6B
       ```
 
 2. Set up a [Ray](https://github.com/ray-project/ray) cluster

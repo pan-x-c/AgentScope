@@ -1,67 +1,92 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=unused-argument
-"""Learn related tests in agentscope."""
-from typing import Any, Dict, List
+# pylint: disable=too-many-statements
+"""Unit tests for Trinity-RFT model class."""
 from unittest.async_case import IsolatedAsyncioTestCase
+from unittest.mock import Mock, AsyncMock
 
-from agentscope.model import TrinityChatModel, OpenAIChatModel
-from agentscope.tune._workflow import _validate_function_signature
-
-
-async def correct_interface(task: Dict, model: TrinityChatModel) -> float:
-    """Correct interface matching the workflow type."""
-    return task["reward"]
+from agentscope.model import ChatResponse
+from agentscope.message import TextBlock
+from agentscope.tuner import TunerChatModel
 
 
-async def wrong_interface_1(
-    task: Dict,
-    model: TrinityChatModel,
-    extra: Any,
-) -> float:
-    """Wrong interface with extra argument."""
-    return 0.0
+class TestTunerChatModel(IsolatedAsyncioTestCase):
+    """Test cases for TunerChatModel."""
 
+    async def test_init_with_trinity_client(self) -> None:
+        """Test initialization with a valid OpenAI async client."""
+        MODEL_NAME = "Qwen/Qwen3-1.7B"
+        mock_client = Mock()
+        mock_client.model_path = MODEL_NAME
 
-async def wrong_interface_2(task: Dict) -> float:
-    """Wrong interface with missing argument."""
-    return 0.0
-
-
-async def wrong_interface_3(task: List, model: TrinityChatModel) -> float:
-    """Wrong interface with wrong task type."""
-    return 0.0
-
-
-async def wrong_interface_4(task: Dict, model: OpenAIChatModel) -> float:
-    """Wrong interface with wrong model type."""
-    return 0.0
-
-
-async def wrong_interface_5(task: Dict, model: TrinityChatModel) -> str:
-    """Wrong interface with wrong return type."""
-    return "0.0"
-
-
-class AgentLearnTest(IsolatedAsyncioTestCase):
-    """Test the learning functionality of agents."""
-
-    async def test_workflow_interface_validate(self) -> None:
-        """Test the interface of workflow function."""
-        self.assertTrue(
-            _validate_function_signature(correct_interface),
+        # test init
+        model_1 = TunerChatModel(
+            model_path=MODEL_NAME,
+            max_model_len=16384,
+            enable_thinking=False,
+            temperature=0.8,
+            tensor_parallel_size=2,
+            inference_engine_num=2,
         )
-        self.assertFalse(
-            _validate_function_signature(wrong_interface_1),
+        model_2 = TunerChatModel(
+            model_path=MODEL_NAME,
+            max_model_len=16384,
+            enable_thinking=True,
+            max_tokens=500,
+            top_p=0.9,
         )
-        self.assertFalse(
-            _validate_function_signature(wrong_interface_2),
+        model_1.set_openai_client(mock_client)
+        model_2.set_openai_client(mock_client)
+        self.assertEqual(model_1.model_name, MODEL_NAME)
+        self.assertFalse(model_1.stream)
+        self.assertIs(model_1.client, mock_client)
+        self.assertEqual(model_2.model_name, MODEL_NAME)
+        self.assertFalse(model_2.stream)
+        self.assertIs(model_2.client, mock_client)
+
+        # create mock response
+        messages = [{"role": "user", "content": "Hello"}]
+        mock_message = Mock()
+        mock_message.content = "Hi there!"
+        mock_message.reasoning_content = None
+        mock_message.tool_calls = []
+        mock_message.audio = None
+        mock_message.parsed = None
+        mock_choice = Mock()
+        mock_choice.message = mock_message
+        mock_response = Mock()
+        mock_response.choices = [mock_choice]
+        mock_usage = Mock()
+        mock_usage.prompt_tokens = 10
+        mock_usage.completion_tokens = 20
+        mock_response.usage = mock_usage
+
+        mock_client.chat.completions.create = AsyncMock(
+            return_value=mock_response,
         )
-        self.assertFalse(
-            _validate_function_signature(wrong_interface_3),
-        )
-        self.assertFalse(
-            _validate_function_signature(wrong_interface_4),
-        )
-        self.assertFalse(
-            _validate_function_signature(wrong_interface_5),
-        )
+
+        result = await model_1(messages)
+        call_args = mock_client.chat.completions.create.call_args[1]
+        self.assertEqual(call_args["model"], MODEL_NAME)
+        self.assertEqual(call_args["messages"], messages)
+        self.assertFalse(call_args["stream"])
+        self.assertFalse(call_args["chat_template_kwargs"]["enable_thinking"])
+        self.assertEqual(call_args["temperature"], 0.8)
+        self.assertIsInstance(result, ChatResponse)
+        expected_content = [
+            TextBlock(type="text", text="Hi there!"),
+        ]
+        self.assertEqual(result.content, expected_content)
+
+        result = await model_2(messages)
+        call_args = mock_client.chat.completions.create.call_args[1]
+        self.assertEqual(call_args["model"], MODEL_NAME)
+        self.assertEqual(call_args["messages"], messages)
+        self.assertFalse(call_args["stream"])
+        self.assertTrue(call_args["chat_template_kwargs"]["enable_thinking"])
+        self.assertEqual(call_args["max_tokens"], 500)
+        self.assertEqual(call_args["top_p"], 0.9)
+        self.assertIsInstance(result, ChatResponse)
+        expected_content = [
+            TextBlock(type="text", text="Hi there!"),
+        ]
+        self.assertEqual(result.content, expected_content)
