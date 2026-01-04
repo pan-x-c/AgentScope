@@ -303,6 +303,7 @@ if __name__ == "__main__":
         judge_func=judge_function,
         model=model,
         train_dataset=dataset,
+        algorithm=algorithm,
     )
 ```
 
