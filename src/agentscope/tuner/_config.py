@@ -64,9 +64,13 @@ def to_trinity_config(
         config.buffer.total_steps = train_dataset.total_steps
     config.buffer.explorer_input.taskset.default_workflow_type = workflow_name
     config.buffer.explorer_input.default_workflow_type = workflow_name
-    config.buffer.explorer_input.taskset.workflow_args[
-        "workflow_func"
-    ] = workflow_func
+    workflow_args = {
+        "workflow_func": workflow_func,
+    }
+    if judge_func is not None:
+        workflow_args["judge_func"] = judge_func
+
+    config.buffer.explorer_input.taskset.workflow_args = workflow_args
 
     if model is not None:
         model_config = model.get_config()
@@ -86,10 +90,6 @@ def to_trinity_config(
             config.explorer.auxiliary_models.append(
                 model_config,
             )
-    if judge_func is not None:
-        config.buffer.explorer_input.taskset.workflow_args[
-            "judge_func"
-        ] = judge_func
     if eval_dataset is not None:
         config.buffer.explorer_input.eval_tasksets.append(
             TasksetConfig(
@@ -97,7 +97,7 @@ def to_trinity_config(
                 path=eval_dataset.path,
                 split=eval_dataset.split,
                 subset_name=eval_dataset.name,
-                workflow_args=config.buffer.explorer_input.taskset.workflow_args
+                workflow_args=workflow_args,
             ),
         )
     if algorithm is not None:
