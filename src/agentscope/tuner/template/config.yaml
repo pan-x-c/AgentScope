@@ -3,7 +3,6 @@ name: Experiment
 checkpoint_root_dir: ./checkpoints
 algorithm:
   algorithm_type: multi_step_grpo  # a GRPO-based algorithm for multi-step reasoning
-  repeat_times: 8  # repeat each training sample 8 times
 buffer:
   total_epochs: 1  # run taskset for 1 epoch
 explorer:

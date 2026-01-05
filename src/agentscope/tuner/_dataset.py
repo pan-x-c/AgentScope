@@ -22,6 +22,17 @@ class Dataset(BaseModel):
         description="The dataset split to use.",
         default="train",
     )
+    total_epochs: int = Field(
+        description="Total number of epochs to run.",
+        default=1,
+    )
+    total_steps: Optional[int] = Field(
+        description=(
+            "Total number of steps to run. "
+            "If set, it will override total_epochs."
+        ),
+        default=None,
+    )
 
     def preview(self, n: int = 5) -> Dict:
         """Preview the dataset information.

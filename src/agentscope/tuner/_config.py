@@ -54,6 +54,8 @@ def to_trinity_config(
             split=train_dataset.split,
             subset_name=train_dataset.name,
         )
+        config.buffer.total_epochs = train_dataset.total_epochs
+        config.buffer.total_steps = train_dataset.total_steps
     config.buffer.explorer_input.taskset.default_workflow_type = workflow_name
     config.buffer.explorer_input.default_workflow_type = workflow_name
     config.buffer.explorer_input.taskset.workflow_args[
