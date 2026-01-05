@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Dataset definition for tuner."""
-from typing import Optional, Dict
+from itertools import islice
+from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
@@ -34,7 +35,7 @@ class Dataset(BaseModel):
         default=None,
     )
 
-    def preview(self, n: int = 5) -> Dict:
+    def preview(self, n: int = 5) -> List:
         """Preview the dataset information.
 
         Args:
@@ -53,7 +54,8 @@ class Dataset(BaseModel):
             path=self.path,
             name=self.name,
             split=self.split,
+            streaming=True,
         )
-        samples = ds[:n]
+        samples = list(islice(ds, n))
         print(json.dumps(samples, indent=2))
         return samples

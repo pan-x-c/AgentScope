@@ -18,7 +18,7 @@ class Algorithm(BaseModel):
     group_size: int = Field(
         description=(
             "The group size for algorithms "
-            "required group rollout, e.g., GRPO."
+            "requiring group rollout, e.g., GRPO."
         ),
         default=8,
     )

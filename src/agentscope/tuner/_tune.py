@@ -4,7 +4,11 @@ from ._workflow import WorkflowType
 from ._judge import JudgeType
 from ._model import TunerChatModel
 from ._dataset import Dataset
-from ._config import to_trinity_config
+from ._config import (
+    to_trinity_config,
+    check_judge_function,
+    check_workflow_function,
+)
 from ._algorithm import Algorithm
 
 
@@ -35,7 +39,8 @@ def tune(
             Defaults to None.
         auxiliary_models (dict[str, TunerChatModel], optional): A
             dictionary of auxiliary chat models for LLM-as-a-Judge
-            usage. Defaults to None.
+            or acting other agents in multi-agent scenarios.
+            Defaults to None.
         algorithm (Algorithm, optional): The tuning algorithm
             configuration. Defaults to None.
         config_path (str, optional): Path to the learning configuration
@@ -48,6 +53,10 @@ def tune(
             "Trinity-RFT is not installed. Please install it with "
             "`pip install trinity-rft`.",
         ) from e
+
+    check_workflow_function(workflow_func)
+    if judge_func is not None:
+        check_judge_function(judge_func)
 
     config = to_trinity_config(
         config_path=config_path,

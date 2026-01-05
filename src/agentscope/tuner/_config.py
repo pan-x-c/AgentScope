@@ -25,11 +25,6 @@ def to_trinity_config(
     experiment_name: str | None = None,
 ) -> Any:
     """Convert to Trinity-RFT compatible configuration."""
-    if workflow_func is not None:
-        check_workflow_function(workflow_func)
-    if judge_func is not None:
-        check_judge_function(judge_func)
-
     from trinity.common.config import (
         Config,
         TasksetConfig,
@@ -54,12 +49,19 @@ def to_trinity_config(
 
     workflow_name = "agentscope_workflow_adapter_v1"
     if train_dataset is not None:
-        config.buffer.explorer_input.taskset = TasksetConfig(
-            name="train_taskset",
-            path=train_dataset.path,
-            split=train_dataset.split,
-            subset_name=train_dataset.name,
-        )
+        if config.buffer.explorer_input.taskset is None:
+            config.buffer.explorer_input.taskset = TasksetConfig(
+                name="train_taskset",
+                path=train_dataset.path,
+                split=train_dataset.split,
+                subset_name=train_dataset.name,
+            )
+        else:
+            config.buffer.explorer_input.taskset.path = train_dataset.path
+            config.buffer.explorer_input.taskset.split = train_dataset.split
+            config.buffer.explorer_input.taskset.subset_name = (
+                train_dataset.name
+            )
         config.buffer.total_epochs = train_dataset.total_epochs
         config.buffer.total_steps = train_dataset.total_steps
     config.buffer.explorer_input.taskset.default_workflow_type = workflow_name
