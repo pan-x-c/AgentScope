@@ -221,7 +221,8 @@ if __name__ == "__main__":
         train_dataset=dataset,
         algorithm=algorithm,
     )
-    # for advanced users, you can also pass in config_path to load config from a yaml file
+    # for advanced users, you can pass in config_path to load config from a YAML file
+    # and ignore other arguments
     # tune(
     #     workflow_func=run_react_agent,
     #     judge_func=judge_function,

@@ -9,6 +9,7 @@ buffer:
 explorer:
   runner_per_model: 16  # each model has 16 runners for parallel rollout
   max_timeout: 3600  # max timeout for each rollout is 3600 seconds
+  max_repeat_times_per_runner: 1  # each runner repeats 1 time per sample
 synchronizer:
   sync_style: dynamic_by_explorer
   sync_method: 'nccl'
