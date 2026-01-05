@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=unused-argument
 # pylint: disable=too-many-statements
-"""Unit tests for Trinity-RFT model class."""
+"""Unit tests for tuner related modules."""
 from unittest.async_case import IsolatedAsyncioTestCase
 from unittest.mock import Mock, AsyncMock
 from typing import Dict
@@ -8,7 +9,10 @@ from typing import Dict
 from agentscope.model import ChatResponse
 from agentscope.message import TextBlock
 from agentscope.tuner import TunerChatModel, WorkflowOutput, JudgeOutput
-from agentscope.tuner._config import check_judge_function, check_workflow_function
+from agentscope.tuner._config import (
+    check_judge_function,
+    check_workflow_function,
+)
 
 
 class TestTunerChatModel(IsolatedAsyncioTestCase):
@@ -95,20 +99,26 @@ class TestTunerChatModel(IsolatedAsyncioTestCase):
 
 
 async def correct_workflow_func(
-    task: Dict, model: TunerChatModel, auxiliary_models: Dict[str, TunerChatModel],
+    task: Dict,
+    model: TunerChatModel,
+    auxiliary_models: Dict[str, TunerChatModel],
 ) -> WorkflowOutput:
     """Correct interface matching the workflow type."""
     return WorkflowOutput(
         response="Test response",
     )
 
+
 async def correct_workflow_func_no_aux(
-    task: Dict, model: TunerChatModel,
+    task: Dict,
+    model: TunerChatModel,
 ) -> WorkflowOutput:
-    """Correct interface matching the workflow type without auxiliary models."""
+    """Correct interface matching the workflow type without
+    auxiliary models."""
     return WorkflowOutput(
         response="Test response",
     )
+
 
 async def incorrect_workflow_func_1(task: Dict) -> WorkflowOutput:
     """Incorrect interface not matching the workflow type."""
@@ -118,7 +128,9 @@ async def incorrect_workflow_func_1(task: Dict) -> WorkflowOutput:
 
 
 async def incorrect_workflow_func_2(
-    task: Dict, model: TunerChatModel, aux_model: int
+    task: Dict,
+    model: TunerChatModel,
+    aux_model: int,
 ) -> WorkflowOutput:
     """Incorrect interface not matching the workflow type."""
     return WorkflowOutput(
@@ -136,6 +148,7 @@ async def correct_judge_func(
         reward=1.0,
     )
 
+
 async def incorrect_judge_func_1(
     wrong_name: Dict,
     workflow_output: WorkflowOutput,
@@ -144,6 +157,7 @@ async def incorrect_judge_func_1(
     return JudgeOutput(
         reward=1.0,
     )
+
 
 async def incorrect_judge_func_2(
     workflow_output: WorkflowOutput,
