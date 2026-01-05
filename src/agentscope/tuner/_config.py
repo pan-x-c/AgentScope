@@ -105,6 +105,8 @@ def to_trinity_config(
         config.algorithm.repeat_times = algorithm.group_size
         config.algorithm.optimizer.lr = algorithm.learning_rate
         config.buffer.batch_size = algorithm.batch_size
+        config.trainer.save_interval = algorithm.save_interval_steps
+        config.explorer.eval_interval = algorithm.eval_interval_steps
     return config.check_and_update()
 
 
@@ -133,7 +135,7 @@ def check_judge_function(
     Args:
         func (Callable): The function to check.
     """
-    essential_params = ["task", "workflow_output"]
+    essential_params = ["task", "response"]
     optional_params = ["auxiliary_models"]
     _check_function_signature(
         func,

@@ -23,6 +23,14 @@ class Algorithm(BaseModel):
         default=8,
     )
     batch_size: int = Field(
-        description="The batch size for the algorithm.",
+        description="The batch size of each training step.",
         default=32,
+    )
+    save_interval_steps: int = Field(
+        description="The interval steps to save the model.",
+        default=100,
+    )
+    eval_interval_steps: int = Field(
+        description="The interval steps to evaluate the model.",
+        default=100,
     )

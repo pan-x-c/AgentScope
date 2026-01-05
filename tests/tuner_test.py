@@ -4,7 +4,7 @@
 """Unit tests for tuner related modules."""
 from unittest.async_case import IsolatedAsyncioTestCase
 from unittest.mock import Mock, AsyncMock
-from typing import Dict
+from typing import Dict, Any
 
 from agentscope.model import ChatResponse
 from agentscope.message import TextBlock
@@ -140,7 +140,7 @@ async def incorrect_workflow_func_2(
 
 async def correct_judge_func(
     task: Dict,
-    workflow_output: WorkflowOutput,
+    response: Any,
     auxiliary_models: Dict[str, TunerChatModel],
 ) -> JudgeOutput:
     """Correct interface matching the judge type."""
@@ -151,7 +151,7 @@ async def correct_judge_func(
 
 async def incorrect_judge_func_1(
     wrong_name: Dict,
-    workflow_output: WorkflowOutput,
+    response: Any,
 ) -> JudgeOutput:
     """Incorrect interface not matching the judge type."""
     return JudgeOutput(
@@ -160,7 +160,7 @@ async def incorrect_judge_func_1(
 
 
 async def incorrect_judge_func_2(
-    workflow_output: WorkflowOutput,
+    response: Any,
 ) -> JudgeOutput:
     """Incorrect interface not matching the judge type."""
     return JudgeOutput(
