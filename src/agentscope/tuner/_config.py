@@ -97,6 +97,7 @@ def to_trinity_config(
                 path=eval_dataset.path,
                 split=eval_dataset.split,
                 subset_name=eval_dataset.name,
+                workflow_args=config.buffer.explorer_input.taskset.workflow_args
             ),
         )
     if algorithm is not None:
