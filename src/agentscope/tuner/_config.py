@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Configuration conversion for tuner."""
-from typing import Any
+from typing import Any, Callable, List, Optional
 from pathlib import Path
 from datetime import datetime
+import inspect
 
 from ._workflow import WorkflowType
 from ._judge import JudgeType
@@ -24,6 +25,11 @@ def to_trinity_config(
     experiment_name: str | None = None,
 ) -> Any:
     """Convert to Trinity-RFT compatible configuration."""
+    if workflow_func is not None:
+        check_workflow_function(workflow_func)
+    if judge_func is not None:
+        check_judge_function(judge_func)
+
     from trinity.common.config import (
         Config,
         TasksetConfig,
@@ -99,3 +105,89 @@ def to_trinity_config(
         config.algorithm.optimizer.lr = algorithm.learning_rate
         config.buffer.batch_size = algorithm.batch_size
     return config.check_and_update()
+
+
+def check_workflow_function(
+    func: Callable,
+) -> None:
+    """Check if the given function is a valid WorkflowType.
+
+    Args:
+        func (Callable): The function to check.
+    """
+    essential_params = ["task", "model"]
+    optional_params = ["auxiliary_models"]
+    _check_function_signature(
+        func,
+        essential_params,
+        optional_params,
+    )
+
+
+def check_judge_function(
+    func: Callable,
+) -> None:
+    """Check if the given function is a valid JudgeType.
+
+    Args:
+        func (Callable): The function to check.
+    """
+    essential_params = ["task", "workflow_output"]
+    optional_params = ["auxiliary_models"]
+    _check_function_signature(
+        func,
+        essential_params,
+        optional_params,
+    )
+
+
+def _check_function_signature(
+    func: Callable,
+    essential_params: List[str],
+    optional_params: Optional[List[str]] = None,
+) -> None:
+    """
+    Check if the given function has the required signature.
+
+    Args:
+        func (Callable): The function to check.
+        essential_params (List[str]): List of essential parameter names
+            that must be present in the function.
+        optional_params (Optional[List[str]]): List of optional parameter names
+            that can be present in the function.
+    """
+    if optional_params is None:
+        optional_params = []
+
+    sig = inspect.signature(func)
+    actual_params = []
+
+    for param_name, param in sig.parameters.items():
+        #  *args and **kwargs are not allowed
+        if param.kind == inspect.Parameter.VAR_POSITIONAL:
+            raise ValueError(f"*args parameter is not allowed: *{param_name}")
+        if param.kind == inspect.Parameter.VAR_KEYWORD:
+            raise ValueError(
+                f"**kwargs parameter is not allowed: **{param_name}",
+            )
+        actual_params.append(param_name)
+
+    # Convert to sets for easier comparison
+    actual_params_set = set(actual_params)
+    essential_params_set = set(essential_params)
+    optional_params_set = set(optional_params)
+    allowed_params_set = essential_params_set | optional_params_set
+
+    # Check 1: All essential parameters are present
+    missing_essential = essential_params_set - actual_params_set
+    if missing_essential:
+        raise ValueError(
+            f"Missing essential parameters: {sorted(missing_essential)}",
+        )
+
+    # Check 2: Whether there are disallowed parameters
+    extra_params = actual_params_set - allowed_params_set
+    if extra_params:
+        raise ValueError(
+            f"Contains disallowed parameters: {sorted(extra_params)}",
+        )
