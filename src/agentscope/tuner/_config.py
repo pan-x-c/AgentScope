@@ -109,7 +109,7 @@ def to_trinity_config(
         config.buffer.batch_size = algorithm.batch_size
         config.trainer.save_interval = algorithm.save_interval_steps
         config.explorer.eval_interval = algorithm.eval_interval_steps
-    return config.check_and_update()
+    return config
 
 
 def check_workflow_function(

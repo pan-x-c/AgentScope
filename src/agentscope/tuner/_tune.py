@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """The main entry point for agent learning."""
+import os
 from ._workflow import WorkflowType
 from ._judge import JudgeType
 from ._model import TunerChatModel
@@ -48,6 +49,7 @@ def tune(
     """
     try:
         from trinity.cli.launcher import run_stage
+        from trinity.utils.dlc_utils import setup_ray_cluster, stop_ray_cluster
     except ImportError as e:
         raise ImportError(
             "Trinity-RFT is not installed. Please install it with "
@@ -69,7 +71,13 @@ def tune(
         algorithm=algorithm,
         experiment_name=experiment_name,
     )
-
-    return run_stage(
-        config=config,
-    )
+    use_dlc = os.environ.get("USE_ALIYUN_PAI_DLC", "0") == "1"
+    if use_dlc:
+        setup_ray_cluster(config, namespace="agentscope")
+    try:
+        return run_stage(
+            config=config.check_and_update(),
+        )
+    finally:
+        if use_dlc:
+            stop_ray_cluster(namespace="agentscope")
