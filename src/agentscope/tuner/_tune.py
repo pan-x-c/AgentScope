@@ -73,7 +73,7 @@ def tune(
     )
     use_dlc = os.environ.get("USE_ALIYUN_PAI_DLC", "0") == "1"
     if use_dlc:
-        setup_ray_cluster(config, namespace="agentscope")
+        config.cluster.ray_address = setup_ray_cluster(namespace="agentscope")
     try:
         return run_stage(
             config=config.check_and_update(),
