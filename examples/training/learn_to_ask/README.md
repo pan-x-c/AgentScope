@@ -1,13 +1,20 @@
-# Learn2Ask: Getting Started Guide
+# Training Learn2Ask with AgentScope-Tuner
 
 This guide demonstrates how to train a proactive LLM using the **Learn2Ask** framework from [Grounded in Reality: Learning and Deploying Proactive LLM from Offline Logs](https://arxiv.org/abs/2510.25441).
 
 ---
 
-## 🖥️ Hardware Requirements
+## Task Setting
 
-- **Full-scale training**: At least **8 H20 GPUs** (or equivalent).
-- **Lightweight option**: You can use the **[Tinker backend](https://thinkingmachines.ai/tinker/)** without any GPUs.
+In this example, given a user's chief complaint, the medical assistant agent proactively asks targeted questions to gather sufficient symptom information for a comprehensive assessment of the user's health condition. The querying process should be efficient: the agent must optimize question quality, and terminate the interview as soon as the collected information is adequate for subsequent clinical assessment or decision-making.
+Here we use the `ReActAgent` for this task and no tools is required.
+
+---
+
+## Hardware Requirements
+
+- **Training with GPUs**: At least **8 H20 GPUs** (or equivalent).
+- **Training without GPUs**: You can use the **[Tinker backend](https://thinkingmachines.ai/tinker/)** without any GPUs.
 
 > 💡 All code and configuration files are located in:
 > `examples/training/learn_to_ask/`
@@ -20,10 +27,28 @@ Key files:
 
 ---
 
-## Step 1: Prepare Your Dataset
+## Dataset Preparation
+
+> [!NOTE]
+> In this example, we use an open-source dataset directly for training. In practice, however, you would typically start by collecting interaction logs between your deployed agent and users. After filtering these raw logs to curate a high-quality dataset, you can follow the same pipeline to enhance your agent’s proactive capabilities using AgentTune. Happy tuning!
 
 ### 1.1 Download the Dataset
-Download the **[RealMedConv](https://huggingface.co/datasets/datajuicer/RealMedConv)** dataset (in `.jsonl` format). Each line represents a complete doctor-patient conversation log, like this:
+Download the **[RealMedConv](https://huggingface.co/datasets/datajuicer/RealMedConv)** dataset (in `.jsonl` format).
+You can use the following python scripts to download the dataset:
+
+```python
+from huggingface_hub import snapshot_download
+
+# Download to local directory, e.g., `./examples/training/learn_to_ask/data`
+local_dir = "./examples/training/learn_to_ask/data"
+snapshot_download(
+    repo_id="datajuicer/RealMedConv",
+    repo_type="dataset",
+    local_dir=local_dir,
+)
+```
+
+Each line in `train_origin.jsonl` (or `test_origin.jsonl`) represents a complete doctor-patient conversation log, like this:
 
 ```json
 {
@@ -97,7 +122,122 @@ These labels power the reward functions $R_a$ (action accuracy) and $R_s$ (sympt
 
 ---
 
-## Step 2: Configure and Train the Model
+## Code Implementation
+
+### Agent Workflow
+
+The workflow function `run_react_agent` implements how the `ReActAgent` works.
+
+```python
+async def run_react_agent(
+    task: Dict,
+    model: TunerChatModel,
+    auxiliary_models: Dict[str, TunerChatModel],
+) -> WorkflowOutput:
+    assert (
+        len(auxiliary_models) == 1
+    ), "Please provide only one `auxiliary_models` for `learn_to_ask`."
+
+    import importlib
+
+    spec = importlib.util.spec_from_file_location(
+        "prompt",
+        os.path.join(os.path.dirname(__file__), "prompt.py"),
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    if TRAIN_MODE == "Ra":
+        sys_prompt = module.rollout_prompt_med_Ra
+    else:
+        sys_prompt = module.rollout_prompt_med
+
+    agent = ReActAgent(
+        name="react_agent",
+        sys_prompt=sys_prompt,
+        model=model,
+        formatter=OpenAIChatFormatter(),
+        toolkit=None,
+        memory=InMemoryMemory(),
+        max_iters=1,
+    )
+    messages = format_messages(sys_prompt, task["messages"])
+    response = await agent.reply(
+        [
+            Msg(name=x["role"], content=x["content"], role=x["role"])
+            for x in messages
+        ],
+    )
+    return WorkflowOutput(
+        response=response,
+    )
+```
+
+### Judge Function
+
+The judge function `learn2ask_judge` implements reward calculation using LLM-as-a-Judge:
+
+```python
+async def learn2ask_judge(
+    task: Dict,
+    response: Msg,
+    auxiliary_models: Dict[str, TunerChatModel],
+) -> JudgeOutput:
+    assert (
+        len(auxiliary_models) == 1
+    ), "Please provide only one `auxiliary_models` for `learn_to_ask`."
+
+    response_text = response.get_text_content()
+    action_truth = (
+        task["decision_truth"] if "decision_truth" in task else "continue"
+    )
+
+    action_response = "stop" if "<stop />" in response_text else "continue"
+    if action_truth == action_response:
+        action_score = 1.0
+        if action_truth == "continue":
+            score_dict = await llm_reward(
+                task=task,
+                response=response_text,
+                auxiliary_models=auxiliary_models,  # LLM-as-a-Judge
+            )
+            if score_dict != {}:
+                format_score = float(score_dict.get("format_score", 0.0))
+                content_score = float(score_dict.get("content_score", 0.0))
+            else:
+                format_score, content_score = 0.0, 0.0
+        else:
+            content_score = 1.0
+            format_score = 1.0 if response_text == "<stop />" else 0.0
+    else:
+        action_score, format_score, content_score = 0.0, 0.0, 0.0
+
+    if TRAIN_MODE == "Ra+Rs":  # the default setting
+        final_reward = (
+            action_score * (1 + 2 * content_score) + format_score
+            if FUSION_MODE != "sum"
+            else action_score + content_score + format_score
+        )
+    elif TRAIN_MODE == "Ra":  # for Ra only (without Rs)
+        final_reward = 2 * content_score + format_score
+    else:  # for Rs only (without Ra)
+        final_reward = action_score * 3 + format_score
+
+    return JudgeOutput(
+        reward=final_reward,
+        metrics={"reward": final_reward},
+    )
+```
+
+This reward function considers:
+- Action accuracy: `action_score`
+- Question quailty (Symptom coverage): `content_score`
+- Format score: `format_score`
+
+See [main.py](./main.py) for implementation details.
+
+---
+
+## Configure and Train the Model
 
 ### Option A: Edit Python Script (Simple)
 Open `examples/training/learn_to_ask/main.py` and adjust settings:
@@ -116,7 +256,7 @@ if __name__ == "__main__":
     )
 
     auxiliary_models = {
-        "grader": TunerChatModel(
+        AUXILIARY_MODEL_NAME: TunerChatModel(
             model_path="Qwen/Qwen2.5-32B-Instruct",  # Larger model for evaluation
             tensor_parallel_size=2,
             ...
@@ -140,10 +280,11 @@ If you don’t have GPUs, enable the **Tinker backend** by setting:
 
 ```yaml
 model:
-  model_path: Qwen/Qwen2.5-7B-Instruct
   tinker:
     enable: true  # ← Set this to true
 ```
+
+Also, make sure to update the `model_path` in `examples/training/learn_to_ask/main.py` to point to a model that’s compatible with Tinker.
 
 > 🔗 Learn more about Tinker: [Tinker Backend Documentation](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/example_tinker_backend.html)
 
@@ -154,7 +295,7 @@ python examples/training/learn_to_ask/main.py
 
 ---
 
-## Step 3: Evaluate Your Trained Model
+## Evaluation
 
 Use the **rollout-and-evaluate pipeline**:
 1. Generate responses on the test set.
@@ -175,14 +316,14 @@ python examples/training/learn_to_ask/data_prepare/3_rollout_then_evaluate.py \
 
 ---
 
-## 📊 Results
+## Experimental Results
 
 We compared three approaches:
 - **Base model**: `Qwen2.5-7B-Instruct` (no fine-tuning)
 - **Trinity**: Direct response generation
 - **As-tune (Learn2Ask)**: Uses a ReAct agent for proactive questioning
 
-| Metric                                | Base Model | Trinity | As-tune (Learn2Ask) |
+| Metric                               | Base Model | Trinity | As-tune (Learn2Ask) |
 |--------------------------------------|-----------:|--------:|--------------------:|
 | Avg. continue content                |      0.436 |   0.496 |               0.509 |
 | Win rate (continue content)          |      0.122 |   0.246 |               0.224 |
@@ -195,6 +336,55 @@ We compared three approaches:
 ![Training Curves](../../../assets/images/learn2ask.png)
 
 > ✅ **Key insight**: Learn2Ask (As-tune) achieves the highest overall performance by teaching the model **when and what to ask**—making it truly proactive.
+
+### Concrete Example
+
+An example of the agent's behavior on evaluation data is shown below:
+
+```json
+{
+  "cid": "206_1",
+  "session_id": 206,
+  "diagn": "Common cold",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Hello, currently there are many people consulting, please wait patiently."
+    },
+    {
+      "role": "user",
+      "content": "Hello, this morning around 10 o'clock, I suddenly felt a bit feverish and had a heavy head. I took my temperature and it was 38.5°C. I took one tablet of paracetamol at 1 o'clock, which helped a lot. By 6 or 7 in the evening, I felt cold and feverish again, so I took another tablet of paracetamol. I'm not sure if it's a side effect of the medication, but I feel a bit nauseous and my stomach keeps producing gas. Now, I feel cold again, have a stuffy nose with clear runny nose, an itchy throat with coughing, a heavy head, and can't sleep."
+    }
+  ],
+  "decision_truth": "continue",
+  "info_truth": "symptom: needle-like sensation, symptom location: ear, symptom nature: sharp pain, symptom severity: occurred twice",
+  "rollouts": [
+    "Do you also experience body aches along with your symptoms?  \nA) Yes B) No C) Not Sure",
+    "Do you experience these symptoms every time after taking paracetamol? (A) Yes, definitely. (B) Sometimes. (C) No, never before.",
+    "Do you have a history of allergies? A) Yes B) No C) Not Sure"
+  ],
+  "grades": [
+    {
+      "think": "The doctor's last message asks about body aches using multiple choice options rather than a single direct open-ended question, which deviates from the typical questioning style indicated by the grading policy. However, since it is framed in the form of \"Do you...\", it counts as one question despite being presented with choices. Thus, it satisfies the criteria for 'contains exactly one question'. For the content score, the query does not pertain directly to the details listed in the reference information such as the specific symptom ('needle-like' sharp pain in the ear that has occurred twice), thereby making it highly relevant yet indirectly related due to its focus on comprehensive assessment of flu-related discomforts without addressing specifics noted in the patient’s primary concern documented earlier.",
+      "action_score": 1,
+      "format_score": 1.0,
+      "content_score": 0.5
+    },
+    {
+      "think": "The doctor's last message includes just one multiple-choice question regarding whether the patient experiences those mentioned symptoms each time they take paracetamol. This does relate highly to understanding possible drug-related symptoms; however, none of them aligns perfectly with \"needle-like\" sensations occurring specifically in ears according to the reference information given.",
+      "action_score": 1,
+      "format_score": 1.0,
+      "content_score": 0.5
+    },
+    {
+      "think": "The doctor’s last statement does contain just one question pertaining to allergy history, which is highly relevant when trying to diagnose symptoms such as those described by the patient (fever, nausea). However, none of these concerns specifically relate back to the reference information detailing \"needle-like sensation\", \"sharp pain\" related to the ears occurring twice. Therefore, while highly pertinent medically, they do not pertain to the exact points outlined in the Ref Info section about the patient experience according to that specific prompt context.",
+      "action_score": 1,
+      "format_score": 1.0,
+      "content_score": 0.5
+    }
+  ]
+}
+```
 
 ---
 

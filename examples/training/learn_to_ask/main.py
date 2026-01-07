@@ -241,6 +241,7 @@ if __name__ == "__main__":
     dataset = Dataset(
         path=os.path.join(os.path.dirname(__file__), "data"),
         split="train",
+        total_epochs=4,
     )
     tuner_model = TunerChatModel(
         model_path="Qwen/Qwen2.5-7B-Instruct",

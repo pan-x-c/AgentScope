@@ -13,17 +13,17 @@ cluster:
   node_num: 1  # cluster with 1 node
   gpu_per_node: 8  # each node has 8 GPUs
 buffer:
-  total_epochs: 4  # run taskset for 1 epoch
+  total_epochs: 4  # run taskset for 4 epoch
 explorer:
-  runner_per_model: 32  # each model has 16 runners for parallel rollout
+  runner_per_model: 32  # each model has 32 runners for parallel rollout
   max_timeout: 600  # max timeout for each rollout is 600 seconds
 synchronizer:
   sync_style: fixed
   sync_method: 'nccl'
   sync_interval: 10
-  sync_timeout: 7200  # wait for 30 minutes
+  sync_timeout: 7200  # wait for 120 minutes
 trainer:
-  save_interval: 90  # save checkpoint every 100 steps
+  save_interval: 90  # save checkpoint every 90 steps
   use_dynamic_bsz: true
   ulysses_sequence_parallel_size: 1  # use sequence parallelism to reduce memory usage
 monitor:
