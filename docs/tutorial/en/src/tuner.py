@@ -164,6 +164,8 @@ print(f"Judge reward: {judge_output.reward}")
 # How to Run
 # ~~~~~~~~~~~~~~~
 # Finally, you can set up and run the tuning process using the ``tuner`` module.
+# Before starting the tuning, make sure you have `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ installed in your environment, as it is a dependency for the tuning process.
+#
 # Below is an example of how to configure and start the tuning process.
 #
 # .. code-block:: python
@@ -191,6 +193,8 @@ print(f"Judge reward: {judge_output.reward}")
 # Here, we use ``Dataset`` to load the training dataset, ``TunerChatModel`` to
 # initialize the trainable model, and ``Algorithm`` to specify the RL algorithm
 # and its hyperparameters.
+#
+# .. note:: This example is for demonstration purposes only. Please refer to the code in `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/training/react_agent>`_ for a complete and runnable example.
 #
 # You can save the above code in a file named ``main.py`` and run it with the following commands:
 #
