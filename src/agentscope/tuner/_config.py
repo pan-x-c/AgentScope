@@ -12,6 +12,12 @@ from ._dataset import Dataset
 from ._algorithm import Algorithm
 
 
+def set_if_not_none(obj: Any, field: str, value: Any) -> None:
+    """Set the field of obj to value if value is not None."""
+    if value is not None:
+        setattr(obj, field, value)
+
+
 def to_trinity_config(
     *,
     config_path: str | None = None,
@@ -22,7 +28,9 @@ def to_trinity_config(
     train_dataset: Dataset | None = None,
     eval_dataset: Dataset | None = None,
     algorithm: Algorithm | None = None,
+    project_name: str | None = None,
     experiment_name: str | None = None,
+    monitor_type: str | None = None,
 ) -> Any:
     """Convert to Trinity-RFT compatible configuration."""
     from trinity.common.config import (
@@ -41,11 +49,13 @@ def to_trinity_config(
     config = load_config(config_path)
     assert isinstance(config, Config), "Loaded config is not valid."
 
+    set_if_not_none(config, "project", project_name)
     if experiment_name is None and auto_config:
-        experiment_name = "Experiment-" + datetime.now().strftime(
+        config.name = "Experiment-" + datetime.now().strftime(
             "%Y%m%d%H%M%S",
         )
-        config.name = experiment_name
+
+    set_if_not_none(config, "monitor", monitor_type)
 
     workflow_name = "agentscope_workflow_adapter_v1"
     if train_dataset is not None:

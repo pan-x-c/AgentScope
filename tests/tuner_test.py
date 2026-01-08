@@ -191,3 +191,42 @@ class TestTunerFunctionType(IsolatedAsyncioTestCase):
             check_judge_function(incorrect_judge_func_1)
         with self.assertRaises(ValueError):
             check_judge_function(incorrect_judge_func_2)
+
+
+class TestDataset(IsolatedAsyncioTestCase):
+    """Test cases for Dataset."""
+
+    async def test_preview(self) -> None:
+        """Test preview method."""
+        from agentscope.tuner import Dataset
+        from pathlib import Path
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # generate a small dataset directory
+            dataset_dir = Path(tmpdirname) / "my_dataset"
+            dataset_dir.mkdir(parents=True, exist_ok=True)
+            sample_file = dataset_dir / "train.jsonl"
+            sample_content = [
+                '{"question": "What is 2 + 2?", "answer": "4"}',
+                '{"question": "Waht is 4 + 4?", "answer": "8"}',
+                '{"question": "What is 8 + 8?", "answer": "16"}',
+            ]
+            with open(sample_file, "w", encoding="utf-8") as f:
+                for line in sample_content:
+                    f.write(line + "\n")
+
+            dataset = Dataset(path=str(dataset_dir), split="train")
+            samples = dataset.preview(n=2)
+            self.assertEqual(len(samples), 2)
+            samples = dataset.preview(n=5)
+            self.assertEqual(len(samples), 3)
+            with self.assertRaises(OSError):
+                invalid_ds = Dataset(path="/invalid/path", split="train")
+                invalid_ds.preview()
+            with self.assertRaises(ValueError):
+                invalid_ds = Dataset(
+                    path=str(dataset_dir),
+                    split="invalid_split",
+                )
+                invalid_ds.preview()

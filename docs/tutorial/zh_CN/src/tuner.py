@@ -212,7 +212,7 @@ print(f"评判奖励: {judge_output.reward}")
 #        your_workspace/
 #            └── checkpoints/
 #                └──AgentScope/
-#                    └── Experiement-20260104185355/  # 每次运行以时间戳保存
+#                    └── Experiment-20260104185355/  # 每次运行以时间戳保存
 #                        ├── monitor/
 #                        │   └── tensorboard/  # tensorboard 日志
 #                        └── global_step_x/    # 第 x 步保存的模型检查点

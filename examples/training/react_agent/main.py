@@ -30,7 +30,7 @@ async def run_react_agent(
             LLM-as-a-Judge. Not used in this workflow.
 
     Returns:
-        float: The reward obtained by solving the task.
+        WorkflowOutput: The workflow output containing the agent's response.
     """
     assert (
         len(auxiliary_models) == 0

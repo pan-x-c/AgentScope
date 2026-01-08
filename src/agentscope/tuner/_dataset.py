@@ -39,7 +39,7 @@ class Dataset(BaseModel):
         """Preview the dataset information.
 
         Args:
-            n (int): Number of samples to preview.
+            n (`int`, optional): Number of samples to preview.
         """
         try:
             from datasets import load_dataset

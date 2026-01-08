@@ -53,7 +53,7 @@ Suppose your `train.jsonl` contains samples like:
 
 Workflow Function
 --------------------
-The workflowe function that defines how the agents interacts with the environment and makes decisions. All workflow functions should follow the input/output signature defined in ``agentscope.tuner.WorkflowType``.
+The workflow function that defines how the agents interacts with the environment and makes decisions. All workflow functions should follow the input/output signature defined in ``agentscope.tuner.WorkflowType``.
 
 Below is an example of a simple workflow function that uses a ReAct agent to answer math questions.
 """
@@ -218,7 +218,7 @@ print(f"Judge reward: {judge_output.reward}")
 #        your_workspace/
 #            └── checkpoints/
 #                └──AgentScope/
-#                    └── Experiement-20260104185355/  # each run saved in a sub-directory with timestamp
+#                    └── Experiment-20260104185355/  # each run saved in a sub-directory with timestamp
 #                        ├── monitor/
 #                        │   └── tensorboard/  # tensorboard logs
 #                        └── global_step_x/    # saved model checkpoints at step x

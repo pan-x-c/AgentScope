@@ -15,7 +15,8 @@ Args:
 
 Returns:
     WorkflowOutput:
-        The reward obtained from the workflow function.
+        The workflow execution results, including optional reward, raw
+        response and metrics.
 """
 from typing import Optional, Any, Callable, Dict, Awaitable
 from pydantic import BaseModel, Field

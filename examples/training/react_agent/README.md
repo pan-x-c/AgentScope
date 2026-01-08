@@ -246,7 +246,7 @@ You can found the tensorboard logs inside `monitor/tensorboard` of the checkpoin
 react_agent/
     └── checkpoints/
         └──AgentScope/
-            └── Experiement-20260104185355/  # each run saved in a sub-directory with timestamp
+            └── Experiment-20260104185355/  # each run saved in a sub-directory with timestamp
                 ├── monitor/
                 │   └── tensorboard/  # tensorboard logs
                 └── global_step_x/    # saved model checkpoints at step x
@@ -352,7 +352,7 @@ After implementing the workflow function, follow these steps to run the training
 4. The reward curve and other training metrics can be monitored using TensorBoard:
 
     ```bash
-    tensorboard --logdir ./checkpoints/AgentScope/Experiement-xxxxxx/monitor/tensorboard
+    tensorboard --logdir ./checkpoints/AgentScope/Experiment-xxxxxx/monitor/tensorboard
     ```
 
     An example reward curve is shown below:

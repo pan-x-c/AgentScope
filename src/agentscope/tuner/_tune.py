@@ -22,8 +22,10 @@ def tune(
     model: TunerChatModel | None = None,
     auxiliary_models: dict[str, TunerChatModel] | None = None,
     algorithm: Algorithm | None = None,
-    config_path: str | None = None,
+    project_name: str | None = None,
     experiment_name: str | None = None,
+    monitor_type: str | None = None,
+    config_path: str | None = None,
 ) -> None:
     """Train the agent workflow with the specific configuration.
 
@@ -44,8 +46,17 @@ def tune(
             Defaults to None.
         algorithm (Algorithm, optional): The tuning algorithm
             configuration. Defaults to None.
-        config_path (str, optional): Path to the learning configuration
-            file. Defaults to None.
+        project_name (str, optional): Name of the project.
+            Defaults to None.
+        experiment_name (str, optional): Name of the experiment.
+            Leave None to use timestamp. Defaults to None.
+        monitor_type (str, optional): Type of the monitor to use.
+            Could be one of 'tensorboard', 'wandb', 'mlflow', 'swanlab'.
+            Leave None to use tensorboard. Defaults to None.
+        config_path (str, optional): Path to a trinity yaml configuration
+            file. If provided, only `workflow_func` is necessary, other
+            arguments will override the corresponding fields in the config.
+            Defaults to None.
     """
     try:
         from trinity.cli.launcher import run_stage
@@ -69,7 +80,9 @@ def tune(
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         algorithm=algorithm,
+        project_name=project_name,
         experiment_name=experiment_name,
+        monitor_type=monitor_type,
     )
     use_dlc = os.environ.get("USE_ALIYUN_PAI_DLC", "0") == "1"
     if use_dlc:
