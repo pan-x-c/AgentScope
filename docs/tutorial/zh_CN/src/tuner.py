@@ -27,7 +27,7 @@ AgentScope 提供了 ``tuner`` 模块用于通过强化学习 (RL) 训练智能�
 
 如何实现
 ~~~~~~~~~~~~~~~~~~~
-下面我们将实现一个可以通过 ``tuner`` 模块训练的简单数学智能体工作流。
+下面我们将实现一个可以通过 ``tuner`` 模块训练的简单数学智能体应用。
 
 任务数据集
 --------------------
@@ -72,12 +72,12 @@ async def example_workflow_function(
 
     Args:
         task (dict): 任务信息。
-        model (OpenAIChatModel): 智能体使用的对话模型。
-        auxiliary_models (Optional[Dict[str, OpenAIChatModel]]):
+        model (ChatModelBase): 智能体使用的对话模型。
+        auxiliary_models (Optional[Dict[str, ChatModelBase]]):
             用于辅助的额外对话模型，一般用于多智能体场景下模拟其他非训练智能体的行为。
 
     Returns:
-        dict: 工作流生成的输出。
+        WorkflowOutput: 工作流生成的输出。
     """
     agent = ReActAgent(
         name="react_agent",
