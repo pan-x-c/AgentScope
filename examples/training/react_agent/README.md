@@ -104,15 +104,15 @@ To train an agent workflow using RL, you need to refactor your agent with the fo
 ```python
 async def workflow_function(
     task: Dict,
-    model: TunerChatModel,
-    auxiliary_models: Dict[str, ChatModelBase],
+    model: ChatModelBase,
+    auxiliary_models: Optional[Dict[str, ChatModelBase]]=None,
 ) -> WorkflowOutput:
     """Run the agent workflow on a single task and return a scalar reward."""
 ```
 
 - Inputs:
     - `task`: A dictionary representing a single training task, converted from a sample in the training dataset. For example, if using the dataset prepared in Step 1, the `task` is a dictionary containing `question` and `answer` fields.
-    - `model`: A `TunerChatModel` instance, which has the same interface as `OpenAIChatModel`, but it supports automatically converting invoke history into trainable data that can be used by Trinity-RFT.
+    - `model`: A `ChatModelBase` instance, which has the same interface as `OpenAIChatModel`, but it supports automatically converting invoke history into trainable data.
     - `auxiliary_models`: A dictionary of auxiliary models that can be used in the workflow. The keys are model names, and the values are `ChatModelBase` instances. These models are different from the main `model` in that they are not directly trained, but can be used to assist the main model in completing the task (e.g., acting as Judge). Empty dict if no auxiliary models are needed.
 
 - Outputs:
@@ -133,13 +133,13 @@ Below is a refactored version of the original `run_react_agent` function to fit 
 ```python
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
-from agentscope.tuner import WorkflowOutput, TunerChatModel
+from agentscope.tuner import WorkflowOutput
 from agentscope.message import Msg
 
 async def run_react_agent(
     task: Dict,
-    model: TunerChatModel,
-    auxiliary_models: Dict[str, TunerChatModel],
+    model: ChatModelBase,
+    auxiliary_models: Optional[Dict[str, ChatModelBase]]=None,
 ) -> WorkflowOutput:
     agent = ReActAgent(
         name="react_agent",
@@ -165,7 +165,7 @@ To train the agent using RL, you need to define a judge function that computes a
 async def judge_function(
     task: Dict,
     response: Any,
-    auxiliary_models: Dict[str, TunerChatModel],
+    auxiliary_models: Dict[str, ChatModelBase],
 ) -> JudgeOutput:
     """Calculate reward based on the input task and agent's response."""
 ```
@@ -173,7 +173,7 @@ async def judge_function(
 - Inputs:
     - `task`: A dictionary representing a single training task, same as the input to the workflow function.
     - `response`: The output from the workflow function, which can be the agent's response or other types of outputs depending on your workflow function implementation.
-    - `auxiliary_models`: A dictionary of auxiliary models that can be used in the reward calculation. The keys are model names, and the values are `TunerChatModel` instances. These models are different from the main model in that they are not directly trained, but can be used to assist in calculating the reward (e.g., acting as Judge). Empty dict if no auxiliary models are needed.
+    - `auxiliary_models`: A dictionary of auxiliary models that can be used in the reward calculation. The keys are model names, and the values are `ChatModelBase` instances. These models are different from the main model in that they are not directly trained, but can be used to assist in calculating the reward (e.g., acting as Judge). Empty dict if no auxiliary models are needed.
 
 - Outputs:
     - `JudgeOutput`: An object containing the output of the judge function. It contains:
@@ -186,10 +186,10 @@ Here is an example implementation of a simple reward calculation mechanism that 
 
 ```python
 from agentscope.message import Msg
-from agentscope.tuner import JudgeOutput, TunerChatModel
+from agentscope.tuner import JudgeOutput
 
 async def judge_function(
-    task: Dict, response: Msg, auxiliary_models: Dict[str, TunerChatModel]
+    task: Dict, response: Msg, auxiliary_models: Dict[str, ChatModelBase]
 ) -> JudgeOutput:
     """Simple reward: 1.0 for exact match, else 0.0."""
     ground_truth = task["answer"]
@@ -233,7 +233,11 @@ if __name__ == "__main__":
 
 Here, we use `Dataset` to load the training dataset, `TunerChatModel` to initialize the trainable model, and `Algorithm` to specify the RL algorithm and its hyperparameters.
 
-> Advanced users can ignore `model`, `train_dataset`, `algorithm` arguments and provide a configuration file path pointing to a YAML file using the `config_path` argument instead, see [config.yaml](./config.yaml) for an example.
+> Note:
+> The `tune` function is based on [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) and it converts the input parameters into a YAML configuration internally.
+> Advanced users can ignore `model`, `train_dataset`, `algorithm` arguments and provide a configuration file path pointing to a YAML file using the `config_path` argument instead (see [config.yaml](./config.yaml) for an example).
+> We recommend using the configuration file approach for fine-grained control over the training process and leveraging advanced features provided by Trinity-RFT.
+> You can refer to the Trinity-RFT [Configuration Guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html) for more details on configuration options.
 
 The checkpoint and logs will automatically be saved to the `checkpoints/AgentScope` directory under the current working directory and each run will be save in a sub-directory suffixed with current timestamp.
 You can found the tensorboard logs inside `monitor/tensorboard` of the checkpoint directory.
@@ -344,3 +348,13 @@ After implementing the workflow function, follow these steps to run the training
     ```bash
     python main.py
     ```
+
+4. The reward curve and other training metrics can be monitored using TensorBoard:
+
+    ```bash
+    tensorboard --logdir ./checkpoints/AgentScope/Experiement-xxxxxx/monitor/tensorboard
+    ```
+
+    An example reward curve is shown below:
+
+    ![reward_curve](./reward_curve.png)

@@ -9,7 +9,7 @@ AgentScope provides a ``tuner`` module to train agent applications using reinfor
 This tutorial will guide you through the process of using the ``tuner`` module to enhance an agent's performance on a specific task, which includes:
 
 - Introducing the main components of the ``tuner`` module.
-- Demonstrating how to implement a simple tuner workflow.
+- Demonstrating how to implement the necessary code components for tuning.
 - Showing how to setup and run the tuning process.
 
 Main Components
@@ -17,7 +17,7 @@ Main Components
 The ``tuner`` module introduce three main components necessary for training an agent workflow using RL:
 
 - **Task Dataset**: A collection of tasks used for training and evaluating the agent application.
-- **Workflow Function**: A function that defines how the agent interacts with the environment and makes decisions.
+- **Workflow Function**: A function that internally contains the agent application being tuned.
 - **Judge Function**: A function that evaluates the agent's performance on a given task and provides a reward signal for tuning.
 
 Besides these components, the ``tuner`` module also provides some configuration classes to customize the tuning process, including:
@@ -196,6 +196,12 @@ print(f"Judge reward: {judge_output.reward}")
 # and its hyperparameters.
 #
 # .. note:: This example is for demonstration purposes only. Please refer to the code in `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/training/react_agent>`_ for a complete and runnable example.
+#
+# .. tip::
+#   The ``tune`` function is based on `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ and it converts the input parameters into a YAML configuration internally.
+#   Advanced users can ignore ``model``, ``train_dataset``, ``algorithm`` arguments and provide a configuration file path pointing to a YAML file using the ``config_path`` argument instead.
+#   We recommend using the configuration file approach for fine-grained control over the training process and leveraging advanced features provided by Trinity-RFT.
+#   You can refer to the Trinity-RFT `Configuration Guide <https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html>`_ for more details on configuration options.
 #
 # You can save the above code in a file named ``main.py`` and run it with the following commands:
 #

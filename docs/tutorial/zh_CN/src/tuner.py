@@ -191,7 +191,13 @@ print(f"评判奖励: {judge_output.reward}")
 #
 # .. note:: 此示例仅供演示。完整可运行示例请参考 `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/training/react_agent>`_
 #
-# 你可以将上述代码保存为 ``main.py``，并用如下命令运行：
+# .. tip::
+#   ``tune`` 函数基于 `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ 实现，并在内部将输入参数转换为 YAML 配置。
+#   高级用户可以忽略 ``model``、``train_dataset``、``algorithm`` 参数，改为通过 ``config_path`` 参数提供指向 YAML 文件的配置路径。
+#   我们推荐使用配置文件方式以便对训练过程进行更细粒度的控制，从而利用 Trinity-RFT 提供的高级功能。
+#   你可以参考 Trinity-RFT 的 `配置指南 <https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html>`_ 了解更多配置选项。
+#
+#  你可以将上述代码保存为 ``main.py``，并用如下命令运行：
 #
 # .. code-block:: bash
 #
