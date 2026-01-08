@@ -258,10 +258,10 @@ print(formatted_message[-1]["content"])
 async def run_token_counter() -> int:
     """Compute the token number of the input messages."""
     # We use huggingface token counter for dashscope models.
-    # token_counter = HuggingFaceTokenCounter(
-    #     "Qwen/Qwen2.5-VL-3B-Instruct",
-    #     use_mirror=False,
-    # )
+    token_counter = HuggingFaceTokenCounter(
+        "Qwen/Qwen2.5-VL-3B-Instruct",
+        use_mirror=False,
+    )
 
     return await token_counter.count(formatted_message)
 
