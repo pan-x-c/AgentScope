@@ -5,7 +5,7 @@ This guide walks you through the steps to implement and train an agent workflow 
 
 ## Overview
 
-To train your agent workflow using RL, you need to prepare three components:
+To train your agent workflow using RL, you need to understand three components:
 
 1. **Workflow function**: Refactor your agent workflow into a workflow function that follows the specified input/output signature.
 2. **Judge function**: Implement a judge function that computes rewards based on the agent's responses.
@@ -85,16 +85,16 @@ from agentscope.tuner import Dataset
 Dataset(path="my_dataset", split="train").preview()
 
 # Output:
-# {
-#   "question": [
-#     "What is 2 + 2?",
-#     "What is 4 + 4?"
-#   ],
-#   "answer": [
-#     "4",
-#     "8"
-#   ]
-# }
+# [
+#   {
+#     "question": "What is 2 + 2?",
+#     "answer": "4"
+#   },
+#   {
+#     "question": "What is 4 + 4?",
+#     "answer": "8"
+#   }
+# ]
 ```
 
 ### Step 2: Define a workflow function
@@ -132,6 +132,7 @@ Below is a refactored version of the original `run_react_agent` function to fit 
 
 ```python
 from agentscope.agent import ReActAgent
+from agentscope.formatter import OpenAIChatFormatter
 from agentscope.tuner import WorkflowOutput, TunerChatModel
 from agentscope.message import Msg
 
@@ -191,9 +192,9 @@ async def judge_function(
     task: Dict, response: Msg, auxiliary_models: Dict[str, TunerChatModel]
 ) -> JudgeOutput:
     """Simple reward: 1.0 for exact match, else 0.0."""
-    truth = task["answer"]
-    answer = response.get_text_content() or ""
-    return JudgeOutput(reward=1.0 if answer.strip() == truth.strip() else 0.0)
+    ground_truth = task["answer"]
+    reward = 1.0 if ground_truth in response.get_text_content() else 0.0
+    return JudgeOutput(reward=reward)
 ```
 
 ### Step 4: Start tuning
@@ -201,9 +202,9 @@ async def judge_function(
 Finally, you can use the `tune` interface to train the defined workflow function with a configuration file.
 
 ```python
-from agentscope.tuner import tune
+from agentscope.tuner import tune, Algorithm, Dataset, TunerChatModel
 
-# your workflow function here...
+# your workflow / judge function here...
 
 if __name__ == "__main__":
     dataset = Dataset(path="my_dataset", split="train")
@@ -285,9 +286,9 @@ async def judge_function(
     task: Dict, response: Msg, auxiliary_models: Dict[str, TunerChatModel]
 ) -> JudgeOutput:
     """Simple reward: 1.0 for exact match, else 0.0."""
-    truth = task["answer"]
-    answer = response.get_text_content() or ""
-    return JudgeOutput(reward=1.0 if answer.strip() == truth.strip() else 0.0)
+    ground_truth = task["answer"]
+    reward = 1.0 if ground_truth in response.get_text_content() else 0.0
+    return JudgeOutput(reward=reward)
 
 
 if __name__ == "__main__":
