@@ -31,20 +31,20 @@ class TunerChatModel(OpenAIChatModel):
         """Initialize the tuner chat model.
 
         Args:
-            model_path (str): The path to the model checkpoint.
-            max_model_len (int): The maximum length of the model, including
+            model_path (`str`): The path to the model checkpoint.
+            max_model_len (`int`): The maximum length of the model, including
                 context and generated tokens.
-            temperature (float): Sampling temperature.
-            top_p (float): Nucleus sampling probability.
-            max_tokens (int): Maximum tokens for generation.
-            enable_thinking (bool | None): Whether to enable thinking
+            temperature (`float`): Sampling temperature.
+            top_p (`float`): Nucleus sampling probability.
+            max_tokens (`int`): Maximum tokens for generation.
+            enable_thinking (`bool | None`): Whether to enable thinking
                 capability. Only applicable for Qwen3 series models.
-            tensor_parallel_size (int): The tensor parallel size for
+            tensor_parallel_size (`int`): The tensor parallel size for
                 model inference.
-            inference_engine_num (int): The number of engines for model
+            inference_engine_num (`int`): The number of engines for model
                 inference.
-            tool_call_parser (str): The tool call parser to use.
-            reasoning_parser (str): The reasoning parser to use.
+            tool_call_parser (`str`): The tool call parser to use.
+            reasoning_parser (`str`): The reasoning parser to use.
         """
         super().__init__(
             model_name=model_path,

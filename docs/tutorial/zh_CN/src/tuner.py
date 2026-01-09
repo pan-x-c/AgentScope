@@ -91,13 +91,13 @@ async def example_workflow_function(
     """一个用于调优的工作流函数示例。
 
     Args:
-        task (dict): 任务信息。
-        model (ChatModelBase): 智能体使用的对话模型。
-        auxiliary_models (Optional[Dict[str, ChatModelBase]]):
+        task (`Dict`): 任务信息。
+        model (`ChatModelBase`): 智能体使用的对话模型。
+        auxiliary_models (`Optional[Dict[str, ChatModelBase]]`):
             用于辅助的额外对话模型，一般用于多智能体场景下模拟其他非训练智能体的行为。
 
     Returns:
-        WorkflowOutput: 工作流生成的输出。
+        `WorkflowOutput`: 工作流生成的输出。
     """
     agent = ReActAgent(
         name="react_agent",
@@ -158,10 +158,12 @@ async def example_judge_function(
     """仅用于演示的简单评判函数。
 
     Args:
-        task (Dict): 任务信息。
-        response (Any): WorkflowOutput 的响应字段。
-        auxiliary_models (Optional[Dict[str, ChatModelBase]]):
+        task (`Dict`): 任务信息。
+        response (`Any`): WorkflowOutput 的响应字段。
+        auxiliary_models (`Optional[Dict[str, ChatModelBase]]`):
             用于 LLM-as-a-Judge 的辅助模型。
+    Returns:
+        `JudgeOutput`: 评判函数分配的奖励。
     """
     ground_truth = task["answer"]
     reward = 1.0 if ground_truth in response.get_text_content() else 0.0

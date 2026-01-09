@@ -2,19 +2,19 @@
 """An agent workflow function type for tuning.
 
 Args:
-    task (Dict):
+    task (`Dict`):
         The task information for the workflow run.
-    model (ChatModelBase):
+    model (`ChatModelBase`):
         The primary chat model used in the workflow, this is the main model
         being tuned.
-    auxiliary_models (Dict[str, ChatModelBase]):
+    auxiliary_models (`Dict[str, ChatModelBase] | None`):
         A dictionary of additional chat models available for LLM-as-a-Judge
         usage. The keys are model names, and the values are the corresponding
-        ChatModelBase instances. Note that these auxiliary models are not tuned
-        during the workflow.
+        `ChatModelBase` instances. Note that these auxiliary models are not
+        tuned during the workflow.
 
 Returns:
-    WorkflowOutput:
+    `WorkflowOutput`:
         The workflow execution results, including optional reward, raw
         response and metrics.
 """
