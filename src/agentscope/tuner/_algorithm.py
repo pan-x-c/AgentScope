@@ -8,7 +8,13 @@ class Algorithm(BaseModel):
     """Algorithm information for tuning."""
 
     algorithm_type: str = Field(
-        description=("The tuning algorithm type " "e.g., 'grpo', 'sft'"),
+        description=(
+            "The tuning algorithm type "
+            "e.g., 'multi_step_grpo', 'sft'."
+            "Please refer to https://github.com/modelscope/Trinity-RFT"
+            "for all supported algorithms. We recommend 'multi_step_grpo'"
+            "for most agent tuning scenarios."
+        ),
         default="multi_step_grpo",
     )
     learning_rate: float = Field(
