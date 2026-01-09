@@ -5,35 +5,35 @@
 Tuner
 =================
 
-AgentScope 提供了 ``tuner`` 模块用于通过强化学习 (RL) 训练智能体应用。
-本教程将指导你如何使用 ``tuner`` 模块提升智能体在特定任务上的表现，包括：
+AgentScope 提供了 ``tuner`` 模块，用于通过强化学习（RL）训练智能体应用。
+本教程将带你系统了解如何利用 ``tuner`` 提升智能体在特定任务上的表现，包括：
 
-- 介绍 ``tuner`` 模块的主要组件。
-- 演示如何实现调优流程所需的必要代码组件。
-- 展示如何配置和运行调优流程。
+- 介绍 ``tuner`` 的核心组件
+- 演示调优流程所需的关键代码实现
+- 展示调优流程的配置与运行方法
 
 主要组件
 ~~~~~~~~~~~~~~~~~~~
-``tuner`` 模块引入了训练智能体工作流所需的三个主要组件：
+``tuner`` 模块为智能体训练工作流引入了三大核心组件：
 
-- **任务数据集**：用于训练和评估智能体应用的任务集合。
-- **工作流函数**：内部包含了被调优的智能体应用。
-- **评判函数**：用于评估智能体在特定任务上的表现，并为调优过程提供奖励信号的函数。
+- **任务数据集**：用于训练和评估智能体的任务集合。
+- **工作流函数**：封装被调优智能体应用的决策逻辑。
+- **评判函数**：评估智能体在特定任务上的表现，并为调优过程提供奖励信号。
 
-除了这些组件，``tuner`` 模块还提供了一些用于自定义调优过程的配置类，包括：
+此外，``tuner`` 还提供了若干用于自定义调优流程的配置类，包括：
 
-- **TunerChatModel**：仅用于调优的可配置对话模型，完全兼容 AgentScope 的 ``OpenAIChatModel``。
-- **Algorithm**：用于调优的强化学习算法，例如 GRPO、PPO 等。
+- **TunerChatModel**：专为调优设计的可配置对话模型，完全兼容 ``OpenAIChatModel`` 接口。
+- **Algorithm**：用于指定强化学习算法（如 GRPO、PPO 等）及其参数。
 
-如何实现
+实现流程
 ~~~~~~~~~~~~~~~~~~~
-下面我们将实现一个可以通过 ``tuner`` 模块训练的简单数学智能体应用。
+本节以一个简单的数学智能体为例，演示如何用 ``tuner`` 进行训练。
 
 任务数据集
 --------------------
-任务数据集包含用于训练和评估智能体应用的任务集合。
+任务数据集包含用于训练和评估的任务集合。
 
-数据集应采用 huggingface `datasets <https://huggingface.co/docs/datasets/quickstart>`_ 格式，并可通过 ``datasets.load_dataset`` 函数加载。例如：
+``tuner`` 的任务数据集采用 Huggingface `datasets <https://huggingface.co/docs/datasets/quickstart>`_ 格式，并通过 ``datasets.load_dataset`` 加载。例如：
 
 .. code-block:: text
 
@@ -41,18 +41,38 @@ AgentScope 提供了 ``tuner`` 模块用于通过强化学习 (RL) 训练智能�
         ├── train.jsonl  # 训练样本
         └── test.jsonl   # 测试样本
 
-假设你的 `train.jsonl` 包含如下样本：
+假设 `train.jsonl` 内容如下：
 
 .. code-block:: json
 
     {"question": "2 + 2 等于多少？", "answer": "4"}
     {"question": "4 + 4 等于多少？", "answer": "8"}
 
+在开始调优前，你可以用如下方法来确定你的数据集能够被正确加载：
+
+.. code-block:: python
+
+    from agentscope.tuner import Dataset
+
+    dataset = Dataset(path="my_dataset", split="train")
+    dataset.preview(n=2)
+    # 输出前两个样本以验证数据集加载正确
+    # [
+    #   {
+    #     "question": "2 + 2 等于多少？",
+    #     "answer": "4"
+    #   },
+    #   {
+    #     "question": "4 + 4 等于多少？",
+    #     "answer": "8"
+    #   }
+    # ]
+
 工作流函数
 --------------------
-工作流函数定义了智能体如何与环境交互并做出决策。所有工作流函数应遵循 ``agentscope.tuner.WorkflowType`` 定义的输入/输出签名。
+工作流函数定义了智能体与环境的交互方式和决策过程。所有工作流函数需遵循 ``agentscope.tuner.WorkflowType`` 的输入/输出签名。
 
-下面是一个使用 ReAct 智能体回答数学问题的简单工作流函数示例。
+以下是一个用 ReAct 智能体回答数学问题的简单工作流函数示例：
 """
 
 from typing import Dict, Optional
@@ -94,14 +114,13 @@ async def example_workflow_function(
         ),  # 从任务中提取问题
     )
 
-    return WorkflowOutput(  # 将响应放入 WorkflowOutput
+    return WorkflowOutput(  # 返回响应结果
         response=response,
     )
 
 
 # %%
-# 你可以直接用任务字典和对话模型运行此工作流函数。
-# 例如：
+# 你可以直接用任务字典和日常调试使用的 ``DashScopeChatModel`` / ``OpenAIChatModel`` 运行此工作流函数，从而在正式训练前测试其流程的正确性。例如：
 
 import asyncio
 import os
@@ -124,8 +143,8 @@ print("\n工作流响应:", workflow_output.response.get_text_content())
 # 评判函数
 # --------------------
 # 评判函数用于评估智能体在特定任务上的表现，并为调优过程提供奖励信号。
-# 所有评判函数应遵循 ``agentscope.tuner.JudgeType`` 定义的输入/输出签名。
-# 下面是一个简单的评判函数示例，通过比较智能体响应与标准答案。
+# 所有评判函数需遵循 ``agentscope.tuner.JudgeType`` 的输入/输出签名。
+# 下面是一个简单的评判函数示例，通过比较智能体响应与标准答案给出奖励：
 
 from typing import Any
 from agentscope.tuner import JudgeOutput
@@ -149,6 +168,7 @@ async def example_judge_function(
     return JudgeOutput(reward=reward)
 
 
+# 本地测试函数的正确性：
 judge_output = asyncio.run(
     example_judge_function(
         task,
@@ -158,17 +178,20 @@ judge_output = asyncio.run(
 print(f"评判奖励: {judge_output.reward}")
 
 # %%
+# 评判函数同样可以按照上述案例中展示的方式在正式训练前进行本地测试，以确保其逻辑正确。
 #
-# .. tip:: 你可以在评判函数中利用已有的 `MetricBase <https://github.com/agentscope-ai/agentscope/blob/main/src/agentscope/evaluate/_metric_base.py>`_ 实现来计算更复杂的指标，并将它们组合成复合奖励。
+# .. tip::
+#    你可以在评判函数中利用已有的 `MetricBase <https://github.com/agentscope-ai/agentscope/blob/main/src/agentscope/evaluate/_metric_base.py>`_ 实现，计算更复杂的指标，并将其组合为复合奖励。
 #
 # 如何运行
 # ~~~~~~~~~~~~~~~
-# 最后，你可以使用 ``tuner`` 模块配置并运行调优过程。
-# 在开始调优前，请确保你的环境已安装 `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_，这是 ``tuner`` 模块的依赖。
+# 最后，你可以用 ``tuner`` 模块配置并运行调优流程。
+# 在开始调优前，请确保环境已安装 `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_，这是 ``tuner`` 的依赖。
 #
-# 下面是配置和启动调优过程的示例。
+# 下面是调优流程的配置与启动示例：
 #
-# .. note:: 此示例仅供演示。完整可运行示例请参考 `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/tuner/react_agent>`_
+# .. note::
+#    此示例仅供演示。完整可运行示例请参考 `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/tuner/react_agent>`_
 #
 # .. code-block:: python
 #
@@ -192,13 +215,13 @@ print(f"评判奖励: {judge_output.reward}")
 #                algorithm=algorithm,
 #            )
 #
-# 这里我们用 ``Dataset`` 配置训练数据集，用 ``TunerChatModel`` 初始化可训练模型，用 ``Algorithm`` 指定强化学习算法及其超参数。
+# 这里用 ``Dataset`` 配置训练数据集，用 ``TunerChatModel`` 配置可训练模型相关参数，用 ``Algorithm`` 指定强化学习算法及其超参数。
 #
 # .. tip::
-#   ``tune`` 函数基于 `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ 实现，并在内部将输入参数转换为 YAML 配置。
-#   高级用户可以忽略 ``model``、``train_dataset``、``algorithm`` 参数，改为通过 ``config_path`` 参数提供指向 YAML 文件的配置路径。
-#   我们推荐使用配置文件方式以便对训练过程进行更细粒度的控制，从而利用 Trinity-RFT 提供的高级功能。
-#   你可以参考 Trinity-RFT 的 `配置指南 <https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html>`_ 了解更多配置选项。
+#    ``tune`` 函数基于 `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ 实现，内部会将输入参数转换为 YAML 配置。
+#    高级用户可忽略 ``model``、``train_dataset``、``algorithm`` 参数，直接通过 ``config_path`` 指定 YAML 配置文件。
+#    推荐使用配置文件方式以便更细粒度地控制训练过程，充分利用 Trinity-RFT 的高级功能。
+#    你可参考 Trinity-RFT 的 `配置指南 <https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html>`_ 了解更多配置选项。
 #
 # 你可以将上述代码保存为 ``main.py``，并用如下命令运行：
 #
