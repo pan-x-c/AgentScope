@@ -198,9 +198,16 @@ class TestDataset(IsolatedAsyncioTestCase):
 
     async def test_preview(self) -> None:
         """Test preview method."""
+        try:
+            import datasets
+        except ImportError:
+            datasets = None
+            self.skipTest("datasets library is not installed.")
         from agentscope.tuner import Dataset
         from pathlib import Path
         import tempfile
+
+        assert datasets is not None
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             # generate a small dataset directory
@@ -209,7 +216,7 @@ class TestDataset(IsolatedAsyncioTestCase):
             sample_file = dataset_dir / "train.jsonl"
             sample_content = [
                 '{"question": "What is 2 + 2?", "answer": "4"}',
-                '{"question": "Waht is 4 + 4?", "answer": "8"}',
+                '{"question": "What is 4 + 4?", "answer": "8"}',
                 '{"question": "What is 8 + 8?", "answer": "16"}',
             ]
             with open(sample_file, "w", encoding="utf-8") as f:
