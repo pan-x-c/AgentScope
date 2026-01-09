@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
 """Configuration conversion for tuner."""
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List
 from pathlib import Path
 from datetime import datetime
 import inspect
 
 from ._workflow import WorkflowType
 from ._judge import JudgeType
-from ._model import TunerChatModel
+from ..model import TunerChatModel
 from ._dataset import Dataset
 from ._algorithm import Algorithm
 
 
-def set_if_not_none(obj: Any, field: str, value: Any) -> None:
+def _set_if_not_none(obj: Any, field: str, value: Any) -> None:
     """Set the field of obj to value if value is not None."""
     if value is not None:
         setattr(obj, field, value)
 
 
-def to_trinity_config(
+def _to_trinity_config(
     *,
     config_path: str | None = None,
     workflow_func: WorkflowType | None = None,
@@ -49,13 +49,13 @@ def to_trinity_config(
     config = load_config(config_path)
     assert isinstance(config, Config), "Loaded config is not valid."
 
-    set_if_not_none(config, "project", project_name)
+    _set_if_not_none(config, "project", project_name)
     if experiment_name is None and auto_config:
         config.name = "Experiment-" + datetime.now().strftime(
             "%Y%m%d%H%M%S",
         )
 
-    set_if_not_none(config, "monitor", monitor_type)
+    _set_if_not_none(config, "monitor", monitor_type)
 
     workflow_name = "agentscope_workflow_adapter_v1"
     if train_dataset is not None:
@@ -159,7 +159,7 @@ def check_judge_function(
 def _check_function_signature(
     func: Callable,
     essential_params: List[str],
-    optional_params: Optional[List[str]] = None,
+    optional_params: List[str] | None = None,
 ) -> None:
     """
     Check if the given function has the required signature.
@@ -168,7 +168,7 @@ def _check_function_signature(
         func (Callable): The function to check.
         essential_params (List[str]): List of essential parameter names
             that must be present in the function.
-        optional_params (Optional[List[str]]): List of optional parameter names
+        optional_params (List[str] | None): List of optional parameter names
             that can be present in the function.
     """
     if optional_params is None:

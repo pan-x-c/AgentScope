@@ -3,10 +3,10 @@
 import os
 from ._workflow import WorkflowType
 from ._judge import JudgeType
-from ._model import TunerChatModel
+from ..model import TunerChatModel
 from ._dataset import Dataset
 from ._config import (
-    to_trinity_config,
+    _to_trinity_config,
     check_judge_function,
     check_workflow_function,
 )
@@ -71,7 +71,7 @@ def tune(
     if judge_func is not None:
         check_judge_function(judge_func)
 
-    config = to_trinity_config(
+    config = _to_trinity_config(
         config_path=config_path,
         workflow_func=workflow_func,
         judge_func=judge_func,

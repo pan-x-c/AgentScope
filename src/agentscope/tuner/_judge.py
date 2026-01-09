@@ -16,9 +16,9 @@ Returns:
         The reward value assigned by the judge function along with optional
         metrics.
 """
-from typing import Optional, Any, Callable, Dict, Awaitable
+from typing import Any, Callable, Dict, Awaitable
 from pydantic import BaseModel, Field
-from agentscope.model import ChatModelBase
+from ..model import ChatModelBase
 
 
 class JudgeOutput(BaseModel):
@@ -28,7 +28,7 @@ class JudgeOutput(BaseModel):
         description="The reward value assigned by the judge function.",
     )
 
-    metrics: Optional[Dict[str, float]] = Field(
+    metrics: Dict[str, float] | None = Field(
         description="Metrics from the judge function.",
         default=None,
     )

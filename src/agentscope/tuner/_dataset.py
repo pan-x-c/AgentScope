@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Dataset definition for tuner."""
 from itertools import islice
-from typing import Optional, List
+from typing import List
 from pydantic import BaseModel, Field
 
 
@@ -15,11 +15,11 @@ class Dataset(BaseModel):
     path: str = Field(
         description="Path to your dataset.",
     )
-    name: Optional[str] = Field(
+    name: str | None = Field(
         description="The name of the dataset configuration.",
         default=None,
     )
-    split: Optional[str] = Field(
+    split: str | None = Field(
         description="The dataset split to use.",
         default="train",
     )
@@ -27,7 +27,7 @@ class Dataset(BaseModel):
         description="Total number of epochs to run.",
         default=1,
     )
-    total_steps: Optional[int] = Field(
+    total_steps: int | None = Field(
         description=(
             "Total number of steps to run. "
             "If set, it will override total_epochs."
