@@ -158,6 +158,9 @@ judge_output = asyncio.run(
 print(f"评判奖励: {judge_output.reward}")
 
 # %%
+#
+# .. tip:: 你可以在评判函数中利用已有的 `MetricBase <https://github.com/agentscope-ai/agentscope/blob/main/src/agentscope/evaluate/_metric_base.py>`_ 实现来计算更复杂的指标，并将它们组合成复合奖励。
+#
 # 如何运行
 # ~~~~~~~~~~~~~~~
 # 最后，你可以使用 ``tuner`` 模块配置并运行调优过程。

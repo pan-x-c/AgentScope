@@ -162,6 +162,8 @@ judge_output = asyncio.run(
 print(f"Judge reward: {judge_output.reward}")
 
 # %%
+# .. tip:: You can leverage existing `MetricBase <https://github.com/agentscope-ai/agentscope/blob/main/src/agentscope/evaluate/_metric_base.py>`_ implementations in your judge function to compute more sophisticated metrics and combine them into a composite reward.
+#
 # How to Run
 # ~~~~~~~~~~~~~~~
 # Finally, you can set up and run the tuning process using the ``tuner`` module.
@@ -195,7 +197,7 @@ print(f"Judge reward: {judge_output.reward}")
 # initialize the trainable model, and ``Algorithm`` to specify the RL algorithm
 # and its hyperparameters.
 #
-# .. note:: This example is for demonstration purposes only. Please refer to the code in `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/training/react_agent>`_ for a complete and runnable example.
+# .. note:: This example is for demonstration purposes only. Please refer to the code in `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/tuner/react_agent>`_ for a complete and runnable example.
 #
 # .. tip::
 #   The ``tune`` function is based on `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ and it converts the input parameters into a YAML configuration internally.

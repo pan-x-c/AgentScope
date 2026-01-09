@@ -197,6 +197,8 @@ async def judge_function(
     return JudgeOutput(reward=reward)
 ```
 
+> Tip: You can leverage existing [`MetricBase`](https://github.com/agentscope-ai/agentscope/blob/main/src/agentscope/evaluate/_metric_base.py) implementations in your judge function to compute more sophisticated metrics and combine them into a composite reward.
+
 ### Step 4: Start tuning
 
 Finally, you can use the `tune` interface to train the defined workflow function with a configuration file.
