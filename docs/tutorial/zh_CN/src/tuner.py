@@ -183,7 +183,7 @@ print(f"评判奖励: {judge_output.reward}")
 # .. tip::
 #    你可以在评判函数中利用已有的 `MetricBase <https://github.com/agentscope-ai/agentscope/blob/main/src/agentscope/evaluate/_metric_base.py>`_ 实现，计算更复杂的指标，并将其组合为复合奖励。
 #
-# 如何运行
+# 配置并运行
 # ~~~~~~~~~~~~~~~
 # 最后，你可以用 ``tuner`` 模块配置并运行调优流程。
 # 在开始调优前，请确保环境已安装 `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_，这是 ``tuner`` 的依赖。
@@ -243,3 +243,5 @@ print(f"评判奖励: {judge_output.reward}")
 #                        │   └── tensorboard/  # tensorboard 日志
 #                        └── global_step_x/    # 第 x 步保存的模型检查点
 #
+# .. tip::
+#    更多调优样例请参考 AgentScope-Samples 库中的 `tuner 目录 <https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner>`_

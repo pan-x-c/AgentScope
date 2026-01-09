@@ -183,7 +183,7 @@ print(f"Judge reward: {judge_output.reward}")
 # .. tip::
 #    You can leverage existing `MetricBase <https://github.com/agentscope-ai/agentscope/blob/main/src/agentscope/evaluate/_metric_base.py>`_ implementations in your judge function to compute more sophisticated metrics and combine them into a composite reward.
 #
-# How to Run
+# Configuration and Running
 # ~~~~~~~~~~~~~~~
 # Finally, you can configure and run the tuning process using the ``tuner`` module.
 # Before starting, ensure that `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ is installed in your environment, as it is required for tuning.
@@ -241,3 +241,5 @@ print(f"Judge reward: {judge_output.reward}")
 #                        │   └── tensorboard/  # tensorboard logs
 #                        └── global_step_x/    # saved model checkpoints at step x
 #
+# .. tip::
+#    For more tuning examples, refer to the `tuner directory <https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner>`_ of the AgentScope-Samples repository.
