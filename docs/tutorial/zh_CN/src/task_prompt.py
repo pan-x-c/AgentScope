@@ -258,10 +258,10 @@ print(formatted_message[-1]["content"])
 async def run_token_counter() -> int:
     """计算输入消息的 token 数量。"""
     # 我们使用 huggingface token 计数器用于 dashscope 模型。
-    # token_counter = HuggingFaceTokenCounter(
-    #     "Qwen/Qwen2.5-VL-3B-Instruct",
-    #     use_mirror=False,
-    # )
+    token_counter = HuggingFaceTokenCounter(
+        "Qwen/Qwen2.5-VL-3B-Instruct",
+        use_mirror=False,
+    )
 
     return await token_counter.count(formatted_message)
 

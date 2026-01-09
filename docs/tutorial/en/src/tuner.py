@@ -5,57 +5,74 @@
 Tuner
 =================
 
-AgentScope provides a ``tuner`` module to train agent applications using reinforcement learning (RL).
-This tutorial will guide you through the process of using the ``tuner`` module to enhance an agent's performance on a specific task, which includes:
+AgentScope provides the ``tuner`` module for training agent applications using reinforcement learning (RL).
+This tutorial will guide you through how to leverage the ``tuner`` module to improve agent performance on specific tasks, including:
 
-- Introducing the main components of the ``tuner`` module.
-- Demonstrating how to implement the necessary code components for tuning.
-- Showing how to setup and run the tuning process.
+- Introducing the core components of the ``tuner`` module
+- Demonstrating the key code required for the tuning workflow
+- Showing how to configure and run the tuning process
 
 Main Components
 ~~~~~~~~~~~~~~~~~~~
-The ``tuner`` module introduce three main components necessary for training an agent application using RL:
+The ``tuner`` module introduces three core components essential for RL-based agent training:
 
-- **Task Dataset**: A collection of tasks used for training and evaluating the agent application.
-- **Workflow Function**: A function that internally contains the agent application being tuned.
-- **Judge Function**: A function that evaluates the agent's performance on a given task and provides a reward signal for tuning.
+- **Task Dataset**: A collection of tasks for training and evaluating the agent.
+- **Workflow Function**: Encapsulates the agent's logic to be tuned.
+- **Judge Function**: Evaluates the agent's performance on tasks and provides reward signals for tuning.
 
-Besides these components, the ``tuner`` module also provides some configuration classes to customize the tuning process, including:
+In addition, ``tuner`` provides several configuration classes for customizing the tuning process, including:
 
-- **TunerChatModel**: A configurable chat model for only for tuning purposes, fully compatible with AgentScope's ``OpenAIChatModel``.
-- **Algorithm**: The RL algorithm used for tuning, e.g., GRPO, PPO, etc.
+- **TunerChatModel**: A configurable chat model designed for tuning, fully compatible with ``OpenAIChatModel`` interface.
+- **Algorithm**: Specifies the RL algorithm (e.g., GRPO, PPO) and its parameters.
 
-
-How to Implement
+Implementation
 ~~~~~~~~~~~~~~~~~~~
-Here we will implement a simple math agent that can be trained using the ``tuner`` module.
-
+This section demonstrates how to use ``tuner`` to train a simple math agent.
 
 Task Dataset
 --------------------
-The task dataset contains a collection of tasks for training and evaluating your agent application.
+The task dataset contains tasks for training and evaluating your agent.
 
-The dataset should be organized in huggingface `datasets <https://huggingface.co/docs/datasets/quickstart>`_ format and can be loaded using the ``datasets.load_dataset`` function. For example:
+You dataset should follow the Huggingface `datasets <https://huggingface.co/docs/datasets/quickstart>`_ format, which can be loaded with ``datasets.load_dataset``. For example:
 
 .. code-block:: text
 
     my_dataset/
-        ├── train.jsonl  # samples for training
-        └── test.jsonl   # samples for evaluation
+        ├── train.jsonl  # training samples
+        └── test.jsonl   # evaluation samples
 
-Suppose your `train.jsonl` contains samples like:
+Suppose your `train.jsonl` contains:
 
 .. code-block:: json
 
     {"question": "What is 2 + 2?", "answer": "4"}
     {"question": "What is 4 + 4?", "answer": "8"}
 
+Before starting tuning, you can verify that your dataset is loaded correctly with:
+
+.. code-block:: python
+
+    from agentscope.tuner import Dataset
+
+    dataset = Dataset(path="my_dataset", split="train")
+    dataset.preview(n=2)
+    # Output the first two samples to verify correct loading
+    # [
+    #   {
+    #     "question": "What is 2 + 2?",
+    #     "answer": "4"
+    #   },
+    #   {
+    #     "question": "What is 4 + 4?",
+    #     "answer": "8"
+    #   }
+    # ]
 
 Workflow Function
 --------------------
-The workflow function that defines how the agents interacts with the environment and makes decisions. All workflow functions should follow the input/output signature defined in ``agentscope.tuner.WorkflowType``.
+The workflow function defines how the agent interacts with the environment and makes decisions. All workflow functions should follow the input/output signature defined in ``agentscope.tuner.WorkflowType``.
 
-Below is an example of a simple workflow function that uses a ReAct agent to answer math questions.
+Below is an example workflow function using a ReAct agent to answer math questions:
 """
 
 from typing import Dict, Optional
@@ -98,14 +115,13 @@ async def example_workflow_function(
         ),  # extract question from task
     )
 
-    return WorkflowOutput(  # put the response into WorkflowOutput
+    return WorkflowOutput(  # return the response
         response=response,
     )
 
 
 # %%
-# You can run this workflow function directly with a task dictionary and a chat model.
-# For example:
+# You can directly run this workflow function with a task dictionary and a ``DashScopeChatModel`` / ``OpenAIChatModel`` to test its correctness before formal training. For example:
 
 import asyncio
 import os
@@ -129,7 +145,7 @@ print("\nWorkflow response:", workflow_output.response.get_text_content())
 # --------------------
 # The judge function evaluates the agent's performance on a given task and provides a reward signal for tuning.
 # All judge functions should follow the input/output signature defined in ``agentscope.tuner.JudgeType``.
-# Below is an example of a simple judge function that compares the agent's response with the ground truth answer.
+# Below is a simple judge function that compares the agent's response with the ground truth answer:
 
 from typing import Any
 from agentscope.tuner import JudgeOutput
@@ -162,16 +178,20 @@ judge_output = asyncio.run(
 print(f"Judge reward: {judge_output.reward}")
 
 # %%
-# .. tip:: You can leverage existing `MetricBase <https://github.com/agentscope-ai/agentscope/blob/main/src/agentscope/evaluate/_metric_base.py>`_ implementations in your judge function to compute more sophisticated metrics and combine them into a composite reward.
+# The judge function can also be locally tested in the same way as shown above before formal training to ensure its logic is correct.
+#
+# .. tip::
+#    You can leverage existing `MetricBase <https://github.com/agentscope-ai/agentscope/blob/main/src/agentscope/evaluate/_metric_base.py>`_ implementations in your judge function to compute more sophisticated metrics and combine them into a composite reward.
 #
 # How to Run
 # ~~~~~~~~~~~~~~~
-# Finally, you can set up and run the tuning process using the ``tuner`` module.
-# Before starting the tuning, make sure you have `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ installed in your environment, as it is a dependency for the tuning process.
+# Finally, you can configure and run the tuning process using the ``tuner`` module.
+# Before starting, ensure that `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ is installed in your environment, as it is required for tuning.
 #
-# Below is an example of how to configure and start the tuning process.
+# Below is an example of configuring and starting the tuning process:
 #
-# .. note:: This example is for demonstration purposes only. Please refer to the code in `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/tuner/react_agent>`_ for a complete and runnable example.
+# .. note::
+#    This example is for demonstration only. For a complete runnable example, see `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/tuner/react_agent>`_
 #
 # .. code-block:: python
 #
@@ -195,25 +215,21 @@ print(f"Judge reward: {judge_output.reward}")
 #                algorithm=algorithm,
 #            )
 #
-# Here, we use ``Dataset`` to load the training dataset, ``TunerChatModel`` to
-# initialize the trainable model, and ``Algorithm`` to specify the RL algorithm
-# and its hyperparameters.
+# Here, ``Dataset`` configures the training dataset, ``TunerChatModel`` sets the parameters for the trainable model, and ``Algorithm`` specifies the reinforcement learning algorithm and its hyperparameters.
 #
 # .. tip::
-#   The ``tune`` function is based on `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ and it converts the input parameters into a YAML configuration internally.
-#   Advanced users can ignore ``model``, ``train_dataset``, ``algorithm`` arguments and provide a configuration file path pointing to a YAML file using the ``config_path`` argument instead.
-#   We recommend using the configuration file approach for fine-grained control over the training process and leveraging advanced features provided by Trinity-RFT.
-#   You can refer to the Trinity-RFT `Configuration Guide <https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html>`_ for more details on configuration options.
+#    The ``tune`` function is based on `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ and internally converts input parameters to a YAML configuration.
+#    Advanced users can skip the ``model``, ``train_dataset``, and ``algorithm`` arguments and instead provide a YAML config file path via the ``config_path`` argument.
+#    Using a configuration file is recommended for fine-grained control and to leverage advanced Trinity-RFT features. See the Trinity-RFT `Configuration Guide <https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html>`_ for more options.
 #
-# You can save the above code in a file named ``main.py`` and run it with the following commands:
+# Save the above code as ``main.py`` and run it with:
 #
 # .. code-block:: bash
 #
 #        ray start --head
 #        python main.py
 #
-# The checkpoint and logs will automatically be saved to the ``checkpoints/AgentScope`` directory under the current working directory and each run will be save in a sub-directory suffixed with current timestamp.
-# You can found the tensorboard logs inside ``monitor/tensorboard`` of the checkpoint directory.
+# Checkpoints and logs are automatically saved to the ``checkpoints/AgentScope`` directory under your workspace, with each run in a timestamped sub-directory. Tensorboard logs can be found in ``monitor/tensorboard`` within the checkpoint directory.
 #
 # .. code-block:: text
 #
