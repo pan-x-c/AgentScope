@@ -85,7 +85,7 @@ class TunerChatModel(OpenAIChatModel):
         """Set the OpenAI async client for the model.
 
         Args:
-            openai_async_client (AsyncOpenAI): The OpenAI async client
+            openai_async_client (`AsyncOpenAI`): The OpenAI async client
                 instance
         """
         self.client = openai_async_client
@@ -94,7 +94,7 @@ class TunerChatModel(OpenAIChatModel):
         """Get the model configuration.
 
         Returns:
-            Dict[str, Any]: The model configuration dictionary.
+            `Dict[str, Any]`: The model configuration dictionary.
         """
         return {
             "model_path": self.model_path,
