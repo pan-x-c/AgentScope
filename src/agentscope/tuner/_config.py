@@ -165,10 +165,10 @@ def _check_function_signature(
     Check if the given function has the required signature.
 
     Args:
-        func (Callable): The function to check.
-        essential_params (List[str]): List of essential parameter names
+        func (`Callable`): The function to check.
+        essential_params (`List[str]`): List of essential parameter names
             that must be present in the function.
-        optional_params (List[str] | None): List of optional parameter names
+        optional_params (`List[str] | None`): List of optional parameter names
             that can be present in the function.
     """
     if optional_params is None:
@@ -178,7 +178,7 @@ def _check_function_signature(
     actual_params = []
 
     for param_name, param in sig.parameters.items():
-        #  *args and **kwargs are not allowed
+        # *args and **kwargs are not allowed
         if param.kind == inspect.Parameter.VAR_POSITIONAL:
             raise ValueError(f"*args parameter is not allowed: *{param_name}")
         if param.kind == inspect.Parameter.VAR_KEYWORD:
