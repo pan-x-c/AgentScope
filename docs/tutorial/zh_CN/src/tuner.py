@@ -189,7 +189,7 @@ print(f"评判奖励: {judge_output.reward}")
 #
 # 这里我们用 ``Dataset`` 配置训练数据集，用 ``TunerChatModel`` 初始化可训练模型，用 ``Algorithm`` 指定强化学习算法及其超参数。
 #
-# .. note:: 此示例仅供演示。完整可运行示例请参考 `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/training/react_agent>`_
+# .. note:: 此示例仅供演示。完整可运行示例请参考 `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/tuner/react_agent>`_
 #
 # .. tip::
 #   ``tune`` 函数基于 `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ 实现，并在内部将输入参数转换为 YAML 配置。
