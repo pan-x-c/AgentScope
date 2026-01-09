@@ -17,7 +17,7 @@ else:
 
 @deprecated(
     "TrinityChatModel is deprecated, please use "
-    "`agentscope.tuner.TunerChatModel` instead.",
+    "`agentscope.model.TunerChatModel` instead.",
 )
 class TrinityChatModel(OpenAIChatModel):
     """A model class for RL Training with Trinity-RFT."""
