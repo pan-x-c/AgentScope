@@ -171,6 +171,8 @@ print(f"Judge reward: {judge_output.reward}")
 #
 # Below is an example of how to configure and start the tuning process.
 #
+# .. note:: This example is for demonstration purposes only. Please refer to the code in `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/tuner/react_agent>`_ for a complete and runnable example.
+#
 # .. code-block:: python
 #
 #        from agentscope.tuner import tune, Algorithm, Dataset, TunerChatModel
@@ -196,8 +198,6 @@ print(f"Judge reward: {judge_output.reward}")
 # Here, we use ``Dataset`` to load the training dataset, ``TunerChatModel`` to
 # initialize the trainable model, and ``Algorithm`` to specify the RL algorithm
 # and its hyperparameters.
-#
-# .. note:: This example is for demonstration purposes only. Please refer to the code in `Tune ReActAgent <https://github.com/agentscope-ai/agentscope/tree/main/examples/tuner/react_agent>`_ for a complete and runnable example.
 #
 # .. tip::
 #   The ``tune`` function is based on `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ and it converts the input parameters into a YAML configuration internally.
