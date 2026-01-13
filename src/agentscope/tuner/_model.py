@@ -5,10 +5,9 @@ from pydantic import BaseModel, Field
 
 
 class TunerModelConfig(BaseModel):
-    """Model configuration for tuning.
-    """
+    """Model configuration for tuning."""
 
-    model_path: str  = Field(
+    model_path: str = Field(
         description="The path to the model checkpoint.",
     )
 
