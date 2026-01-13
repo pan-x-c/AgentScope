@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Configuration conversion for tuner."""
 from typing import Any, Callable, List, Tuple
-from pathlib import Path
 from datetime import datetime
 import inspect
 
@@ -38,6 +37,7 @@ def _to_trinity_config(
         TasksetConfig,
         InferenceModelConfig,
     )
+
     config, auto_config = _load_config_from_path_or_default(config_path)
     assert isinstance(config, Config), "Loaded config is not valid."
 
