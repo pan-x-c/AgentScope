@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Configuration conversion for tuner."""
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Tuple
 from pathlib import Path
 from datetime import datetime
 import inspect
@@ -121,6 +121,66 @@ def _to_trinity_config(
         config.trainer.save_interval = algorithm.save_interval_steps
         config.explorer.eval_interval = algorithm.eval_interval_steps
     return config
+
+
+def _load_config_from_path_or_default(
+    config_path: str | None,
+) -> Tuple[Any, bool]:
+    """Load configuration from the given path or default template.
+
+    Args:
+        config_path (`str | None`): The path to the configuration file.
+    Returns:
+        `Tuple[Any, bool]`: The loaded configuration and a boolean
+            indicating whether the default template was used.
+    """
+    from trinity.common.config import (
+        Config,
+        load_config,
+    )
+    import tempfile
+    import yaml
+
+    template_used = False
+    if config_path is None:
+        default_config = {
+            "project": "AgentScope",
+            "name": "Experiment",
+            "checkpoint_root_dir": "./checkpoints",
+            "algorithm": {
+                "algorithm_type": "multi_step_grpo",
+            },
+            "buffer": {
+                "total_epochs": 1,
+            },
+            "explorer": {
+                "runner_per_model": 16,
+                "max_timeout": 3600,
+                "max_repeat_times_per_runner": 1,
+            },
+            "synchronizer": {
+                "sync_style": "dynamic_by_explorer",
+                "sync_method": "nccl",
+                "sync_interval": 1,
+                "sync_timeout": 7200,
+            },
+            "trainer": {
+                "save_interval": 100,
+            },
+            "monitor": {
+                "monitor_type": "tensorboard",
+            },
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as tmp:
+            yaml.dump(default_config, tmp)
+            tmp.flush()
+            config = load_config(tmp.name)
+        template_used = True
+    else:
+        config = load_config(config_path)
+
+    assert isinstance(config, Config), "Loaded config is not valid."
+    return config, template_used
 
 
 def check_workflow_function(
