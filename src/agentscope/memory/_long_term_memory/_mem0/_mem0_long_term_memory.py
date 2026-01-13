@@ -10,14 +10,13 @@ import json
 from typing import Any, TYPE_CHECKING
 from importlib import metadata
 
-
 from pydantic import field_validator
 
-from ..embedding import EmbeddingModelBase
-from ._long_term_memory_base import LongTermMemoryBase
-from ..message import Msg, TextBlock
-from ..model import ChatModelBase
-from ..tool import ToolResponse
+from ....embedding import EmbeddingModelBase
+from .._long_term_memory_base import LongTermMemoryBase
+from ....message import Msg, TextBlock
+from ....model import ChatModelBase
+from ....tool import ToolResponse
 
 
 if TYPE_CHECKING:
