@@ -30,30 +30,30 @@ def tune(
     """Train the agent workflow with the specific configuration.
 
     Args:
-        workflow_func (WorkflowType): The learning workflow function
+        workflow_func (`WorkflowType`): The learning workflow function
             to execute.
-        judge_func (JudgeType, optional): The judge function used to
+        judge_func (`JudgeType`, optional): The judge function used to
             evaluate the workflow output. Defaults to None.
-        train_dataset (Dataset, optional): The training dataset for
+        train_dataset (`Dataset`, optional): The training dataset for
             the learning process. Defaults to None.
-        eval_dataset (Dataset, optional): The evaluation dataset for
+        eval_dataset (`Dataset`, optional): The evaluation dataset for
             the learning process. Defaults to None.
-        model (TunerChatModel, optional): The chat model to be tuned.
+        model (`TunerChatModel`, optional): The chat model to be tuned.
             Defaults to None.
-        auxiliary_models (dict[str, TunerChatModel], optional): A
+        auxiliary_models (`dict[str, TunerChatModel]`, optional): A
             dictionary of auxiliary chat models for LLM-as-a-Judge
             or acting other agents in multi-agent scenarios.
             Defaults to None.
-        algorithm (Algorithm, optional): The tuning algorithm
+        algorithm (`Algorithm`, optional): The tuning algorithm
             configuration. Defaults to None.
-        project_name (str, optional): Name of the project.
+        project_name (`str`, optional): Name of the project.
             Defaults to None.
-        experiment_name (str, optional): Name of the experiment.
+        experiment_name (`str`, optional): Name of the experiment.
             Leave None to use timestamp. Defaults to None.
-        monitor_type (str, optional): Type of the monitor to use.
+        monitor_type (`str`, optional): Type of the monitor to use.
             Could be one of 'tensorboard', 'wandb', 'mlflow', 'swanlab'.
             Leave None to use tensorboard. Defaults to None.
-        config_path (str, optional): Path to a trinity yaml configuration
+        config_path (`str`, optional): Path to a trinity yaml configuration
             file. If provided, only `workflow_func` is necessary, other
             arguments will override the corresponding fields in the config.
             Defaults to None.
