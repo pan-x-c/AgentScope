@@ -36,17 +36,9 @@ def _to_trinity_config(
     from trinity.common.config import (
         Config,
         TasksetConfig,
-        load_config,
         InferenceModelConfig,
     )
-
-    auto_config = False
-    if config_path is None:
-        temp_path = Path(__file__).parent / "template" / "config.yaml"
-        config_path = str(temp_path.absolute())
-        auto_config = True
-
-    config = load_config(config_path)
+    config, auto_config = _load_config_from_path_or_default(config_path)
     assert isinstance(config, Config), "Loaded config is not valid."
 
     _set_if_not_none(config, "project", project_name)
