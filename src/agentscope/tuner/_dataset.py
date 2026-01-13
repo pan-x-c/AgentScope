@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Dataset definition for tuner."""
+"""DatasetConfig definition for tuner."""
 from itertools import islice
 from typing import List
 from pydantic import BaseModel, Field
 
 
-class Dataset(BaseModel):
-    """Dataset information for tuning.
+class DatasetConfig(BaseModel):
+    """Dataset configuration for tuning.
     Compatible with huggingface dataset format.
     Agentscope will load the dataset from the given path using
     `datasets.load_dataset`.

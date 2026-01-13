@@ -80,9 +80,9 @@ Note that the task sample format can vary based on your specific scenario. The k
 You can preview your dataset using the following code:
 
 ```python
-from agentscope.tuner import Dataset
+from agentscope.tuner import DatasetConfig
 
-Dataset(path="my_dataset", split="train").preview()
+DatasetConfig(path="my_dataset", split="train").preview()
 
 # Output:
 # [
@@ -204,14 +204,14 @@ async def judge_function(
 Finally, you can use the `tune` interface to train the defined workflow function with a configuration file.
 
 ```python
-from agentscope.tuner import tune, Algorithm, Dataset, TunerChatModel
+from agentscope.tuner import tune, AlgorithmConfig, DatasetConfig, TunerModelConfig
 
 # your workflow / judge function here...
 
 if __name__ == "__main__":
-    dataset = Dataset(path="my_dataset", split="train")
-    model = TunerChatModel(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
-    algorithm = Algorithm(
+    dataset = DatasetConfig(path="my_dataset", split="train")
+    model = TunerModelConfig(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
+    algorithm = AlgorithmConfig(
         algorithm_type="multi_step_grpo",
         group_size=8,
         batch_size=32,
@@ -233,7 +233,7 @@ if __name__ == "__main__":
     #)
 ```
 
-Here, we use `Dataset` to load the training dataset, `TunerChatModel` to initialize the trainable model, and `Algorithm` to specify the RL algorithm and its hyperparameters.
+Here, we use `DatasetConfig` to load the training dataset, `TunerModelConfig` to initialize the trainable model, and `AlgorithmConfig` to specify the RL algorithm and its hyperparameters.
 
 > Note:
 > The `tune` function is based on [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) and it converts the input parameters into a YAML configuration internally.
@@ -261,7 +261,7 @@ react_agent/
 ```python
 from typing import Dict
 
-from agentscope.tuner import tune, WorkflowOutput, JudgeOutput, Dataset, TunerChatModel, Algorithm
+from agentscope.tuner import tune, WorkflowOutput, JudgeOutput, DatasetConfig, TunerModelConfig, AlgorithmConfig
 from agentscope.agent import ReActAgent
 from agentscope.formatter import OpenAIChatFormatter
 from agentscope.message import Msg
@@ -269,8 +269,8 @@ from agentscope.message import Msg
 
 async def run_react_agent(
     task: Dict,
-    model: TunerChatModel,
-    auxiliary_models: Dict[str, TunerChatModel],
+    model: TunerModelConfig,
+    auxiliary_models: Dict[str, TunerModelConfig],
 ) -> WorkflowOutput:
     agent = ReActAgent(
         name="react_agent",
@@ -289,7 +289,7 @@ async def run_react_agent(
 
 
 async def judge_function(
-    task: Dict, response: Msg, auxiliary_models: Dict[str, TunerChatModel]
+    task: Dict, response: Msg, auxiliary_models: Dict[str, TunerModelConfig]
 ) -> JudgeOutput:
     """Simple reward: 1.0 for exact match, else 0.0."""
     ground_truth = task["answer"]
@@ -298,9 +298,9 @@ async def judge_function(
 
 
 if __name__ == "__main__":
-    dataset = Dataset(path="my_dataset", split="train")
-    model = TunerChatModel(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
-    algorithm = Algorithm(
+    dataset = DatasetConfig(path="my_dataset", split="train")
+    model = TunerModelConfig(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
+    algorithm = AlgorithmConfig(
         algorithm_type="multi_step_grpo",
         group_size=8,
         batch_size=32,

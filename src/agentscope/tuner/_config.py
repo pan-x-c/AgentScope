@@ -7,9 +7,9 @@ import inspect
 
 from ._workflow import WorkflowType
 from ._judge import JudgeType
-from ..model import TunerChatModel
-from ._dataset import Dataset
-from ._algorithm import Algorithm
+from ._model import TunerModelConfig
+from ._dataset import DatasetConfig
+from ._algorithm import AlgorithmConfig
 
 
 def _set_if_not_none(obj: Any, field: str, value: Any) -> None:
@@ -23,11 +23,11 @@ def _to_trinity_config(
     config_path: str | None = None,
     workflow_func: WorkflowType | None = None,
     judge_func: JudgeType | None = None,
-    model: TunerChatModel | None = None,
-    auxiliary_models: dict[str, TunerChatModel] | None = None,
-    train_dataset: Dataset | None = None,
-    eval_dataset: Dataset | None = None,
-    algorithm: Algorithm | None = None,
+    model: TunerModelConfig | None = None,
+    auxiliary_models: dict[str, TunerModelConfig] | None = None,
+    train_dataset: DatasetConfig | None = None,
+    eval_dataset: DatasetConfig | None = None,
+    algorithm: AlgorithmConfig | None = None,
     project_name: str | None = None,
     experiment_name: str | None = None,
     monitor_type: str | None = None,

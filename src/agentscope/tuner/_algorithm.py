@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Algorithm definition for tuner."""
+"""AlgorithmConfig definition for tuner."""
 
 from pydantic import BaseModel, Field
 
 
-class Algorithm(BaseModel):
-    """Algorithm information for tuning."""
+class AlgorithmConfig(BaseModel):
+    """Algorithm configuration for tuning."""
 
     algorithm_type: str = Field(
         description=(

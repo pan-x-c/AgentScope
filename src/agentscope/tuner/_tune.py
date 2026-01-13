@@ -3,25 +3,25 @@
 import os
 from ._workflow import WorkflowType
 from ._judge import JudgeType
-from ..model import TunerChatModel
-from ._dataset import Dataset
+from ._model import TunerModelConfig
+from ._dataset import DatasetConfig
 from ._config import (
     _to_trinity_config,
     check_judge_function,
     check_workflow_function,
 )
-from ._algorithm import Algorithm
+from ._algorithm import AlgorithmConfig
 
 
 def tune(
     *,
     workflow_func: WorkflowType,
     judge_func: JudgeType | None = None,
-    train_dataset: Dataset | None = None,
-    eval_dataset: Dataset | None = None,
-    model: TunerChatModel | None = None,
-    auxiliary_models: dict[str, TunerChatModel] | None = None,
-    algorithm: Algorithm | None = None,
+    train_dataset: DatasetConfig | None = None,
+    eval_dataset: DatasetConfig | None = None,
+    model: TunerModelConfig | None = None,
+    auxiliary_models: dict[str, TunerModelConfig] | None = None,
+    algorithm: AlgorithmConfig | None = None,
     project_name: str | None = None,
     experiment_name: str | None = None,
     monitor_type: str | None = None,
@@ -34,17 +34,17 @@ def tune(
             to execute.
         judge_func (`JudgeType`, optional): The judge function used to
             evaluate the workflow output. Defaults to None.
-        train_dataset (`Dataset`, optional): The training dataset for
+        train_dataset (`DatasetConfig`, optional): The training dataset for
             the learning process. Defaults to None.
-        eval_dataset (`Dataset`, optional): The evaluation dataset for
+        eval_dataset (`DatasetConfig`, optional): The evaluation dataset for
             the learning process. Defaults to None.
-        model (`TunerChatModel`, optional): The chat model to be tuned.
+        model (`TunerModelConfig`, optional): The model to be tuned.
             Defaults to None.
-        auxiliary_models (`dict[str, TunerChatModel]`, optional): A
-            dictionary of auxiliary chat models for LLM-as-a-Judge
+        auxiliary_models (`dict[str, TunerModelConfig]`, optional): A
+            dictionary of auxiliary models for LLM-as-a-Judge
             or acting other agents in multi-agent scenarios.
             Defaults to None.
-        algorithm (`Algorithm`, optional): The tuning algorithm
+        algorithm (`AlgorithmConfig`, optional): The tuning algorithm
             configuration. Defaults to None.
         project_name (`str`, optional): Name of the project.
             Defaults to None.

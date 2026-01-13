@@ -8,7 +8,7 @@ from typing import Dict, Any
 
 from agentscope.model import ChatResponse
 from agentscope.message import TextBlock
-from agentscope.tuner import TunerChatModel, WorkflowOutput, JudgeOutput
+from agentscope.tuner import TunerModelConfig, WorkflowOutput, JudgeOutput
 from agentscope.tuner._config import (
     check_judge_function,
     check_workflow_function,
@@ -16,7 +16,7 @@ from agentscope.tuner._config import (
 
 
 class TestTunerChatModel(IsolatedAsyncioTestCase):
-    """Test cases for TunerChatModel."""
+    """Test cases for TunerModelConfig."""
 
     async def test_init_with_trinity_client(self) -> None:
         """Test initialization with a valid OpenAI async client."""
@@ -25,7 +25,7 @@ class TestTunerChatModel(IsolatedAsyncioTestCase):
         mock_client.model_path = MODEL_NAME
 
         # test init
-        model_1 = TunerChatModel(
+        model_1 = TunerModelConfig(
             model_path=MODEL_NAME,
             max_model_len=16384,
             enable_thinking=False,
@@ -33,7 +33,7 @@ class TestTunerChatModel(IsolatedAsyncioTestCase):
             tensor_parallel_size=2,
             inference_engine_num=2,
         )
-        model_2 = TunerChatModel(
+        model_2 = TunerModelConfig(
             model_path=MODEL_NAME,
             max_model_len=16384,
             enable_thinking=True,
@@ -100,8 +100,8 @@ class TestTunerChatModel(IsolatedAsyncioTestCase):
 
 async def correct_workflow_func(
     task: Dict,
-    model: TunerChatModel,
-    auxiliary_models: Dict[str, TunerChatModel],
+    model: TunerModelConfig,
+    auxiliary_models: Dict[str, TunerModelConfig],
 ) -> WorkflowOutput:
     """Correct interface matching the workflow type."""
     return WorkflowOutput(
@@ -111,7 +111,7 @@ async def correct_workflow_func(
 
 async def correct_workflow_func_no_aux(
     task: Dict,
-    model: TunerChatModel,
+    model: TunerModelConfig,
 ) -> WorkflowOutput:
     """Correct interface matching the workflow type without
     auxiliary models."""
@@ -129,7 +129,7 @@ async def incorrect_workflow_func_1(task: Dict) -> WorkflowOutput:
 
 async def incorrect_workflow_func_2(
     task: Dict,
-    model: TunerChatModel,
+    model: TunerModelConfig,
     aux_model: int,
 ) -> WorkflowOutput:
     """Incorrect interface not matching the workflow type."""
@@ -141,7 +141,7 @@ async def incorrect_workflow_func_2(
 async def correct_judge_func(
     task: Dict,
     response: Any,
-    auxiliary_models: Dict[str, TunerChatModel],
+    auxiliary_models: Dict[str, TunerModelConfig],
 ) -> JudgeOutput:
     """Correct interface matching the judge type."""
     return JudgeOutput(
@@ -194,7 +194,7 @@ class TestTunerFunctionType(IsolatedAsyncioTestCase):
 
 
 class TestDataset(IsolatedAsyncioTestCase):
-    """Test cases for Dataset."""
+    """Test cases for DatasetConfig."""
 
     async def test_preview(self) -> None:
         """Test preview method."""
@@ -203,7 +203,7 @@ class TestDataset(IsolatedAsyncioTestCase):
         except ImportError:
             datasets = None
             self.skipTest("datasets library is not installed.")
-        from agentscope.tuner import Dataset
+        from agentscope.tuner import DatasetConfig
         from pathlib import Path
         import tempfile
 
@@ -223,16 +223,16 @@ class TestDataset(IsolatedAsyncioTestCase):
                 for line in sample_content:
                     f.write(line + "\n")
 
-            dataset = Dataset(path=str(dataset_dir), split="train")
+            dataset = DatasetConfig(path=str(dataset_dir), split="train")
             samples = dataset.preview(n=2)
             self.assertEqual(len(samples), 2)
             samples = dataset.preview(n=5)
             self.assertEqual(len(samples), 3)
             with self.assertRaises(OSError):
-                invalid_ds = Dataset(path="/invalid/path", split="train")
+                invalid_ds = DatasetConfig(path="/invalid/path", split="train")
                 invalid_ds.preview()
             with self.assertRaises(ValueError):
-                invalid_ds = Dataset(
+                invalid_ds = DatasetConfig(
                     path=str(dataset_dir),
                     split="invalid_split",
                 )

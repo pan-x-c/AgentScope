@@ -22,8 +22,8 @@ The ``tuner`` module introduces three core components essential for RL-based age
 
 In addition, ``tuner`` provides several configuration classes for customizing the tuning process, including:
 
-- **TunerChatModel**: A configurable chat model designed for tuning, fully compatible with ``OpenAIChatModel`` interface.
-- **Algorithm**: Specifies the RL algorithm (e.g., GRPO, PPO) and its parameters.
+- **TunerModelConfig**: Model configurations for tuning purposes.
+- **AlgorithmConfig**: Specifies the RL algorithm (e.g., GRPO, PPO) and its parameters.
 
 Implementation
 ~~~~~~~~~~~~~~~~~~~
@@ -52,9 +52,9 @@ Before starting tuning, you can verify that your dataset is loaded correctly wit
 
 .. code-block:: python
 
-    from agentscope.tuner import Dataset
+    from agentscope.tuner import DatasetConfig
 
-    dataset = Dataset(path="my_dataset", split="train")
+    dataset = DatasetConfig(path="my_dataset", split="train")
     dataset.preview(n=2)
     # Output the first two samples to verify correct loading
     # [
@@ -197,13 +197,13 @@ print(f"Judge reward: {judge_output.reward}")
 #
 # .. code-block:: python
 #
-#        from agentscope.tuner import tune, Algorithm, Dataset, TunerChatModel
+#        from agentscope.tuner import tune, AlgorithmConfig, DatasetConfig, TunerModelConfig
 #        # your workflow / judge function here...
 #
 #        if __name__ == "__main__":
-#            dataset = Dataset(path="my_dataset", split="train")
-#            model = TunerChatModel(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
-#            algorithm = Algorithm(
+#            dataset = DatasetConfig(path="my_dataset", split="train")
+#            model = TunerModelConfig(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
+#            algorithm = AlgorithmConfig(
 #                algorithm_type="multi_step_grpo",
 #                group_size=8,
 #                batch_size=32,
@@ -217,7 +217,7 @@ print(f"Judge reward: {judge_output.reward}")
 #                algorithm=algorithm,
 #            )
 #
-# Here, ``Dataset`` configures the training dataset, ``TunerChatModel`` sets the parameters for the trainable model, and ``Algorithm`` specifies the reinforcement learning algorithm and its hyperparameters.
+# Here, ``DatasetConfig`` configures the training dataset, ``TunerModelConfig`` sets the parameters for the trainable model, and ``AlgorithmConfig`` specifies the reinforcement learning algorithm and its hyperparameters.
 #
 # .. tip::
 #    The ``tune`` function is based on `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ and internally converts input parameters to a YAML configuration.

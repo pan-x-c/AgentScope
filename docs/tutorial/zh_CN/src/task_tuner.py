@@ -22,8 +22,8 @@ AgentScope 提供了 ``tuner`` 模块，用于通过强化学习（RL）训练�
 
 此外，``tuner`` 还提供了若干用于自定义调优流程的配置类，包括：
 
-- **TunerChatModel**：专为调优设计的可配置对话模型，完全兼容 ``OpenAIChatModel`` 接口。
-- **Algorithm**：用于指定强化学习算法（如 GRPO、PPO 等）及其参数。
+- **TunerModelConfig**：用于指定被调优模型的相关配置。
+- **AlgorithmConfig**：用于指定强化学习算法（如 GRPO、PPO 等）及其参数。
 
 实现流程
 ~~~~~~~~~~~~~~~~~~~
@@ -52,9 +52,9 @@ AgentScope 提供了 ``tuner`` 模块，用于通过强化学习（RL）训练�
 
 .. code-block:: python
 
-    from agentscope.tuner import Dataset
+    from agentscope.tuner import DatasetConfig
 
-    dataset = Dataset(path="my_dataset", split="train")
+    dataset = DatasetConfig(path="my_dataset", split="train")
     dataset.preview(n=2)
     # 输出前两个样本以验证数据集加载正确
     # [
@@ -197,13 +197,13 @@ print(f"评判奖励: {judge_output.reward}")
 #
 # .. code-block:: python
 #
-#        from agentscope.tuner import tune, Algorithm, Dataset, TunerChatModel
+#        from agentscope.tuner import tune, AlgorithmConfig, DatasetConfig, TunerModelConfig
 #        # 你的工作流 / 评判函数 ...
 #
 #        if __name__ == "__main__":
-#            dataset = Dataset(path="my_dataset", split="train")
-#            model = TunerChatModel(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
-#            algorithm = Algorithm(
+#            dataset = DatasetConfig(path="my_dataset", split="train")
+#            model = TunerModelConfig(model_path="Qwen/Qwen3-0.6B", max_model_len=16384)
+#            algorithm = AlgorithmConfig(
 #                algorithm_type="multi_step_grpo",
 #                group_size=8,
 #                batch_size=32,
@@ -217,7 +217,7 @@ print(f"评判奖励: {judge_output.reward}")
 #                algorithm=algorithm,
 #            )
 #
-# 这里用 ``Dataset`` 配置训练数据集，用 ``TunerChatModel`` 配置可训练模型相关参数，用 ``Algorithm`` 指定强化学习算法及其超参数。
+# 这里用 ``DatasetConfig`` 配置训练数据集，用 ``TunerModelConfig`` 配置可训练模型相关参数，用 ``AlgorithmConfig`` 指定强化学习算法及其超参数。
 #
 # .. tip::
 #    ``tune`` 函数基于 `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ 实现，内部会将输入参数转换为 YAML 配置。
