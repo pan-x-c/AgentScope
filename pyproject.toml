@@ -63,7 +63,7 @@ full = [
     "packaging",
     "reme-ai>=0.2.0.3",
     # RAG
-    "pypdf",
+    "pypdf<=6.5.0",
     "python-docx",
     "nltk",
     # The qdrant-client >= 1.16.0 has conflicts with pymilvus, so we fix
