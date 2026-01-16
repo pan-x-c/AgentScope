@@ -261,16 +261,17 @@ react_agent/
 ```python
 from typing import Dict
 
-from agentscope.tuner import tune, WorkflowOutput, JudgeOutput, DatasetConfig, TunerModelConfig, AlgorithmConfig
+from agentscope.tuner import tune, WorkflowOutput, JudgeOutput, DatasetConfig, AlgorithmConfig
 from agentscope.agent import ReActAgent
+from agentscope.model import ChatModelBase
 from agentscope.formatter import OpenAIChatFormatter
 from agentscope.message import Msg
 
 
 async def run_react_agent(
     task: Dict,
-    model: TunerModelConfig,
-    auxiliary_models: Dict[str, TunerModelConfig],
+    model: ChatModelBase,
+    auxiliary_models: Dict[str, ChatModelBase],
 ) -> WorkflowOutput:
     agent = ReActAgent(
         name="react_agent",
@@ -289,7 +290,7 @@ async def run_react_agent(
 
 
 async def judge_function(
-    task: Dict, response: Msg, auxiliary_models: Dict[str, TunerModelConfig]
+    task: Dict, response: Msg, auxiliary_models: Dict[str, ChatModelBase]
 ) -> JudgeOutput:
     """Simple reward: 1.0 for exact match, else 0.0."""
     ground_truth = task["answer"]
@@ -362,4 +363,4 @@ After implementing the workflow function, follow these steps to run the training
     ![reward_curve](./reward_curve.png)
 
 > [!TIP]
-> For more tuning examples, refer to [tuner] directory of the AgentScope-Samples repository.
+> For more tuning examples, refer to [tuner](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner) directory of the AgentScope-Samples repository.
