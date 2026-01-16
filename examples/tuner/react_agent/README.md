@@ -239,7 +239,7 @@ Here, we use `DatasetConfig` to load the training dataset, `TunerModelConfig` to
 > The `tune` function is based on [Trinity-RFT](https://github.com/modelscope/Trinity-RFT) and it converts the input parameters into a YAML configuration internally.
 > Advanced users can ignore `model`, `train_dataset`, `algorithm` arguments and provide a configuration file path pointing to a YAML file using the `config_path` argument instead (see [config.yaml](./config.yaml) for an example).
 > We recommend using the configuration file approach for fine-grained control over the training process and leveraging advanced features provided by Trinity-RFT.
-> You can refer to the Trinity-RFT [Configuration Guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html) for more details on configuration options.
+> You can refer to the Trinity-RFT [Configuration Guide](https://agentscope-ai.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html) for more details on configuration options.
 
 The checkpoint and logs will automatically be saved to the `checkpoints/AgentScope` directory under the current working directory and each run will be save in a sub-directory suffixed with current timestamp.
 You can found the tensorboard logs inside `monitor/tensorboard` of the checkpoint directory.
@@ -330,7 +330,7 @@ After implementing the workflow function, follow these steps to run the training
 
     - At least 2 NVIDIA GPUs with CUDA 12.8 or newer.
     - Adjust the configuration file ([config.yaml](./config.yaml)) based on your hardware.
-    - Follow the Trinity-RFT [installation guide](https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html) to install the latest version from source code.
+    - Follow the Trinity-RFT [installation guide](https://agentscope-ai.github.io/Trinity-RFT/en/main/tutorial/trinity_installation.html) to install the latest version from source code.
     - Download the GSM8K dataset and Qwen/Qwen3-0.6B model checkpoints (example):
 
       ```bash

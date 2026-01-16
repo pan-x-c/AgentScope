@@ -222,7 +222,7 @@ print(f"Judge reward: {judge_output.reward}")
 # .. tip::
 #    The ``tune`` function is based on `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ and internally converts input parameters to a YAML configuration.
 #    Advanced users can skip the ``model``, ``train_dataset``, and ``algorithm`` arguments and instead provide a YAML config file path via the ``config_path`` argument.
-#    Using a configuration file is recommended for fine-grained control and to leverage advanced Trinity-RFT features. See the Trinity-RFT `Configuration Guide <https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html>`_ for more options.
+#    Using a configuration file is recommended for fine-grained control and to leverage advanced Trinity-RFT features. See the Trinity-RFT `Configuration Guide <https://agentscope-ai.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html>`_ for more options.
 #
 # Save the above code as ``main.py`` and run it with:
 #

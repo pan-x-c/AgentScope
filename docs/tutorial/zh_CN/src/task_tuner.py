@@ -223,7 +223,7 @@ print(f"评判奖励: {judge_output.reward}")
 #    ``tune`` 函数基于 `Trinity-RFT <https://github.com/modelscope/Trinity-RFT>`_ 实现，内部会将输入参数转换为 YAML 配置。
 #    高级用户可忽略 ``model``、``train_dataset``、``algorithm`` 参数，直接通过 ``config_path`` 指定 YAML 配置文件。
 #    推荐使用配置文件方式以便更细粒度地控制训练过程，充分利用 Trinity-RFT 的高级功能。
-#    你可参考 Trinity-RFT 的 `配置指南 <https://modelscope.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html>`_ 了解更多配置选项。
+#    你可参考 Trinity-RFT 的 `配置指南 <https://agentscope-ai.github.io/Trinity-RFT/en/main/tutorial/trinity_configs.html>`_ 了解更多配置选项。
 #
 # 你可以将上述代码保存为 ``main.py``，并用如下命令运行：
 #
