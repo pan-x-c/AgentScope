@@ -350,6 +350,21 @@ as_studio
     />
 </p>
 
+### 🏋 AgentScope Tuner
+
+AgentScope Tuner 是一个用于微调和优化智能体应用的强大工具。
+
+以下是使用 AgentScope Tuner 增强智能体能力的部分示例：
+
+| 示例名称         | 描述                                                                 | 示例路径                                                                 | 多步交互 | LLM 评审 | 工具使用 | 多智能体 | 数据增强 | 奖励曲线 |
+|------------------|----------------------------------------------------------------------|--------------------------------------------------------------------------|----------|----------|----------|----------|----------|----------|
+| 数学智能体       | 快速入门示例，调优数学智能体以提升其能力。                             | [math_agent](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner/math_agent)      | ✅ | ❌ | ❌ | ❌ | ❌ | <img src="https://img.alicdn.com/imgextra/i3/O1CN01Nwr22b1xMzozxAOTX_!!6000000006430-2-tps-770-696.png" width="150"> |
+| Frozen Lake     | 让智能体在与 Frozen Lake 环境的多步交互中学习。                      | [frozen_lake](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner/frozen_lake)    | ✅ | ❌ | ❌ | ❌ | ❌ | <img src="https://img.alicdn.com/imgextra/i3/O1CN010DmrKW1fb2t5pYAG0_!!6000000004024-2-tps-1200-600.png" width="150"> |
+| Learn to Ask    | 利用 LLM 作为评审，为智能体微调提供反馈。                            | [learn_to_ask](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner/learn_to_ask)  | ✅ | ✅ | ❌ | ❌ | ❌ | <img src="https://img.alicdn.com/imgextra/i2/O1CN011W9lQH1mtYCTmoXYY_!!6000000005012-2-tps-541-474.png" width="150"> |
+| 邮件搜索         | 增强智能体在无标准答案任务中的工具使用能力。                         | [email_search](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner/email_search)  | ✅ | ✅ | ✅ | ❌ | ❌ | <img src="https://img.alicdn.com/imgextra/i2/O1CN01oUqc1y1ePJ7YALyjs_!!6000000003863-2-tps-5056-2656.png" width="150"> |
+| 狼人杀游戏        | 提升智能体在多智能体游戏场景下的表现。                               | [werewolf_game](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner/werewolves)   | ✅ | ✅ | ✅ | ✅ | ❌ | <img src="https://img.alicdn.com/imgextra/i1/O1CN013GaiBx1yNk5BaLN51_!!6000000006567-2-tps-5056-2656.png" width="150"> |
+| 数据增强         | 通过数据增强获得更优的微调效果。                                     | [data_augment](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner/data_augment)  | ❌ | ❌ | ❌ | ❌ | ✅ | <img src="https://img.alicdn.com/imgextra/i4/O1CN016kpgYD1pxAAguLsXn_!!6000000005426-2-tps-1137-807.png" width="150"> |
+
 
 ## 📖 文档
 

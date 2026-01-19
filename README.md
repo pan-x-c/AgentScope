@@ -325,7 +325,6 @@ npm install -g @agentscope/studio
 
 as_studio
 ```
-
 <p align="center">
     <img
         src="https://img.alicdn.com/imgextra/i1/O1CN01PG2MdF1Zc44A1QM6N_!!6000000003214-1-tps-1971-1080.gif"
@@ -349,6 +348,20 @@ as_studio
     />
 </p>
 
+### 🏋 AgentScope Tuner
+
+AgentScope Tuner is a powerful tool for tuning and optimizing your agent applications.
+
+Below lists some examples of using AgentScope Tuner to enhance various agent capabilities:
+
+| Example Name      | Description                                                                        | Example Path                    | Multi-step Interaction  |  LLM-as-a-Judge | Tool-use | Multi-Agent | Data Augmentation | Reward Curve        |
+|-------------------|------------------------------------------------------------------------------------|--------------|-----------|-----------|-----------|-----------|-----------|-----------------------------|
+| Math Agent        | A quick start example for tuning a math-solving agent to enhance its capabilities. | [math_agent](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner/math_agent)      | ✅ | ❌ | ❌ | ❌ | ❌ | <img src="https://img.alicdn.com/imgextra/i3/O1CN01Nwr22b1xMzozxAOTX_!!6000000006430-2-tps-770-696.png" width="150"> |
+| Frozen Lake       | Make an agent to navigate the Frozen Lake environment in multi-step interactions.  | [frozen_lake](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner/frozen_lake)    | ✅ | ❌ | ❌ | ❌ | ❌ | <img src="https://img.alicdn.com/imgextra/i3/O1CN010DmrKW1fb2t5pYAG0_!!6000000004024-2-tps-1200-600.png" width="150"> |
+| Learn to Ask      | Using LLM as a judge to provide feedback to facilitate agent tuning.               | [learn_to_ask](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner/learn_to_ask)  | ✅ | ✅ | ❌ | ❌ | ❌ | <img src="https://img.alicdn.com/imgextra/i2/O1CN011W9lQH1mtYCTmoXYY_!!6000000005012-2-tps-541-474.png" width="150"> |
+| Email Search      | Enhance the tool use ability of your agent on tasks without ground truth.          | [email_search](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner/email_search)  | ✅ | ✅ | ✅ | ❌ | ❌ | <img src="https://img.alicdn.com/imgextra/i2/O1CN01oUqc1y1ePJ7YALyjs_!!6000000003863-2-tps-5056-2656.png" width="150"> |
+| Werewolf Game     | Enhance the agent's performance in a multi-agent game setting.                     | [werewolf_game](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner/werewolves)| ✅ | ✅ | ✅ | ✅ | ❌ | <img src="https://img.alicdn.com/imgextra/i1/O1CN013GaiBx1yNk5BaLN51_!!6000000006567-2-tps-5056-2656.png" width="150"> |
+| Data Augment      | Data augmentation for better tuning results.                                       | [data_augment](https://github.com/agentscope-ai/agentscope-samples/tree/main/tuner/data_augment)  | ❌ | ❌ | ❌ | ❌ | ✅ | <img src="https://img.alicdn.com/imgextra/i4/O1CN016kpgYD1pxAAguLsXn_!!6000000005426-2-tps-1137-807.png" width="150"> |
 
 ## 📖 Documentation
 
