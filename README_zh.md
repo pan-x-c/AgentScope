@@ -149,6 +149,7 @@ AgentScope v1.0 新功能概览:
   - [🛠️ 细粒度 MCP 控制](#-%E7%BB%86%E7%B2%92%E5%BA%A6-mcp-%E6%8E%A7%E5%88%B6)
   - [🧑‍🤝‍🧑 多智能体对话](#-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%AF%B9%E8%AF%9D)
   - [💻 AgentScope Studio](#-agentscope-studio)
+  - [🏋 AgentScope Tuner](#-agentscope-tuner)
 - [📖 文档](#-%E6%96%87%E6%A1%A3)
 - [🤝 贡献](#-%E8%B4%A1%E7%8C%AE)
 - [⚖️ 许可](#-%E8%AE%B8%E5%8F%AF)

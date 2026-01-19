@@ -149,6 +149,7 @@ Welcome to join our community on
   - [🛠️ Fine-Grained MCP Control](#-fine-grained-mcp-control)
   - [🧑‍🤝‍🧑 Multi-Agent Conversation](#-multi-agent-conversation)
   - [💻 AgentScope Studio](#-agentscope-studio)
+  - [🏋 AgentScope Tuner](#-agentscope-tuner)
 - [📖 Documentation](#-documentation)
 - [🤝 Contributing](#-contributing)
 - [⚖️ License](#-license)
