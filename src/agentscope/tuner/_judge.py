@@ -36,7 +36,8 @@ JudgeType = Callable[
 #         usage. The keys are model names, and the values are the corresponding
 #         `ChatModelBase` instances.
 #     logger (`Logger | None`):
-#         An optional logger for logging information during the judge execution.
+#         An optional logger for logging information during the judge
+#         execution.
 # Returns:
 #     `JudgeOutput`:
 #         The reward value assigned by the judge function along with optional
