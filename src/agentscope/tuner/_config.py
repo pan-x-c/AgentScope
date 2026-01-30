@@ -184,7 +184,7 @@ def check_workflow_function(
         func (Callable): The function to check.
     """
     essential_params = ["task", "model"]
-    optional_params = ["auxiliary_models"]
+    optional_params = ["auxiliary_models", "logger"]
     _check_function_signature(
         func,
         essential_params,
@@ -201,7 +201,7 @@ def check_judge_function(
         func (Callable): The function to check.
     """
     essential_params = ["task", "response"]
-    optional_params = ["auxiliary_models"]
+    optional_params = ["auxiliary_models", "logger"]
     _check_function_signature(
         func,
         essential_params,

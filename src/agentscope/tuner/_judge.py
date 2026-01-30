@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """The judge module for tuner."""
 from typing import Any, Callable, Dict, Awaitable
+from logging import Logger
 from pydantic import BaseModel, Field
 from ..model import ChatModelBase
 
@@ -19,7 +20,7 @@ class JudgeOutput(BaseModel):
 
 
 JudgeType = Callable[
-    [Dict, Any, Dict[str, ChatModelBase]],
+    [Dict, Any, Dict[str, ChatModelBase] | None, Logger | None],
     Awaitable[JudgeOutput],
 ]
 # A judge function type for tuning.
@@ -34,6 +35,8 @@ JudgeType = Callable[
 #         A dictionary of additional chat models available for LLM-as-a-Judge
 #         usage. The keys are model names, and the values are the corresponding
 #         `ChatModelBase` instances.
+#     logger (`Logger | None`):
+#         An optional logger for logging information during the judge execution.
 # Returns:
 #     `JudgeOutput`:
 #         The reward value assigned by the judge function along with optional
