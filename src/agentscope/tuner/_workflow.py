@@ -42,12 +42,12 @@ WorkflowType = Callable[
 #     model (`ChatModelBase`):
 #         The primary chat model used in the workflow, this is the main model
 #         being tuned.
-#     auxiliary_models (`Dict[str, ChatModelBase] | None`):
+#     auxiliary_models (`Dict[str, ChatModelBase] | None`, optional):
 #         A dictionary of additional chat models available for LLM-as-a-Judge
 #         usage. The keys are model names, and the values are the corresponding
 #         `ChatModelBase` instances. Note that these auxiliary models are not
 #         tuned during the workflow.
-#     logger (`Logger | None`):
+#     logger (`Logger | None`, optional):
 #         An optional logger for logging information during the workflow
 #         execution.
 # Returns:
