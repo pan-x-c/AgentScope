@@ -68,7 +68,7 @@ class TunerModelConfig(BaseModel):
         default="deepseek_r1",
     )
 
-    tinker_config: TinkerModelConfig | None = Field(
+    tinker_config: TinkerConfig | None = Field(
         description=(
             "The configuration for Tinker. " "If None, Tinker is not used."
         ),
@@ -93,8 +93,8 @@ class TunerModelConfig(BaseModel):
         }
 
 
-class TinkerModelConfig(BaseModel):
-    """Model configuration for Tinker models."""
+class TinkerConfig(BaseModel):
+    """Model configuration for Tinker."""
 
     rank: int = Field(
         description="The LoRA rank of the Tinker model.",
