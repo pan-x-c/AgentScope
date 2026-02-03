@@ -108,13 +108,31 @@ if __name__ == "__main__":
         split="train",
     )
     tuner_model = TunerModelConfig(
-        model_path="Qwen/Qwen3-0.6B",
+        model_path="Qwen/Qwen3-4B-Instruct-2507",
         max_model_len=24576,
         max_tokens=16384,
         temperature=1.0,
         inference_engine_num=4,
         tensor_parallel_size=1,
     )
+
+    # If you have no GPU and want to use Tinker,
+    # uncomment the following code
+    # If you want to use local deployed TuFT
+    # set `base_url` to your TuFT server address.
+    #
+    # from agentscope.tuner import TinkerConfig
+    # tuner_model = TunerModelConfig(
+    #     model_path="Qwen/Qwen3-4B-Instruct-2507",
+    #     max_model_len=24576,
+    #     max_tokens=16384,
+    #     temperature=1.0,
+    #     tinker_config=TinkerConfig(
+    #         rank=16,
+    #         base_url=None,
+    #     ),
+    # )
+
     algorithm = AlgorithmConfig(
         algorithm_type="multi_step_grpo",
         group_size=8,
