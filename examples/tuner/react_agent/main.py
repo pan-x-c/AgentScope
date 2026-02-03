@@ -108,7 +108,7 @@ if __name__ == "__main__":
         split="train",
     )
     tuner_model = TunerModelConfig(
-        model_path="Qwen/Qwen3-4B-Instruct-2507",
+        model_path="Qwen/Qwen3-0.6B",
         max_model_len=24576,
         max_tokens=16384,
         temperature=1.0,
