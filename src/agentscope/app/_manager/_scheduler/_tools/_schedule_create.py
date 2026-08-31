@@ -233,6 +233,7 @@ to complete the task independently.
             ),
         )
 
+        self._scheduler_manager.validate_schedule(record)
         await self._storage.upsert_schedule(self._user_id, record)
         await self._scheduler_manager.notify_changed(record.id)
 

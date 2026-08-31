@@ -91,7 +91,8 @@ async def create_schedule(
     Raises:
         `HTTPException`: 404 if the specified agent or the credential
             referenced by ``chat_model_config`` is not visible to the
-            caller.
+            caller; 422 if the cron expression, timezone or activation
+            window is invalid.
     """
     # Visibility checks — raise 404 when neither owned nor shared. The
     # schedule fires under the owner's user_id, so re-validating the
@@ -120,6 +121,15 @@ async def create_schedule(
             started_at=datetime.now(),
         ),
     )
+
+    try:
+        scheduler.validate_schedule(record)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
     await storage.upsert_schedule(user_id, record)
     await scheduler.notify_changed(record.id)
 
@@ -157,7 +167,9 @@ async def update_schedule(
             The updated schedule record.
 
     Raises:
-        `HTTPException`: 404 if the schedule does not exist.
+        `HTTPException`: 404 if the schedule does not exist; 422 if the
+            update leaves an invalid cron expression, timezone or
+            activation window.
     """
     existing = await storage.get_schedule(user_id, schedule_id)
     if existing is None:
@@ -171,6 +183,15 @@ async def update_schedule(
     updated_record = existing.model_copy(
         update={"data": updated_data, "updated_at": datetime.now()},
     )
+
+    try:
+        scheduler.validate_schedule(updated_record)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
     await storage.upsert_schedule(user_id, updated_record)
     await scheduler.notify_changed(schedule_id)
 
