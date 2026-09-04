@@ -739,6 +739,26 @@ class Agent:
             self.state.summary = new_summary
             self.state.context = msgs_to_reserve
 
+            # The compression call is not covered by the model call events,
+            # so record its cost on the context tail to keep it in the token
+            # accounting
+            if res is not None and res.usage is not None:
+                if not self.state.context:
+                    # The whole context is compressed, so carry the cost by an
+                    # empty message, which is skipped by the formatters
+                    self.state.append_context(self.name, [])
+
+                self.state.context[-1].append_usage(
+                    Usage(
+                        input_tokens=res.usage.input_tokens,
+                        output_tokens=res.usage.output_tokens,
+                        cache_input_tokens=res.usage.cache_input_tokens or 0,
+                        cache_creation_input_tokens=(
+                            res.usage.cache_creation_input_tokens or 0
+                        ),
+                    ),
+                )
+
             logger.info(
                 "[AGENT %s]: The context compression finished.",
                 self.name,
@@ -3449,17 +3469,8 @@ class Agent:
 
         self.state.append_context(self.name, persisted_blocks)
 
-        tail = self.state.context[-1]
         if msg_usage is not None:
-            if tail.usage is None:
-                tail.usage = msg_usage
-            else:
-                tail.usage.input_tokens += msg_usage.input_tokens
-                tail.usage.output_tokens += msg_usage.output_tokens
-                tail.usage.cache_input_tokens += msg_usage.cache_input_tokens
-                tail.usage.cache_creation_input_tokens += (
-                    msg_usage.cache_creation_input_tokens
-                )
+            self.state.context[-1].append_usage(msg_usage)
 
     def _get_last_msg(self) -> Msg | None:
         """Get the last message in the context that belongs to this agent."""
