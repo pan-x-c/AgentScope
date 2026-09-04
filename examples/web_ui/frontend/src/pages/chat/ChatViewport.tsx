@@ -224,14 +224,28 @@ export function ChatViewport({ agentId, sessionId, onSessionsChanged }: ChatView
 		onSessionsChanged?.();
 	}, [refetchSessions, onSessionsChanged]);
 
-	const handleStateUpdated = useCallback((value: Record<string, unknown>) => {
-		if (value.tasks_context) {
-			setTasksContext(value.tasks_context as TaskContext);
-		}
-		if (value.permission_context) {
-			setPermissionContext(value.permission_context as PermissionContext);
-		}
-	}, []);
+	// Surface the plan panel the first time a session's tasks arrive over
+	// the stream, and only then — reopening it on every update would undo
+	// the user closing it. `state_updated` also fires for permission-only
+	// changes and always carries `tasks_context`, hence gating on a
+	// non-empty task list rather than the field being present.
+	const taskPanelOpenedForRef = useRef<string | null>(null);
+	const handleStateUpdated = useCallback(
+		(value: Record<string, unknown>) => {
+			if (value.tasks_context) {
+				const incoming = value.tasks_context as TaskContext;
+				setTasksContext(incoming);
+				if (incoming.tasks.length > 0 && taskPanelOpenedForRef.current !== sessionId) {
+					taskPanelOpenedForRef.current = sessionId;
+					setPanelLayout((layout) => openPanelInLayout(layout, 'plan'));
+				}
+			}
+			if (value.permission_context) {
+				setPermissionContext(value.permission_context as PermissionContext);
+			}
+		},
+		[sessionId],
+	);
 
 	const {
 		msgs,
